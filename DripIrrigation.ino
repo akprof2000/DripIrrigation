@@ -9,9 +9,9 @@ int AirValue = 550;    // Максимальное значение сухого
 int WaterValue = 215;  // Минимальное значение погруженного датчика
 
 
-const long WAIT = 1000;
+const unsigned long WAIT = 1000;
 const int DISP = 3;
-byte DELTA = 4;
+byte DELTA = 2;
 
 
 
@@ -21,8 +21,8 @@ byte SensVal[] = { 0, 0, 0, 0 };
 byte DefVal[] = { 50, 50, 50, 50 };
 bool Enabled[] = { false, false, false, false };
 
-long curr = 0;
-long disp = 0;
+unsigned long curr = 0;
+unsigned long disp = 0;
 
 bool btn_down[] = { false, false, false, false, false };
 bool btn_clk[] = { false, false, false, false, false };
@@ -31,7 +31,7 @@ bool btn_clk[] = { false, false, false, false, false };
 void setup() {
   // put your setup code here, to run once:
   // initialize digital pin LED_BUILTIN as an output.
-  // Serial.begin(9600);
+  Serial.begin(9600);
 
   tm1637.init();
   tm1637.set(BRIGHT_TYPICAL);  //BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
@@ -44,11 +44,12 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, LOW);
   curr = millis();
-  parseButtons();
+  int val = analogRead(A0);
+
   bool blink = true;
-  while (btn_down[0]) {
+  while (val >= 0 && val < 50) {
     delay(300);
-    parseButtons();
+    val = analogRead(A0);
 
     if (blink)
       digitalWrite(LED_BUILTIN, HIGH);
@@ -179,7 +180,7 @@ bool fixed = false;
 int mode = 0;
 bool skip = false;
 
-long wait_btn = 0;
+unsigned long wait_btn = 0;
 
 bool income = false;
 
@@ -192,6 +193,8 @@ void loop() {
   if (mode == 0) {
     if (btn_clk[0]) {
       fixed = !fixed;
+      if (fixed)
+        disp--;
       btn_clk[0] = false;
       skip = true;
       delta_disp = 0;
@@ -228,7 +231,7 @@ void loop() {
 
     if (fixed) {
       if (btn_down[2]) {
-        if (wait_btn + 5000 < millis()) {
+        if (wait_btn + 3000 < millis()) {
           mode = 1;
           disp = 0;
           skip = true;
@@ -316,7 +319,6 @@ void loop() {
 
   if (mode == 2) {
     if (btn_clk[0]) {
-      fixed = false;
       btn_clk[0] = false;
       mode = 0;
       skip = true;
@@ -444,12 +446,16 @@ void loop() {
 
     if (mode == 0) {
       if (delta_disp == 0) {
-
+        if (disp > 3) disp = 0;
+        if (disp < 0) disp = 3;
         tm1637.point(Enabled[disp]);
         //tm1637.display(TimeDisp);
 
         tm1637.display(0, disp + 1);
-        tm1637.display(1, 0x7f);
+        if (fixed)
+          tm1637.display(1, 15);
+        else
+          tm1637.display(1, 0x7f);
         tm1637.display(2, (int8_t)(SensVal[disp] / 10));
         tm1637.display(3, (int8_t)(SensVal[disp] % 10));
 
@@ -458,7 +464,6 @@ void loop() {
         if (!fixed) {
           disp++;
         }
-        if (disp > 3) disp = 0;
       }
 
       delta_disp++;
