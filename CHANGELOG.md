@@ -1,3 +1,12 @@
+## [1.0.1](https://akprof2000.visualstudio.com/compare/v1.0.0...v1.0.1) (2023-07-23)
+
+
+### Bug Fixes
+
+* добавил вотч дог, а то повисает ([2bc2cf6](https://akprof2000.visualstudio.com/commits/2bc2cf6444093da7f3c37a7a92f3dc9c058632e6))
+
+
+
 # 1.0.0 (2023-07-01)
 
 
