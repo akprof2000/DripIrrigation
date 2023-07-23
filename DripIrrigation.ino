@@ -1,5 +1,6 @@
 #include "TM1637.h"
 #include <EEPROM.h>
+#include <GyverWDT.h>
 
 #define CLK 5  //pins definitions for TM1637 and can be changed to other ports
 #define DIO 3
@@ -29,12 +30,14 @@ bool btn_clk[] = { false, false, false, false, false };
 
 
 void setup() {
+
   // put your setup code here, to run once:
   // initialize digital pin LED_BUILTIN as an output.
   Serial.begin(9600);
 
   tm1637.init();
   tm1637.set(BRIGHT_TYPICAL);  //BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
+
   pinMode(LED_BUILTIN, OUTPUT);
   for (int i = 0; i < 4; i++) {
     pinMode(PinSens[i], INPUT);
@@ -78,6 +81,8 @@ void setup() {
   DefVal[2] = EEPROM.read(10);
   DefVal[3] = EEPROM.read(11);
   DELTA = EEPROM.read(12);
+
+  Watchdog.enable(RESET_MODE, WDT_PRESCALER_1024);
 }
 
 // чтение
@@ -424,6 +429,7 @@ void loop() {
 
 
   if (millis() > curr + WAIT || skip) {
+    Watchdog.reset();
     skip = false;
 
     //Serial.println(analogRead(A0));
