@@ -3,6 +3,8 @@
 #include <EEPROM.h>
 #include "SimplePortal.h"
 #include "objects.h"
+#include "telegram.h"
+
 
 char SSID[32] = "";
 char pass[32] = "";
@@ -15,10 +17,61 @@ const int BUTTON = 23;
 
 byte init_config = 0;
 
+unsigned long previousMillis = 0;
+unsigned long interval = 30000;
 
-void init()
-{
+bool droped = false;
+
+void ReCheck() {
+  unsigned long currentMillis = millis();
+  // if WiFi is down, try reconnecting
+  if (currentMillis - previousMillis >= interval) {
+    if (WiFi.status() != WL_CONNECTED) {
+      droped = true;
+      Serial.println("Reconnecting to WiFi...");
+      WiFi.disconnect();
+      WiFi.reconnect();
+      previousMillis = currentMillis;
+    } else {
+      if (droped) {
+        droped = false;
+        reConnection();
+      }
+    }
+  }
+}
+
+
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Connected to AP successfully!");
+}
+
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.wifi_sta_disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  WiFi.begin(SSID, pass);
+}
+
+
+void init() {
   EEPROM.begin(4096);
+
+  WiFi.disconnect(true);
+
+  delay(1000);
+  /*
+  WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+*/
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUTTON, INPUT);
@@ -118,15 +171,26 @@ void init()
   WiFi.mode(mode);
   WiFi.begin(SSID, pass);
 
+  int ind = 0;
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    ind++;
+    if (ind > 30) {
+      break;
+    }
   }
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("WiFi not connected wait foe connect after");
+  } else {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
 
   if (init_config == 0) {
     init_config = 1;

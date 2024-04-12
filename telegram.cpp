@@ -13,6 +13,13 @@ void loadUsers();
 void botInit() {
   bot.attach(newMsg);
   loadUsers();
+  if (bot.timeSynced()) {
+    FB_Time t = bot.getTime(3);
+    Serial.println("Time Date");
+    Serial.print(t.timeString());  // ЧЧ:ММ:СС
+    Serial.print(' ');
+    Serial.println(t.dateString());  // ДД.ММ.ГГГГ
+  }
 }
 class Action {
 public:
@@ -80,6 +87,24 @@ void saveUsers() {
   EEPROM.end();
 }
 
+void reConnection() {
+  Serial.println("try send reconnect message");
+  SimpleVector<String> keys = users.keys();
+  for (const String& key : keys) {
+    User* user = users.get(key);
+    Serial.print("Send message for user: ");
+    Serial.println(user->userID);
+    bot.sendMessage("Система снова в сети!", user->userID);
+  }
+  if (bot.timeSynced()) {
+    FB_Time t = bot.getTime(3);
+    Serial.println("Time Date");
+    Serial.print(t.timeString());  // ЧЧ:ММ:СС
+    Serial.print(' ');
+    Serial.println(t.dateString());  // ДД.ММ.ГГГГ
+  }
+}
+
 void loadUsers() {
   EEPROM.begin(4096);
   int ind = 0;
@@ -100,8 +125,6 @@ void loadUsers() {
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
     }
   }
-
-  EEPROM.commit();
   EEPROM.end();
 }
 

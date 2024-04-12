@@ -8,7 +8,7 @@
 
 
 void botInit();
-
+void reConnection();
 
 
 

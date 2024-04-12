@@ -12,4 +12,6 @@
 
 void init();
 
+void ReCheck();
+
 #endif
