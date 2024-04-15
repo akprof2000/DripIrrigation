@@ -19,14 +19,24 @@ void botInit() {
     Serial.print(t.timeString());  // ЧЧ:ММ:СС
     Serial.print(' ');
     Serial.println(t.dateString());  // ДД.ММ.ГГГГ
+    DateTime now = rtc.now();
+ 
+    int64_t t1 = now.unixtime();
+    int64_t t2 = bot.getUnix() + 3600 * 3;
+
+    if (abs(t1 - t2) > 9) {
+      rtc.adjust(DateTime(t.year, t.month, t.day, t.hour, t.minute, t.second));
+      Serial.println("RTS Adjusting");
+    }
   }
 }
+
 class Action {
 public:
   String userID;
-  byte action;
+  int action;
 
-  Action(const String& u, byte a)
+  Action(const String& u, int a)
     : userID(u), action(a) {}
 };
 
@@ -102,7 +112,65 @@ void reConnection() {
     Serial.print(t.timeString());  // ЧЧ:ММ:СС
     Serial.print(' ');
     Serial.println(t.dateString());  // ДД.ММ.ГГГГ
+
+    DateTime now = rtc.now();
+ 
+    int64_t t1 = now.unixtime();
+    int64_t t2 = bot.getUnix() + 3600 * 3;
+
+    if (abs(t1 - t2) > 9) {
+      rtc.adjust(DateTime(t.year, t.month, t.day, t.hour, t.minute, t.second));
+      Serial.println("RTS Adjusting");
+    }
   }
+}
+
+void dropCDCard() {
+  Serial.println("try send disconnect CD CARD message");
+  SimpleVector<String> keys = users.keys();
+  for (const String& key : keys) {
+    User* user = users.get(key);
+    Serial.print("Send message for user: ");
+    Serial.println(user->userID);
+    bot.sendMessage(F("Отсутсвует CD карта система не сможет работать!"), user->userID);
+  }
+}
+
+void connectCDCard() {
+  Serial.println("try send CD CARD Connected message");
+  SimpleVector<String> keys = users.keys();
+  for (const String& key : keys) {
+    User* user = users.get(key);
+    Serial.print("Send message for user: ");
+    Serial.println(user->userID);
+    bot.sendMessage(F("CD карта снова активна!"), user->userID);
+  }
+}
+
+bool isNumeric(String str) {
+  unsigned int stringLength = str.length();
+
+  if (stringLength == 0) {
+    return false;
+  }
+
+  boolean seenDecimal = false;
+
+  for (unsigned int i = 0; i < stringLength; ++i) {
+    if (isDigit(str.charAt(i))) {
+      continue;
+    }
+
+    if (str.charAt(i) == '.') {
+      if (seenDecimal) {
+        return false;
+      }
+      seenDecimal = true;
+      continue;
+    }
+    return false;
+  }
+  return true;
 }
 
 void loadUsers() {
@@ -143,11 +211,11 @@ void newMsg(FB_msg& msg) {
 
   if (users.elements() == 0) {
     if (msg.text == String(tstr)) {
-      bot.replyMessage("Привет, первый администратор!", msg.messageID, msg.chatID);
+      bot.replyMessage(F("Привет, владелец системы!"), msg.messageID, msg.chatID);
       users.put(msg.userID, User(msg.userID, 0));
       saveUsers();
     } else {
-      bot.replyMessage("Первый запрос должен быть с ключевым словом, полученным при настройке Wifi", msg.messageID, msg.chatID);
+      bot.replyMessage(F("Первый запрос должен быть с ключевым словом, полученным при настройке Wifi"), msg.messageID, msg.chatID);
     }
     return;
   }
@@ -161,32 +229,170 @@ void newMsg(FB_msg& msg) {
 
     if (actions.containsKey(msg.userID)) {
       Action* act = actions.get(msg.userID);
-      if (act->action == 1) {
+      if (command == "/reset") {
+        act->action = 0;
+      } else if (act->action >= 1130 && act->action <= 1137) {
+        if (msg.text == "ЗАВЕРШИТЬ") {
+          int ind = act->action - 1130;
+          bot.sendMessage("Калибровка завершена датчик № " + String(ind + 1) + " полностью функционален!", msg.userID);
+          act->action = 0;
+          return;
+        } else if (msg.text == "ОТМЕНА") {
+          bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          command = F("/Calibrate");
+        }
+        act->action = 0;
+      } else if (act->action >= 1120 && act->action <= 1127) {
+        if (msg.text == "ДАЛЕЕ") {
+          int ind = act->action - 1120;
+          bot.sendMessage("Установите датчик № " + String(ind + 1) + " в почву и нажмите завершить!", msg.userID);
+          bot.showMenuText("<Колиброка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1130 + ind));
+          return;
+        } else if (msg.text == "ОТМЕНА") {
+          bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          command = F("/Calibrate");
+        }
+        act->action = 0;
+      } else if (act->action >= 1110 && act->action <= 1117) {
+        if (msg.text == "ДАЛЕЕ") {
+          int ind = act->action - 1110;
+          bot.sendMessage("Достаньте датчик № " + String(ind + 1) + " из воды протрите и нажмите далее!", msg.userID);
+          bot.showMenuText("<Колиброка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1120 + ind));
+          return;
+        } else if (msg.text == "ОТМЕНА") {
+          bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          command = F("/Calibrate");
+        }
+        act->action = 0;
+      } else if (act->action >= 1100 && act->action <= 1107) {
+        if (msg.text == "СТАРТ") {
+          int ind = act->action - 1100;
+          bot.sendMessage("Положите датчик № " + String(ind + 1) + " в воду и нажмите далее!", msg.userID);
+          bot.showMenuText("<Колиброка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1110 + ind));
+          return;
+        } else if (msg.text == "ОТМЕНА") {
+          bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          command = F("/Calibrate");
+        }
+        act->action = 0;
+      } else if (act->action == 1) {
         act->action = 0;
         if (msg.text == "ДА") {
           res = 1;
-          bot.sendMessage("Перезагрузка начата!", msg.userID);
+          bot.sendMessage(F("Перезагрузка начата!"), msg.userID);
           return;
         } else if (msg.text == "НЕТ") {
-          bot.sendMessage("Перезагрузка отменена!", msg.userID);
+          bot.sendMessage(F("Перезагрузка отменена!"), msg.userID);
+          return;
+        }
+      } else if (act->action == 1001) {
+        act->action = 0;
+        if (msg.text == "ДА") {
+          myConfig.runOnNight = true;
+          bot.sendMessage(F("Работа ночью включена!"), msg.userID);
+        } else if (msg.text == "НЕТ") {
+          myConfig.runOnNight = false;
+          bot.sendMessage(F("Работа ночью выключена!"), msg.userID);
+        }
+        command = "/Configure";
+        data.update();
+      } else if (act->action == 1002) {
+        act->action = 0;
+        if (msg.text == "ДА") {
+          myConfig.runOnRain = true;
+          bot.sendMessage(F("Работа под дождём включена!"), msg.userID);
+        } else if (msg.text == "НЕТ") {
+          myConfig.runOnRain = false;
+          bot.sendMessage(F("Работа под дождём выключена!"), msg.userID);
+        }
+        command = "/Configure";
+        data.update();
+      } else if (act->action == 1003) {
+        String input = String(msg.text);
+        if (isNumeric(input)) {
+          int num = input.toInt();
+          if (num >= 0 && num <= 100) {
+            act->action = 0;
+            myConfig.deltaHum = num;
+            data.update();
+            command = "/Configure";
+          } else {
+            bot.sendMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
+            return;
+          }
+        } else {
+          Serial.println(F("Input error"));
+          bot.sendMessage(F("Ожидалось ввод целого числа повторите!"), msg.userID);
+          return;
+        }
+      } else if (act->action == 1004) {
+        String input = String(msg.text);
+        if (isNumeric(input)) {
+          int num = input.toInt();
+          if (num >= 0 && num <= 2048) {
+            act->action = 0;
+            myConfig.deltaCalibr = num;
+            data.update();
+            command = "/Configure";
+          } else {
+            bot.sendMessage(F("Ожидался значение (от 0 до 2048)!"), msg.userID);
+            return;
+          }
+        } else {
+          Serial.println(F("Input error"));
+          bot.sendMessage(F("Ожидался ввод целого числа повторите!"), msg.userID);
           return;
         }
       }
     }
 
-    if (msg.OTA && check_user->role < 2 && msg.fileName == "update.bin") {
+    if (msg.OTA && check_user->role < 1 && msg.fileName == "update.bin") {
       bot.update();
       return;
+    } else {
+      if (msg.OTA) bot.sendMessage("Только владельци системы могут отправлять обновления устройства", msg.chatID);
     }
 
     if (command[0] == '/') {
       if (check_user->role == 0) {
       }
       if (check_user->role < 2) {
-        if (command == "/Restart") {
+        if (command.startsWith("/HumidityCalibrate")) {
+          String prob = getValue(command, '_', 1);
+          int ind = prob.toInt();
+          bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапусить калибровку датчика № " + String(ind + 1) + "?", msg.userID);
+          bot.showMenuText("<Колиброка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1100 + ind));
+        } else if (command == "/Calibrate") {
+          String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
+          String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
+          bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
+        } else if (command == "/DeltaHumidity") {
+          bot.sendMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
+          actions.put(msg.userID, Action(msg.userID, 1004));
+        } else if (command == "/DeltaHumidity") {
+          bot.sendMessage(F("Введите значение (от 0 до 100) %:"), msg.userID);
+          actions.put(msg.userID, Action(msg.userID, 1003));
+        } else if (command == "/WorkAtRain") {
+          bot.sendMessage(F("Включить режим работы во время дождя!"), msg.userID);
+          bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1002));
+        } else if (command == "/WorkAtNight") {
+          bot.sendMessage(F("Включить режим работы в ночное время!"), msg.userID);
+          bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
+          actions.put(msg.userID, Action(msg.userID, 1001));
+        } else if (command == "/Configure") {
+          ///TODO сделать конфигурацию в зависимости от датчиков
+          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[ ]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[ ]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibr) + ") \n Калибровка \n Назад");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibr,/Calibrate,/reset");
+          bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
+        } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
-          for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-            User* user = users.get(key);    // Get the Person object associated with the key
+          for (const String& key : keys) {
+            User* user = users.get(key);
             bot.sendMessage("Система будет перзагруженна!", user->userID);
           }
           // res = 1;
@@ -199,8 +405,8 @@ void newMsg(FB_msg& msg) {
 
         } else if (command == "/UsersList") {
           SimpleVector<String> keys = users.keys();
-          for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-            User* user = users.get(key);    // Get the Person object associated with the key
+          for (const String& key : keys) {
+            User* user = users.get(key);
             bot.sendMessage("Пользователь йд: " + user->userID + ". Роль: " + user->role, msg.chatID);
           }
           //if (msg.query == 1) bot.answer("Выполнено", FB_NOTIF);
@@ -208,8 +414,8 @@ void newMsg(FB_msg& msg) {
           SimpleVector<String> keys = users.keys();
           String menu = "";
           String cback = "";
-          for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-            User* user = users.get(key);    // Get the Person object associated with the key
+          for (const String& key : keys) {
+            User* user = users.get(key);
             if (user->role == 1) {
               menu += user->userID + F(" \n ");
               cback += "/DownGradeUser_" + user->userID + F(",");
@@ -224,8 +430,8 @@ void newMsg(FB_msg& msg) {
           SimpleVector<String> keys = users.keys();
           String menu = "";
           String cback = "";
-          for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-            User* user = users.get(key);    // Get the Person object associated with the key
+          for (const String& key : keys) {
+            User* user = users.get(key);
             if (user->role > 1) {
               menu += user->userID + F(" \n ");
               cback += "/GradeUser_" + user->userID + F(",");
@@ -240,8 +446,8 @@ void newMsg(FB_msg& msg) {
           SimpleVector<String> keys = users.keys();
           String menu = "";
           String cback = "";
-          for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-            User* user = users.get(key);    // Get the Person object associated with the key
+          for (const String& key : keys) {
+            User* user = users.get(key);
             if (user->role > 0) {
               menu += user->userID + F(" \n ");
               cback += "/RemoveUser_" + user->userID + F(",");
@@ -313,8 +519,8 @@ void newMsg(FB_msg& msg) {
       }
       if (command == "/GradeMeUp") {
         SimpleVector<String> keys = users.keys();
-        for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-          User* user = users.get(key);    // Get the Person object associated with the key
+        for (const String& key : keys) {
+          User* user = users.get(key);
           if (user->role < 2) {
             bot.sendMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит поднять его в провах. /GradeUser_" + msg.userID, user->userID);
           }
@@ -333,8 +539,8 @@ void newMsg(FB_msg& msg) {
   } else {
     if (msg.text == "/register") {
       SimpleVector<String> keys = users.keys();
-      for (const String& key : keys) {  // Iterate through the keys, using a range-based for loop... String& is used to avoid copying the key
-        User* user = users.get(key);    // Get the Person object associated with the key
+      for (const String& key : keys) {
+        User* user = users.get(key);
         if (user->role < 2) {
           bot.sendMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит его зарегистрировать. /AddUser_" + msg.userID, user->userID);
         }

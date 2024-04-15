@@ -9,6 +9,8 @@
 
 void botInit();
 void reConnection();
+void dropCDCard();
+void connectCDCard();
 
 
 

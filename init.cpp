@@ -1,37 +1,40 @@
 #include "init.h"
 #include <WiFi.h>
 #include <EEPROM.h>
+
+
 #include "SimplePortal.h"
 #include "objects.h"
 #include "telegram.h"
 
 
+
+
+
 char SSID[32] = "";
 char pass[32] = "";
 
-
 wifi_mode_t mode = WIFI_AP;  // (1 WIFI_STA, 2 WIFI_AP)
-
-const int LED_BUILTIN = 2;
-const int BUTTON = 23;
 
 byte init_config = 0;
 
 unsigned long previousMillis = 0;
-unsigned long interval = 30000;
+unsigned long interval = CHECK_WIFI_INTERVAL;
 
 bool droped = false;
+bool cdcard = true;
 
 void ReCheck() {
   unsigned long currentMillis = millis();
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
     if (WiFi.status() != WL_CONNECTED) {
       droped = true;
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
       WiFi.reconnect();
-      previousMillis = currentMillis;
+
     } else {
       if (droped) {
         droped = false;
@@ -39,6 +42,8 @@ void ReCheck() {
       }
     }
   }
+
+  if (data.tick() == FD_WRITE) Serial.println("Data updated!");
 }
 
 
@@ -62,14 +67,16 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 
 
 void init() {
+
   EEPROM.begin(4096);
 
   WiFi.disconnect(true);
 
   delay(1000);
-  /*
+
   WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  /*
   WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 */
 
@@ -200,4 +207,81 @@ void init() {
     EEPROM.commit();
   }
   EEPROM.end();
+
+  while (!SD.begin(5)) {
+    delay(1000);
+    Serial.println("Card Mount Failed");
+  }
+
+
+  uint8_t cardType = SD.cardType();
+
+  if (cardType == CARD_NONE) {
+    Serial.println("No SD card attached");
+    return;
+  }
+
+  Serial.print("SD Card Type: ");
+  if (cardType == CARD_MMC) {
+    Serial.println("MMC");
+  } else if (cardType == CARD_SD) {
+    Serial.println("SDSC");
+  } else if (cardType == CARD_SDHC) {
+    Serial.println("SDHC");
+  } else {
+    Serial.println("UNKNOWN");
+  }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+
+
+  FDstat_t stat = data.read();
+
+  switch (stat) {
+    case FD_FS_ERR:
+      Serial.println("FS Error");
+      break;
+    case FD_FILE_ERR:
+      Serial.println("Error");
+      break;
+    case FD_WRITE:
+      Serial.println("Data Write");
+      break;
+    case FD_ADD:
+      Serial.println("Data Add");
+      break;
+    case FD_READ:
+      Serial.println("Data Read");
+      break;
+    default:
+      break;
+  }
+
+  Serial.println("Data read:");
+  Serial.print("Run on rain ");
+  Serial.println(myConfig.runOnRain);
+  Serial.print("Run on night ");
+  Serial.println(myConfig.runOnNight);
+  Serial.print("Delta calibration ");
+  Serial.println(myConfig.deltaCalibr);
+  Serial.print("Delta humidity ");
+  Serial.println(myConfig.deltaHum);
+
+  for (int i = 0; i < 8; i++) {
+    Serial.print("Calibration data on ");
+    Serial.print(i);
+    Serial.print(" min value ");
+    Serial.print(myConfig.calibr[i].minVal);
+    Serial.print(" max value ");
+    Serial.println(myConfig.calibr[i].maxVal);
+  }
+
+
+  while (!rtc.begin()) {
+    delay(1000);
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+  }
 }
