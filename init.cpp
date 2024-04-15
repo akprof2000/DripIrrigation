@@ -25,6 +25,7 @@ bool droped = false;
 bool cdcard = true;
 
 void ReCheck() {
+  if (data.tick() == FD_WRITE) Serial.println("Data updated!");
   unsigned long currentMillis = millis();
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
@@ -43,7 +44,7 @@ void ReCheck() {
     }
   }
 
-  if (data.tick() == FD_WRITE) Serial.println("Data updated!");
+  
 }
 
 
@@ -207,6 +208,7 @@ void init() {
     EEPROM.commit();
   }
   EEPROM.end();
+  hs.init();
 
   while (!SD.begin(5)) {
     delay(1000);
@@ -266,6 +268,7 @@ void init() {
   Serial.println(myConfig.runOnNight);
   Serial.print("Delta calibration ");
   Serial.println(myConfig.deltaCalibr);
+  hs.setBorder(myConfig.deltaCalibr);
   Serial.print("Delta humidity ");
   Serial.println(myConfig.deltaHum);
 
@@ -276,6 +279,7 @@ void init() {
     Serial.print(myConfig.calibr[i].minVal);
     Serial.print(" max value ");
     Serial.println(myConfig.calibr[i].maxVal);
+    hs.setLowHighValue(i, myConfig.calibr[i].minVal, myConfig.calibr[i].maxVal);
   }
 
 

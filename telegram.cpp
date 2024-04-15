@@ -20,7 +20,7 @@ void botInit() {
     Serial.print(' ');
     Serial.println(t.dateString());  // ДД.ММ.ГГГГ
     DateTime now = rtc.now();
- 
+
     int64_t t1 = now.unixtime();
     int64_t t2 = bot.getUnix() + 3600 * 3;
 
@@ -114,7 +114,7 @@ void reConnection() {
     Serial.println(t.dateString());  // ДД.ММ.ГГГГ
 
     DateTime now = rtc.now();
- 
+
     int64_t t1 = now.unixtime();
     int64_t t2 = bot.getUnix() + 3600 * 3;
 
@@ -232,37 +232,58 @@ void newMsg(FB_msg& msg) {
       if (command == "/reset") {
         act->action = 0;
       } else if (act->action >= 1130 && act->action <= 1137) {
+        int ind = act->action - 1130;
         if (msg.text == "ЗАВЕРШИТЬ") {
-          int ind = act->action - 1130;
+          if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
+            bot.sendMessage("Ошибка калибровки датчик № " + String(ind + 1) + " слишком малое значение!\nОтменяем...", msg.userID);
+            hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
+            command = F("/Calibrate");
+          }
           bot.sendMessage("Калибровка завершена датчик № " + String(ind + 1) + " полностью функционален!", msg.userID);
+          myConfig.calibr[ind].maxVal = hs.getHigh(ind);
+          myConfig.calibr[ind].minVal = hs.getLow(ind);
+          data.update();
           act->action = 0;
-          return;
+          command = F("/Calibrate");
         } else if (msg.text == "ОТМЕНА") {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
       } else if (act->action >= 1120 && act->action <= 1127) {
+        int ind = act->action - 1120;
         if (msg.text == "ДАЛЕЕ") {
-          int ind = act->action - 1120;
+          hs.setAll();
+          int val = hs.setHigh(ind);
+          Serial.print("Сухое значение: ");
+          Serial.println(val);
           bot.sendMessage("Установите датчик № " + String(ind + 1) + " в почву и нажмите завершить!", msg.userID);
           bot.showMenuText("<Колиброка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
           actions.put(msg.userID, Action(msg.userID, 1130 + ind));
           return;
         } else if (msg.text == "ОТМЕНА") {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
       } else if (act->action >= 1110 && act->action <= 1117) {
+        int ind = act->action - 1110;
         if (msg.text == "ДАЛЕЕ") {
-          int ind = act->action - 1110;
+          hs.setAll();
+          int val = hs.setLow(ind);
+          Serial.print("Значение с водой датчик ");
+          Serial.print(ind);
+          Serial.print(": ");
+          Serial.println(val);        
+          actions.put(msg.userID, Action(msg.userID, 1120 + ind));
           bot.sendMessage("Достаньте датчик № " + String(ind + 1) + " из воды протрите и нажмите далее!", msg.userID);
           bot.showMenuText("<Колиброка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1120 + ind));
           return;
         } else if (msg.text == "ОТМЕНА") {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
+          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
@@ -336,6 +357,7 @@ void newMsg(FB_msg& msg) {
             act->action = 0;
             myConfig.deltaCalibr = num;
             data.update();
+            hs.setBorder(myConfig.deltaCalibr);
             command = "/Configure";
           } else {
             bot.sendMessage(F("Ожидался значение (от 0 до 2048)!"), msg.userID);
@@ -370,7 +392,7 @@ void newMsg(FB_msg& msg) {
           String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
-        } else if (command == "/DeltaHumidity") {
+        } else if (command == "/DeltaCalibr") {
           bot.sendMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
           actions.put(msg.userID, Action(msg.userID, 1004));
         } else if (command == "/DeltaHumidity") {

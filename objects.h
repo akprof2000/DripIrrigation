@@ -10,6 +10,7 @@
 #include "WProgram.h"
 #endif
 
+#include "sensors.h"
 #include <RTClib.h>
 #include <FastBot.h>
 #include <FileData.h>
@@ -51,6 +52,8 @@ extern char tstr[32];
 extern bool res;
 extern FastBot bot;
 extern RTC_DS3231 rtc;
+
+extern HumiditySensors hs;
 
 #endif
 
