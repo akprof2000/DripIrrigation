@@ -10,9 +10,7 @@ void newMsg(FB_msg& msg);
 void loadUsers();
 
 
-void botInit() {
-  bot.attach(newMsg);
-  loadUsers();
+void timeFixed() {
   if (bot.timeSynced()) {
     FB_Time t = bot.getTime(3);
     Serial.println("Time Date");
@@ -31,6 +29,22 @@ void botInit() {
   }
 }
 
+void botInit() {
+  bot.attach(newMsg);
+  loadUsers();
+  timeFixed();
+}
+
+int64_t getUnixTime() {
+  if (bot.timeSynced()) {
+    return bot.getUnix() + 3600 * 3;
+  } else {
+    DateTime now = rtc.now();
+    return now.unixtime();
+  }
+}
+
+
 class Action {
 public:
   String userID;
@@ -44,7 +58,7 @@ class User {
 public:
   String userID;
   byte role;
-
+  bool messages = true;
   User(const String& u, byte r)
     : userID(u), role(r) {}
 };
@@ -106,23 +120,7 @@ void reConnection() {
     Serial.println(user->userID);
     bot.sendMessage("Система снова в сети!", user->userID);
   }
-  if (bot.timeSynced()) {
-    FB_Time t = bot.getTime(3);
-    Serial.println("Time Date");
-    Serial.print(t.timeString());  // ЧЧ:ММ:СС
-    Serial.print(' ');
-    Serial.println(t.dateString());  // ДД.ММ.ГГГГ
-
-    DateTime now = rtc.now();
-
-    int64_t t1 = now.unixtime();
-    int64_t t2 = bot.getUnix() + 3600 * 3;
-
-    if (abs(t1 - t2) > 9) {
-      rtc.adjust(DateTime(t.year, t.month, t.day, t.hour, t.minute, t.second));
-      Serial.println("RTS Adjusting");
-    }
-  }
+  timeFixed();
 }
 
 void dropCDCard() {
@@ -132,10 +130,30 @@ void dropCDCard() {
     User* user = users.get(key);
     Serial.print("Send message for user: ");
     Serial.println(user->userID);
-    bot.sendMessage(F("Отсутсвует CD карта система не сможет работать!"), user->userID);
+    bot.sendMessage(F("Отсутствует CD карта система не сможет работать!"), user->userID);
   }
 }
 
+void sendStatus(String text) {
+  if (droped) return;
+
+  SimpleVector<String> keys = users.keys();
+  for (const String& key : keys) {
+    User* user = users.get(key);
+    if (user->messages) {
+      bot.sendMessage(text, user->userID);
+    }
+  }
+}
+
+void actionSet(String userID, int action) {
+  if (actions.containsKey(userID)) {
+    Action* act = actions.get(userID);
+    act->action = action;
+  } else {
+    actions.put(userID, Action(userID, action));
+  }
+}
 void connectCDCard() {
   Serial.println("try send CD CARD Connected message");
   SimpleVector<String> keys = users.keys();
@@ -191,10 +209,16 @@ void loadUsers() {
       String menu = F("Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка");
       String cback = F("/Restart,/Users,/control,/status,/Configure");
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
+    } else {
+      String menu = F("Управление \n Статус ");
+      String cback = F("/control,/status");
+      bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
     }
   }
   EEPROM.end();
 }
+
+int search[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 // обработчик сообщений
 void newMsg(FB_msg& msg) {
@@ -229,7 +253,7 @@ void newMsg(FB_msg& msg) {
 
     if (actions.containsKey(msg.userID)) {
       Action* act = actions.get(msg.userID);
-      if (command == "/reset") {
+      if (command.startsWith("/")) {
         act->action = 0;
       } else if (act->action >= 1130 && act->action <= 1137) {
         int ind = act->action - 1130;
@@ -245,7 +269,7 @@ void newMsg(FB_msg& msg) {
           data.update();
           act->action = 0;
           command = F("/Calibrate");
-        } else if (msg.text == "ОТМЕНА") {
+        } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
@@ -259,10 +283,10 @@ void newMsg(FB_msg& msg) {
           Serial.print("Сухое значение: ");
           Serial.println(val);
           bot.sendMessage("Установите датчик № " + String(ind + 1) + " в почву и нажмите завершить!", msg.userID);
-          bot.showMenuText("<Колиброка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1130 + ind));
+          bot.showMenuText("<Калибровка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
+          act->action = 1130 + ind;
           return;
-        } else if (msg.text == "ОТМЕНА") {
+        } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
@@ -276,12 +300,12 @@ void newMsg(FB_msg& msg) {
           Serial.print("Значение с водой датчик ");
           Serial.print(ind);
           Serial.print(": ");
-          Serial.println(val);        
-          actions.put(msg.userID, Action(msg.userID, 1120 + ind));
+          Serial.println(val);
+          act->action = 1120 + ind;
           bot.sendMessage("Достаньте датчик № " + String(ind + 1) + " из воды протрите и нажмите далее!", msg.userID);
-          bot.showMenuText("<Колиброка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           return;
-        } else if (msg.text == "ОТМЕНА") {
+        } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
           command = F("/Calibrate");
@@ -291,21 +315,123 @@ void newMsg(FB_msg& msg) {
         if (msg.text == "СТАРТ") {
           int ind = act->action - 1100;
           bot.sendMessage("Положите датчик № " + String(ind + 1) + " в воду и нажмите далее!", msg.userID);
-          bot.showMenuText("<Колиброка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1110 + ind));
+          bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          act->action = 1110 + ind;
           return;
-        } else if (msg.text == "ОТМЕНА") {
+        } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
           command = F("/Calibrate");
         }
         act->action = 0;
+      } else if (act->action == 3000) {
+        if (msg.text == "СТАРТ") {
+          bot.sendMessage("Положите датчик в воду и нажмите далее!", msg.userID);
+          bot.showMenuText("<Поиск>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          act->action = 3010;
+          return;
+        } else {
+          bot.sendMessage(F("Поиск отменён!"), msg.userID);
+          command = F("/control");
+        }
+        act->action = 0;
+      } else if (act->action == 3010) {
+        if (msg.text == "ДАЛЕЕ") {
+          hs.setAll();
+          for (int i = 0; i < 8; i++) {
+            search[i] = hs.getCurrent(i);
+          }
+          bot.sendMessage("Достаньте датчик из воды протрите и нажмите далее!", msg.userID);
+          bot.showMenuText("<Поиск>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
+          act->action = 3020;
+          return;
+        } else {
+          bot.sendMessage(F("Поиск отменён!"), msg.userID);
+          command = F("/control");
+        }
+        act->action = 0;
+      } else if (act->action == 3020) {
+        if (msg.text == "ДАЛЕЕ") {
+          hs.setAll();
+          int ind = -1;
+          for (int i = 0; i < 8; i++) {
+            if (abs(search[i] - hs.getCurrent(i)) > 300) {
+              ind = i;
+              break;
+            }
+          }
+          if (ind < 0) {
+            bot.sendMessage(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
+          } else {
+            bot.sendMessage("Предположительно ваш датчик № " + String(ind) + " (" + myConfig.calibr[ind].title + ")!", msg.userID);
+          }
+        } else {
+          bot.sendMessage(F("Поиск отменён!"), msg.userID);
+        }
+        command = F("/control");
+        act->action = 0;
+      } else if (act->action >= 1400 && act->action <= 1407) {
+        int ind = act->action - 1400;
+        String input = String(msg.text);
+        if (isNumeric(input)) {
+          int num = input.toInt();
+          if (num >= 0 && num <= 100) {
+            act->action = 0;
+            myConfig.calibr[ind].border = num;
+            data.update();
+            command = "/Borders";
+          } else {
+            bot.sendMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
+            return;
+          }
+        }
+      } else if (act->action >= 1200 && act->action <= 1207) {
+        int ind = act->action - 1200;
+        strcpy(myConfig.calibr[ind].title, msg.text.c_str());
+        command = F("/Namings");
+        act->action = 0;
+        data.update();
+      } else if (act->action >= 1300 && act->action <= 1307) {
+        int ind = act->action - 1300;
+        if (msg.text == "ВКЛ.") {
+          bot.sendMessage(F("Клапан включён!"), msg.userID);
+          myConfig.calibr[ind].mode = 1;
+        } else if (msg.text == "ВЫКЛ.") {
+          bot.sendMessage(F("Клапан выключен!"), msg.userID);
+          myConfig.calibr[ind].mode = 2;
+        } else if (msg.text == "АВТО") {
+          bot.sendMessage(F("Клапан в ароматическом режиме!"), msg.userID);
+          myConfig.calibr[ind].mode = 0;
+        }
+        data.update();
+        act->action = 0;
+        command = F("/OperationMode");
+      } else if (act->action == 2000) {
+        act->action = 0;
+        if (msg.text == "ДА") {
+          myConfig.deltaCalibr = 15;
+          myConfig.deltaHum = 5;
+          myConfig.runOnNight = false;
+          myConfig.runOnRain = true;
+          for (int i = 0; i < 8; i++) {
+            myConfig.calibr[i].border = 60;
+            myConfig.calibr[i].maxVal = 1024;
+            myConfig.calibr[i].minVal = 1024;
+            myConfig.calibr[i].mode = 0;
+            strcpy(myConfig.calibr[i].title, String("Растение").c_str());
+          }
+          bot.sendMessage(F("Сброс выполнен!"), msg.userID);
+        } else {
+          bot.sendMessage(F("Сброс отменён!"), msg.userID);
+        }
+        command = "/Configure";
+        data.update();
       } else if (act->action == 1) {
         act->action = 0;
         if (msg.text == "ДА") {
           res = 1;
           bot.sendMessage(F("Перезагрузка начата!"), msg.userID);
           return;
-        } else if (msg.text == "НЕТ") {
+        } else {
           bot.sendMessage(F("Перезагрузка отменена!"), msg.userID);
           return;
         }
@@ -314,7 +440,7 @@ void newMsg(FB_msg& msg) {
         if (msg.text == "ДА") {
           myConfig.runOnNight = true;
           bot.sendMessage(F("Работа ночью включена!"), msg.userID);
-        } else if (msg.text == "НЕТ") {
+        } else {
           myConfig.runOnNight = false;
           bot.sendMessage(F("Работа ночью выключена!"), msg.userID);
         }
@@ -325,7 +451,7 @@ void newMsg(FB_msg& msg) {
         if (msg.text == "ДА") {
           myConfig.runOnRain = true;
           bot.sendMessage(F("Работа под дождём включена!"), msg.userID);
-        } else if (msg.text == "НЕТ") {
+        } else {
           myConfig.runOnRain = false;
           bot.sendMessage(F("Работа под дождём выключена!"), msg.userID);
         }
@@ -375,51 +501,55 @@ void newMsg(FB_msg& msg) {
       bot.update();
       return;
     } else {
-      if (msg.OTA) bot.sendMessage("Только владельци системы могут отправлять обновления устройства", msg.chatID);
+      if (msg.OTA) bot.sendMessage("Только владельцы системы могут отправлять обновления устройства", msg.chatID);
     }
 
     if (command[0] == '/') {
       if (check_user->role == 0) {
       }
       if (check_user->role < 2) {
-        if (command.startsWith("/HumidityCalibrate")) {
+        if (command == "/DropSettings") {
+          bot.sendMessage(F("Сбросить все настройки в значение по умолчанию!"), msg.userID);
+          bot.showMenuText("<Сброс>", "ДА \t НЕТ", msg.userID, true);
+          actionSet(msg.userID, 2000);
+        } else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
           bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапусить калибровку датчика № " + String(ind + 1) + "?", msg.userID);
           bot.showMenuText("<Колиброка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1100 + ind));
+          actionSet(msg.userID, 1100 + ind);
         } else if (command == "/Calibrate") {
           String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
         } else if (command == "/DeltaCalibr") {
           bot.sendMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
-          actions.put(msg.userID, Action(msg.userID, 1004));
+          actionSet(msg.userID, 1004);
         } else if (command == "/DeltaHumidity") {
           bot.sendMessage(F("Введите значение (от 0 до 100) %:"), msg.userID);
-          actions.put(msg.userID, Action(msg.userID, 1003));
+          actionSet(msg.userID, 1003);
         } else if (command == "/WorkAtRain") {
           bot.sendMessage(F("Включить режим работы во время дождя!"), msg.userID);
           bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1002));
+          actionSet(msg.userID, 1002);
         } else if (command == "/WorkAtNight") {
           bot.sendMessage(F("Включить режим работы в ночное время!"), msg.userID);
           bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
-          actions.put(msg.userID, Action(msg.userID, 1001));
+          actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
-          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[ ]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[ ]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibr) + ") \n Калибровка \n Назад");
-          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibr,/Calibrate,/reset");
+          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibr) + ") \n Калибровка \n Сброс настроек \n Назад");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibr,/Calibrate,/DropSettings,/reset");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
           for (const String& key : keys) {
             User* user = users.get(key);
-            bot.sendMessage("Система будет перзагруженна!", user->userID);
+            bot.sendMessage("Система будет перезагружена!", user->userID);
           }
           // res = 1;
           bot.showMenuText("<Перезагрузка>", "ДА \t НЕТ", msg.chatID, true);
-          actions.put(msg.userID, Action(msg.userID, 1));
+          actionSet(msg.userID, 1);
         } else if (command == "/Users") {
           String menu = F("Список \n Повышение \n Понижение \n Удаление \n Назад");
           String cback = F("/UsersList,/UsersUpEdit,/UsersDownEdit,/UsersDelete,/reset");
@@ -498,7 +628,7 @@ void newMsg(FB_msg& msg) {
               bot.sendMessage("Пользователя с таким йд " + userId + " уже администратор", msg.chatID);
             } else {
               user->role = 1;
-              bot.sendMessage("Вас повысил " + msg.username + " в провах, вы теперь админимтратор!", user->userID);
+              bot.sendMessage("Вас повысил " + msg.username + " в правах, вы теперь администратор!", user->userID);
               bot.sendMessage("Повышение пользователя " + user->userID + " успешно завершено!", msg.chatID);
               //users.put(user.userID, user);
               saveUsers();
@@ -515,7 +645,7 @@ void newMsg(FB_msg& msg) {
               bot.sendMessage("Пользователя с таким йд " + userId + " уже пользователь", msg.chatID);
             } else {
               user->role = 2;
-              bot.sendMessage("Вас понизил " + msg.username + " в провах, вы теперь пользователь!", user->userID);
+              bot.sendMessage("Вас понизил " + msg.username + " в правах, вы теперь пользователь!", user->userID);
               bot.sendMessage("Понижение пользователя " + user->userID + " успешно завершено!", msg.chatID);
               //users.put(user.userID, user);
               saveUsers();
@@ -539,12 +669,28 @@ void newMsg(FB_msg& msg) {
           }
         }
       }
-      if (command == "/GradeMeUp") {
+      if (command.startsWith("/BordersSet")) {
+        String prob = getValue(command, '_', 1);
+        int ind = prob.toInt();
+        bot.sendMessage(("Введите % порога срабатывания клапана № " + String(prob + 1) + ":"), msg.userID);
+        actionSet(msg.userID, 1400 + ind);
+      } else if (command.startsWith("/NamingsSet")) {
+        String prob = getValue(command, '_', 1);
+        int ind = prob.toInt();
+        bot.sendMessage(("Введите название датчика № " + String(prob + 1) + ":"), msg.userID);
+        actionSet(msg.userID, 1200 + ind);
+      } else if (command.startsWith("/OperationModeSet")) {
+        String prob = getValue(command, '_', 1);
+        int ind = prob.toInt();
+        bot.sendMessage(F("Выберите режим работы!"), msg.userID);
+        bot.showMenuText("<Режим>", "ВКЛ. \t ВЫКЛ. \t АВТО", msg.userID, true);
+        actionSet(msg.userID, 1300 + ind);
+      } else if (command == "/GradeMeUp") {
         SimpleVector<String> keys = users.keys();
         for (const String& key : keys) {
           User* user = users.get(key);
           if (user->role < 2) {
-            bot.sendMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит поднять его в провах. /GradeUser_" + msg.userID, user->userID);
+            bot.sendMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит поднять его в правах. /GradeUser_" + msg.userID, user->userID);
           }
         }
         bot.sendMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
@@ -553,7 +699,88 @@ void newMsg(FB_msg& msg) {
           String menu = F("Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка");
           String cback = F("/Restart,/Users,/control,/status,/Configure");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
+        } else {
+          String menu = F("Управление \n Статус ");
+          String cback = F("/control,/status");
+          bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         }
+      } else if (command == "/Namings") {
+        String menu = "Датчик влажности № 1 (" + String(myConfig.calibr[0].title)
+                      + ") \n Датчик влажности № 2 (" + String(myConfig.calibr[1].title)
+                      + ") \n Датчик влажности № 3 (" + String(myConfig.calibr[2].title)
+                      + ") \n Датчик влажности № 4 (" + String(myConfig.calibr[3].title)
+                      + ") \n Датчик влажности № 5 (" + String(myConfig.calibr[4].title)
+                      + ") \n Датчик влажности № 6 (" + String(myConfig.calibr[5].title)
+                      + ") \n Датчик влажности № 7 (" + String(myConfig.calibr[6].title)
+                      + ") \n Датчик влажности № 8 (" + String(myConfig.calibr[7].title) + ") \n Назад";
+        String cback = F("/NamingsSet_0,/NamingsSet_1,/NamingsSet_2,/NamingsSet_3,/NamingsSet_4,/NamingsSet_5,/NamingsSet_6,/NamingsSet_7,/control");
+        bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
+      } else if (command == "/Borders") {
+        String menu = "Клапан № 1 (" + String(myConfig.calibr[0].title)
+                      + ") <" + String(myConfig.calibr[0].border)
+                      + " %> \n Клапан № 2 (" + String(myConfig.calibr[1].title)
+                      + ")  <" + String(myConfig.calibr[1].border)
+                      + " %> \n Клапан № 3 (" + String(myConfig.calibr[2].title)
+                      + ")  <" + String(myConfig.calibr[2].border)
+                      + " %> \n Клапан № 4 (" + String(myConfig.calibr[3].title)
+                      + ")  <" + String(myConfig.calibr[3].border)
+                      + " %> \n Клапан № 5 (" + String(myConfig.calibr[4].title)
+                      + ")  <" + String(myConfig.calibr[4].border)
+                      + " %> \n Клапан № 6 (" + String(myConfig.calibr[5].title)
+                      + ")  <" + String(myConfig.calibr[5].border)
+                      + " %> \n Клапан № 7 (" + String(myConfig.calibr[6].title)
+                      + ")  <" + String(myConfig.calibr[6].border)
+                      + " %> \n Клапан № 8 (" + String(myConfig.calibr[7].title)
+                      + ")  <" + String(myConfig.calibr[7].border)
+                      + " %>  \n Назад";
+        String cback = F("/BordersSet_0,/BordersSet_1,/BordersSet_2,/BordersSet_3,/BordersSet_4,/BordersSet_5,/BordersSet_6,/BordersSet_7,/control");
+        bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
+      } else if (command == "/OperationMode") {
+        String menu = "Клапан № 1 (" + String(myConfig.calibr[0].title)
+                      + ") [" + String(myConfig.calibr[0].mode == 0 ? "-" : myConfig.calibr[0].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 2 (" + String(myConfig.calibr[1].title)
+                      + ") [" + String(myConfig.calibr[1].mode == 0 ? "-" : myConfig.calibr[1].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 3 (" + String(myConfig.calibr[2].title)
+                      + ") [" + String(myConfig.calibr[2].mode == 0 ? "-" : myConfig.calibr[2].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 4 (" + String(myConfig.calibr[3].title)
+                      + ") [" + String(myConfig.calibr[3].mode == 0 ? "-" : myConfig.calibr[3].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 5 (" + String(myConfig.calibr[4].title)
+                      + ") [" + String(myConfig.calibr[4].mode == 0 ? "-" : myConfig.calibr[4].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 6 (" + String(myConfig.calibr[5].title)
+                      + ") [" + String(myConfig.calibr[5].mode == 0 ? "-" : myConfig.calibr[5].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 7 (" + String(myConfig.calibr[6].title)
+                      + ") [" + String(myConfig.calibr[6].mode == 0 ? "-" : myConfig.calibr[6].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "] \n Клапан № 8 (" + String(myConfig.calibr[7].title)
+                      + ") [" + String(myConfig.calibr[7].mode == 0 ? "-" : myConfig.calibr[7].mode == 1 ? "x"
+                                                                                                         : "o")
+                      + "]  \n Назад";
+        String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/control");
+        bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
+      } else if (command == "/status") {
+        Serial.println(ESP.getFreeHeap());
+        int mem = ESP.getFreeHeap() / 1024;
+        bot.sendMessage("Оставшаяся память : " + String(mem) + " Kb", msg.userID);
+      } else if (command == "/Searching") {
+        bot.sendMessage(F("Произойдет поиск датчика. Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапусить поиск датчика?"), msg.userID);
+        bot.showMenuText("<Поиск>", "СТАРТ \t ОТМЕНА", msg.userID, true);
+        actionSet(msg.userID, 3000);
+      } else if (command == "/control") {
+        String menu = F("Режим работы \n Названия \n Пороги срабатывания \n Поиск датчика \n Отчеты \n Назад");
+        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/Reports,/reset");
+        bot.inlineMenuCallback("<Управление>", menu, cback, msg.userID);
+      } else if (command == "/pause") {
+        check_user->messages = false;
+        bot.sendMessage(F("Отключены все статусные сообщения"), msg.userID);
+      } else if (command == "/continue") {
+        check_user->messages = true;
+        bot.sendMessage(F("Статусные сообщения активированы"), msg.userID);
       }
     } else {
       bot.replyMessage("Бот распознает только команды начинающиеся с символа - '/'", msg.messageID, msg.chatID);

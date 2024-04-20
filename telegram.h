@@ -12,7 +12,10 @@ void reConnection();
 void dropCDCard();
 void connectCDCard();
 
+int64_t getUnixTime();
 
+void timeFixed();
 
+void sendStatus(String text);
 
 #endif

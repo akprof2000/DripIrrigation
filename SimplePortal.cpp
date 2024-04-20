@@ -23,9 +23,9 @@ String SP_connect_page = R"rawliteral(
     <input type="text" name="pass" placeholder="Pass">
     <input type="submit" value="Подключить">
 </form>
-<h3>Telegram кодовое слово для регистрации админитсратора</h3>
+<h3>Telegram кодовое слово для регистрации администратора</h3>
 <h4>{textTelegramConnect}</h4>
-<p>При активации бота в Telegram потребуется ввести данное кодовое слово, чтобы бот воспринил вас как официального администратора</p>
+<p>При активации бота в Telegram потребуется ввести данное кодовое слово, чтобы бот воспринял вас как официального администратора</p>
 <form action="/exit" method="POST">
     <input type="submit" value="Выход">
 </form>

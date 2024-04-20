@@ -21,7 +21,7 @@ byte init_config = 0;
 unsigned long previousMillis = 0;
 unsigned long interval = CHECK_WIFI_INTERVAL;
 
-bool droped = false;
+
 bool cdcard = true;
 
 void ReCheck() {

@@ -19,6 +19,7 @@
 #define BOT_TOKEN "REMOVED_BOT_TOKEN_XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
 #define CHECK_WIFI_INTERVAL 30000
+#define CHECK_INTERVAL 10000
 #define CHECK_LIGHT true
 #define CHECK_RAIN true
 
@@ -32,6 +33,9 @@ const int RAIN = 17;
 
 
 struct HumCalibr {
+  char title[90] = "Растение";
+  byte border = 60;
+  byte mode = 0;
   uint16_t minVal = 1024;
   uint16_t maxVal = 1024;
 };
@@ -54,6 +58,7 @@ extern FastBot bot;
 extern RTC_DS3231 rtc;
 
 extern HumiditySensors hs;
+extern bool droped;
 
 #endif
 

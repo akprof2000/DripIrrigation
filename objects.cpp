@@ -12,7 +12,7 @@ bool res = false;
 FastBot bot(BOT_TOKEN);
 RTC_DS3231 rtc;
 HumiditySensors hs;
-
+bool droped = false;
 
 
 
