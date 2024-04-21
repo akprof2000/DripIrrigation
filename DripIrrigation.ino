@@ -3,7 +3,6 @@
 #include "telegram.h"
 #include "init.h"
 #include <esp_task_wdt.h>
-#include "SD.h"
 
 #define WDT_TIMEOUT 60
 
@@ -35,11 +34,12 @@ void setup() {
   pinMode(RAIN, INPUT);
 
   esp_task_wdt_init(WDT_TIMEOUT, true);  // Init Watchdog timer
+  esp_task_wdt_add(NULL);
 }
 
 int64_t oldTime = 0;
 
-byte oldMode[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
 bool oldNMode = false;
 bool oldRMode = false;
 bool sRm = false;
@@ -65,9 +65,9 @@ void loop() {
     if (oldTime < (int64_t(curr / 60))) {
       FB_Time t(curr, 0);
       if (oldY < t.year || oldM < t.month || oldD < t.day) {
-        String fn = "/" + String(t.year) + "/" + String(t.month) + "/" + String(t.day) + ".csv";
+        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
         SD.mkdir("/" + String(t.year));
-        SD.mkdir("/" + String(t.year) + "/" + String(t.month));
+        SD.mkdir("/" + String(t.year) + "/" + IntWith2Zero(t.month));
 
         Serial.print("Create file ");
         Serial.println(fn);
@@ -77,9 +77,12 @@ void loop() {
           dataFile.flush();
           dataFile.close();
         }
-
-        dataFile = SD.open(fn, FILE_WRITE);
-        dataFile.println("UnixTime,DateTime,Index,Title,Humidity,Valve,Border,Night,Rain");        
+        if (SD.exists(fn)) {
+          dataFile = SD.open(fn, FILE_APPEND);
+        } else {
+          dataFile = SD.open(fn, FILE_WRITE);
+          dataFile.println("UnixTime,DateTime,Index,Title,Humidity,Valve,Border,Night,Rain");
+        }
         dataFile.flush();
       }
       oldY = t.year;
@@ -100,6 +103,7 @@ void loop() {
         Serial.println(F("Night"));
         if (!sNm) {
           sNm = true;
+          nightNow = true;
           sendStatus("Наступила ночь");
         }
         if (!myConfig.runOnNight) {
@@ -113,6 +117,7 @@ void loop() {
       } else {
         if (sNm) {
           sNm = false;
+          nightNow = false;
           sendStatus("Наступил день");
         }
         if (oldNMode) {
@@ -122,12 +127,13 @@ void loop() {
         }
       }
 
-      int raint = digitalRead(RAIN);
-      if (raint == LOW) {
+      int rain_t = digitalRead(RAIN);
+      if (rain_t == LOW) {
         Serial.println(F("Rain"));
         if (!sRm) {
           sendStatus("Пошел сильный дождь");
           sRm = true;
+          rainNow = true;
         }
         if (!myConfig.runOnRain) {
           blocked = true;
@@ -140,6 +146,7 @@ void loop() {
       } else {
         if (sRm) {
           sRm = false;
+          rainNow = false;
           sendStatus("Влажность после дождя достигла нормы");
         }
         if (oldRMode) {
@@ -154,37 +161,37 @@ void loop() {
       if (!blocked) {
         for (int i = 0; i < 8; i++) {
           int p = hs.Percent(i);
-          if (myConfig.calibr[i].mode == 0) {
+          if (myConfig.chanel[i].mode == 0) {
             Serial.print("Current percent Humidity :");
             Serial.print(p);
             Serial.print(" for ");
             Serial.println(i);
-            int b = myConfig.calibr[i].border;
-            int d = myConfig.deltaCalibr;
+            int b = myConfig.chanel[i].border;
+            int d = myConfig.deltaCalibration;
             if (p < (b - d)) {
               if (oldMode[i] != 1) {
                 oldMode[i] = 1;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.calibr[i].title + ")  открыт по порогу влажности, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности, текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, LOW);
             } else if (p > (b + d)) {
               if (oldMode[i] != 2) {
                 oldMode[i] = 2;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.calibr[i].title + ") закрыт по порогу влажности, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности, текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, HIGH);
             }
           } else {
-            if (myConfig.calibr[i].mode == 1) {
+            if (myConfig.chanel[i].mode == 1) {
               if (oldMode[i] != 10) {
                 oldMode[i] = 10;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.calibr[i].title + ") открыт по настройке, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, LOW);
             } else {
               if (oldMode[i] != 11) {
                 oldMode[i] = 11;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.calibr[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, HIGH);
             }
@@ -195,7 +202,7 @@ void loop() {
           pcf8574.digitalWrite(i, HIGH);
           if (oldMode[i] != 11) {
             oldMode[i] = 11;
-            sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.calibr[i].title + ")");
+            sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
           }
         }
       }
@@ -204,16 +211,15 @@ void loop() {
         String row = String(curr) + ","
                      + t.dateString() + " " + t.timeString() + ","
                      + String(i + 1) + ","
-                     + String(myConfig.calibr[i].title) + ","
+                     + String(myConfig.chanel[i].title) + ","
                      + String(hs.Percent(i)) + ","
                      + String((oldMode[i] == 11 || oldMode[i] == 2) ? 0 : 1) + ","
-                     + String(myConfig.calibr[i].border) + ","
+                     + String(myConfig.chanel[i].border) + ","
                      + String(sNm ? 1 : 0) + ","
                      + String(sRm ? 1 : 0);
         Serial.println(row);
         dataFile.println(row);
         dataFile.flush();
-
       }
     }
   }

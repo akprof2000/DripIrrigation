@@ -22,7 +22,7 @@ unsigned long previousMillis = 0;
 unsigned long interval = CHECK_WIFI_INTERVAL;
 
 
-bool cdcard = true;
+bool cd_card = true;
 
 void ReCheck() {
   if (data.tick() == FD_WRITE) Serial.println("Data updated!");
@@ -31,14 +31,14 @@ void ReCheck() {
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     if (WiFi.status() != WL_CONNECTED) {
-      droped = true;
+      dropped = true;
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
       WiFi.reconnect();
 
     } else {
-      if (droped) {
-        droped = false;
+      if (dropped) {
+        dropped = false;
         reConnection();
       }
     }
@@ -267,8 +267,8 @@ void init() {
   Serial.print("Run on night ");
   Serial.println(myConfig.runOnNight);
   Serial.print("Delta calibration ");
-  Serial.println(myConfig.deltaCalibr);
-  hs.setBorder(myConfig.deltaCalibr);
+  Serial.println(myConfig.deltaCalibration);
+  hs.setBorder(myConfig.deltaCalibration);
   Serial.print("Delta humidity ");
   Serial.println(myConfig.deltaHum);
 
@@ -276,10 +276,10 @@ void init() {
     Serial.print("Calibration data on ");
     Serial.print(i);
     Serial.print(" min value ");
-    Serial.print(myConfig.calibr[i].minVal);
+    Serial.print(myConfig.chanel[i].minVal);
     Serial.print(" max value ");
-    Serial.println(myConfig.calibr[i].maxVal);
-    hs.setLowHighValue(i, myConfig.calibr[i].minVal, myConfig.calibr[i].maxVal);
+    Serial.println(myConfig.chanel[i].maxVal);
+    hs.setLowHighValue(i, myConfig.chanel[i].minVal, myConfig.chanel[i].maxVal);
   }
 
 

@@ -10,11 +10,14 @@
 #include "WProgram.h"
 #endif
 
+
 #include "sensors.h"
 #include <RTClib.h>
-#include <FastBot.h>
-#include <FileData.h>
 #include <SD.h>
+#include <SPIFFS.h>
+#include <FileData.h>
+#include <FastBot.h>
+
 
 #define BOT_TOKEN "REMOVED_BOT_TOKEN_XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
@@ -32,7 +35,7 @@ const int LIGHT = 4;
 const int RAIN = 17;
 
 
-struct HumCalibr {
+struct HumCalibration {
   char title[90] = "Растение";
   byte border = 60;
   byte mode = 0;
@@ -44,9 +47,9 @@ struct HumCalibr {
 struct Config {
   bool runOnRain = true;
   bool runOnNight = false;
-  int deltaCalibr = 30;
+  int deltaCalibration = 30;
   int deltaHum = 5;
-  HumCalibr calibr[8];
+  HumCalibration chanel[8];
 };
 
 extern Config myConfig;
@@ -58,7 +61,11 @@ extern FastBot bot;
 extern RTC_DS3231 rtc;
 
 extern HumiditySensors hs;
-extern bool droped;
+extern bool dropped;
+extern bool rainNow;
+extern bool nightNow;
+
+extern byte oldMode[8];
 
 #endif
 

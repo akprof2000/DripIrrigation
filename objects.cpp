@@ -12,7 +12,11 @@ bool res = false;
 FastBot bot(BOT_TOKEN);
 RTC_DS3231 rtc;
 HumiditySensors hs;
-bool droped = false;
+bool dropped = false;
+
+bool rainNow = false;
+bool nightNow = false;
+byte oldMode[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 

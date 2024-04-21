@@ -1,15 +1,4 @@
-/*
-    Простой менеджер WiFi для esp8266 для задания логина-пароля WiFi и режима работы
-    GitHub: https://github.com/GyverLibs/SimplePortal
-    
-    AlexGyver, alex@alexgyver.ru
-    https://alexgyver.ru/
-    MIT License
 
-    Версии:
-    v1.0
-    v1.1 - совместимость с ESP32
-*/
 
 #ifndef _SimplePortal_h
 #define _SimplePortal_h

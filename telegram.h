@@ -15,7 +15,7 @@ void connectCDCard();
 int64_t getUnixTime();
 
 void timeFixed();
-
+String IntWith2Zero(int data);
 void sendStatus(String text);
 
 #endif

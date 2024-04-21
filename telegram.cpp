@@ -2,21 +2,149 @@
 #include "objects.h"
 #include "hashtable.h"
 #include <EEPROM.h>
-#include <FastBot.h>
+#include <CharPlot.h>
 
 
 
 void newMsg(FB_msg& msg);
 void loadUsers();
 
+bool isNumeric(String str) {
+  unsigned int stringLength = str.length();
+
+  if (stringLength == 0) {
+    return false;
+  }
+
+  boolean seenDecimal = false;
+
+  for (unsigned int i = 0; i < stringLength; ++i) {
+    if (isDigit(str.charAt(i))) {
+      continue;
+    }
+
+    if (str.charAt(i) == '.') {
+      if (seenDecimal) {
+        return false;
+      }
+      seenDecimal = true;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+
+String getValue(String data, char separator, int index) {
+  int found = 0;
+  int strIndex[] = { 0, -1 };
+  int maxIndex = data.length() - 1;
+
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (data.charAt(i) == separator || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+
+  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+String fileToGraf(String fn, String index) {
+
+  File printFile = SD.open(fn, FILE_READ);
+
+  if (!printFile) {
+    Serial.print("The text file cannot be opened");
+    return "";
+  }
+  uint8_t sz = 24;
+  float arr[sz];
+
+  String buffer;
+  int ind = -1;
+  int count = 0;
+  int value = 0;
+  while (printFile.available()) {
+    buffer = printFile.readStringUntil('\n');
+    
+    String data = getValue(buffer, ',', 0);
+    if (!isNumeric(data)) continue;
+
+    String curr = getValue(buffer, ',', 2);
+
+    if (curr != index) continue;
+
+    curr = getValue(buffer, ',', 4);
+
+    if (!isNumeric(curr)) continue;
+
+    int64_t ut = data.toInt();
+    FB_Time t(ut, 0);
+    if (t.hour > ind) {
+      if (ind >= 0) {
+        arr[ind] = value * 1.0 / count;
+        value = 0;
+        count = 0;
+      }
+      ind = t.hour;
+    }
+
+    value += curr.toInt();
+    count++;
+
+    //do some action here
+  }
+  printFile.close();
+  return String("```\n") + CharPlot<LINE_X2>(arr, sz, 10) + ("\n```");
+}
+
+String IntWith2Zero(int data) {
+  String s = String(data);
+  if (data < 10) { s = String("0") + s; }
+  return s;
+}
+
+void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
+  Serial.printf("Listing directory: %s\n", dirname);
+
+  File root = fs.open(dirname);
+  if (!root) {
+    Serial.println("Failed to open directory");
+    return;
+  }
+  if (!root.isDirectory()) {
+    Serial.println("Not a directory");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while (file) {
+    if (file.isDirectory()) {
+      Serial.print("  DIR : ");
+      Serial.println(file.name());
+      if (levels) {
+        listDir(fs, file.name(), levels - 1);
+      }
+    } else {
+      Serial.print("  FILE: ");
+      Serial.print(file.name());
+      Serial.print("  SIZE: ");
+      Serial.println(file.size());
+    }
+    file = root.openNextFile();
+  }
+}
 
 void timeFixed() {
   if (bot.timeSynced()) {
     FB_Time t = bot.getTime(3);
     Serial.println("Time Date");
-    Serial.print(t.timeString());  // ЧЧ:ММ:СС
+    Serial.print(t.timeString());  
     Serial.print(' ');
-    Serial.println(t.dateString());  // ДД.ММ.ГГГГ
+    Serial.println(t.dateString()); 
     DateTime now = rtc.now();
 
     int64_t t1 = now.unixtime();
@@ -69,21 +197,6 @@ struct SaveUser {
 };
 
 
-String getValue(String data, char separator, int index) {
-  int found = 0;
-  int strIndex[] = { 0, -1 };
-  int maxIndex = data.length() - 1;
-
-  for (int i = 0; i <= maxIndex && found <= index; i++) {
-    if (data.charAt(i) == separator || i == maxIndex) {
-      found++;
-      strIndex[0] = strIndex[1] + 1;
-      strIndex[1] = (i == maxIndex) ? i + 1 : i;
-    }
-  }
-
-  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
-}
 
 Hashtable<String, User> users;
 Hashtable<String, Action> actions;
@@ -135,7 +248,7 @@ void dropCDCard() {
 }
 
 void sendStatus(String text) {
-  if (droped) return;
+  if (dropped) return;
 
   SimpleVector<String> keys = users.keys();
   for (const String& key : keys) {
@@ -163,32 +276,6 @@ void connectCDCard() {
     Serial.println(user->userID);
     bot.sendMessage(F("CD карта снова активна!"), user->userID);
   }
-}
-
-bool isNumeric(String str) {
-  unsigned int stringLength = str.length();
-
-  if (stringLength == 0) {
-    return false;
-  }
-
-  boolean seenDecimal = false;
-
-  for (unsigned int i = 0; i < stringLength; ++i) {
-    if (isDigit(str.charAt(i))) {
-      continue;
-    }
-
-    if (str.charAt(i) == '.') {
-      if (seenDecimal) {
-        return false;
-      }
-      seenDecimal = true;
-      continue;
-    }
-    return false;
-  }
-  return true;
 }
 
 void loadUsers() {
@@ -260,18 +347,18 @@ void newMsg(FB_msg& msg) {
         if (msg.text == "ЗАВЕРШИТЬ") {
           if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
             bot.sendMessage("Ошибка калибровки датчик № " + String(ind + 1) + " слишком малое значение!\nОтменяем...", msg.userID);
-            hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
+            hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
             command = F("/Calibrate");
           }
           bot.sendMessage("Калибровка завершена датчик № " + String(ind + 1) + " полностью функционален!", msg.userID);
-          myConfig.calibr[ind].maxVal = hs.getHigh(ind);
-          myConfig.calibr[ind].minVal = hs.getLow(ind);
+          myConfig.chanel[ind].maxVal = hs.getHigh(ind);
+          myConfig.chanel[ind].minVal = hs.getLow(ind);
           data.update();
           act->action = 0;
           command = F("/Calibrate");
         } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
-          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
+          hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
@@ -288,7 +375,7 @@ void newMsg(FB_msg& msg) {
           return;
         } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
-          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
+          hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
@@ -307,7 +394,7 @@ void newMsg(FB_msg& msg) {
           return;
         } else {
           bot.sendMessage(F("Калибровка отменена!"), msg.userID);
-          hs.setLowHighValue(ind, myConfig.calibr[ind].minVal, myConfig.calibr[ind].maxVal);
+          hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
         act->action = 0;
@@ -362,7 +449,7 @@ void newMsg(FB_msg& msg) {
           if (ind < 0) {
             bot.sendMessage(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
           } else {
-            bot.sendMessage("Предположительно ваш датчик № " + String(ind) + " (" + myConfig.calibr[ind].title + ")!", msg.userID);
+            bot.sendMessage("Предположительно ваш датчик № " + String(ind) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
           }
         } else {
           bot.sendMessage(F("Поиск отменён!"), msg.userID);
@@ -376,7 +463,7 @@ void newMsg(FB_msg& msg) {
           int num = input.toInt();
           if (num >= 0 && num <= 100) {
             act->action = 0;
-            myConfig.calibr[ind].border = num;
+            myConfig.chanel[ind].border = num;
             data.update();
             command = "/Borders";
           } else {
@@ -386,7 +473,7 @@ void newMsg(FB_msg& msg) {
         }
       } else if (act->action >= 1200 && act->action <= 1207) {
         int ind = act->action - 1200;
-        strcpy(myConfig.calibr[ind].title, msg.text.c_str());
+        strcpy(myConfig.chanel[ind].title, msg.text.c_str());
         command = F("/Namings");
         act->action = 0;
         data.update();
@@ -394,13 +481,13 @@ void newMsg(FB_msg& msg) {
         int ind = act->action - 1300;
         if (msg.text == "ВКЛ.") {
           bot.sendMessage(F("Клапан включён!"), msg.userID);
-          myConfig.calibr[ind].mode = 1;
+          myConfig.chanel[ind].mode = 1;
         } else if (msg.text == "ВЫКЛ.") {
           bot.sendMessage(F("Клапан выключен!"), msg.userID);
-          myConfig.calibr[ind].mode = 2;
+          myConfig.chanel[ind].mode = 2;
         } else if (msg.text == "АВТО") {
           bot.sendMessage(F("Клапан в ароматическом режиме!"), msg.userID);
-          myConfig.calibr[ind].mode = 0;
+          myConfig.chanel[ind].mode = 0;
         }
         data.update();
         act->action = 0;
@@ -408,16 +495,16 @@ void newMsg(FB_msg& msg) {
       } else if (act->action == 2000) {
         act->action = 0;
         if (msg.text == "ДА") {
-          myConfig.deltaCalibr = 15;
+          myConfig.deltaCalibration = 15;
           myConfig.deltaHum = 5;
           myConfig.runOnNight = false;
           myConfig.runOnRain = true;
           for (int i = 0; i < 8; i++) {
-            myConfig.calibr[i].border = 60;
-            myConfig.calibr[i].maxVal = 1024;
-            myConfig.calibr[i].minVal = 1024;
-            myConfig.calibr[i].mode = 0;
-            strcpy(myConfig.calibr[i].title, String("Растение").c_str());
+            myConfig.chanel[i].border = 60;
+            myConfig.chanel[i].maxVal = 1024;
+            myConfig.chanel[i].minVal = 1024;
+            myConfig.chanel[i].mode = 0;
+            strcpy(myConfig.chanel[i].title, String("Растение").c_str());
           }
           bot.sendMessage(F("Сброс выполнен!"), msg.userID);
         } else {
@@ -457,6 +544,27 @@ void newMsg(FB_msg& msg) {
         }
         command = "/Configure";
         data.update();
+      } else if (act->action == 5000) {
+        String input = String(msg.text);
+        String sd = getValue(input, '.', 0);
+        String sm = getValue(input, '.', 1);
+        String sy = getValue(input, '.', 2);
+
+        String fn = String("/") + sy + String("/") + sm + String("/") + sd + String(".csv");
+
+        if (SD.exists(fn)) {
+          File file = SD.open(fn, FILE_READ);
+          if (!file) {
+            Serial.println("can not read file");
+          } else {
+            fn.replace("/", "_");
+            bot.sendFile(file, FB_DOC, fn, msg.chatID);
+          }
+          file.close();
+        } else {
+          bot.sendMessage(F("Файл не найден"), msg.userID);
+        }
+
       } else if (act->action == 1003) {
         String input = String(msg.text);
         if (isNumeric(input)) {
@@ -481,9 +589,9 @@ void newMsg(FB_msg& msg) {
           int num = input.toInt();
           if (num >= 0 && num <= 2048) {
             act->action = 0;
-            myConfig.deltaCalibr = num;
+            myConfig.deltaCalibration = num;
             data.update();
-            hs.setBorder(myConfig.deltaCalibr);
+            hs.setBorder(myConfig.deltaCalibration);
             command = "/Configure";
           } else {
             bot.sendMessage(F("Ожидался значение (от 0 до 2048)!"), msg.userID);
@@ -515,14 +623,14 @@ void newMsg(FB_msg& msg) {
         } else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
-          bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапусить калибровку датчика № " + String(ind + 1) + "?", msg.userID);
-          bot.showMenuText("<Колиброка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
+          bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String(ind + 1) + "?", msg.userID);
+          bot.showMenuText("<Калибровка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
           actionSet(msg.userID, 1100 + ind);
         } else if (command == "/Calibrate") {
           String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
-        } else if (command == "/DeltaCalibr") {
+        } else if (command == "/DeltaCalibration") {
           bot.sendMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
           actionSet(msg.userID, 1004);
         } else if (command == "/DeltaHumidity") {
@@ -538,8 +646,8 @@ void newMsg(FB_msg& msg) {
           actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
-          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibr) + ") \n Калибровка \n Сброс настроек \n Назад");
-          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibr,/Calibrate,/DropSettings,/reset");
+          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Назад");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/DropSettings,/reset");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
@@ -705,70 +813,85 @@ void newMsg(FB_msg& msg) {
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         }
       } else if (command == "/Namings") {
-        String menu = "Датчик влажности № 1 (" + String(myConfig.calibr[0].title)
-                      + ") \n Датчик влажности № 2 (" + String(myConfig.calibr[1].title)
-                      + ") \n Датчик влажности № 3 (" + String(myConfig.calibr[2].title)
-                      + ") \n Датчик влажности № 4 (" + String(myConfig.calibr[3].title)
-                      + ") \n Датчик влажности № 5 (" + String(myConfig.calibr[4].title)
-                      + ") \n Датчик влажности № 6 (" + String(myConfig.calibr[5].title)
-                      + ") \n Датчик влажности № 7 (" + String(myConfig.calibr[6].title)
-                      + ") \n Датчик влажности № 8 (" + String(myConfig.calibr[7].title) + ") \n Назад";
+        String menu = "Датчик влажности № 1 (" + String(myConfig.chanel[0].title)
+                      + ") \n Датчик влажности № 2 (" + String(myConfig.chanel[1].title)
+                      + ") \n Датчик влажности № 3 (" + String(myConfig.chanel[2].title)
+                      + ") \n Датчик влажности № 4 (" + String(myConfig.chanel[3].title)
+                      + ") \n Датчик влажности № 5 (" + String(myConfig.chanel[4].title)
+                      + ") \n Датчик влажности № 6 (" + String(myConfig.chanel[5].title)
+                      + ") \n Датчик влажности № 7 (" + String(myConfig.chanel[6].title)
+                      + ") \n Датчик влажности № 8 (" + String(myConfig.chanel[7].title) + ") \n Назад";
         String cback = F("/NamingsSet_0,/NamingsSet_1,/NamingsSet_2,/NamingsSet_3,/NamingsSet_4,/NamingsSet_5,/NamingsSet_6,/NamingsSet_7,/control");
         bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
       } else if (command == "/Borders") {
-        String menu = "Клапан № 1 (" + String(myConfig.calibr[0].title)
-                      + ") <" + String(myConfig.calibr[0].border)
-                      + " %> \n Клапан № 2 (" + String(myConfig.calibr[1].title)
-                      + ")  <" + String(myConfig.calibr[1].border)
-                      + " %> \n Клапан № 3 (" + String(myConfig.calibr[2].title)
-                      + ")  <" + String(myConfig.calibr[2].border)
-                      + " %> \n Клапан № 4 (" + String(myConfig.calibr[3].title)
-                      + ")  <" + String(myConfig.calibr[3].border)
-                      + " %> \n Клапан № 5 (" + String(myConfig.calibr[4].title)
-                      + ")  <" + String(myConfig.calibr[4].border)
-                      + " %> \n Клапан № 6 (" + String(myConfig.calibr[5].title)
-                      + ")  <" + String(myConfig.calibr[5].border)
-                      + " %> \n Клапан № 7 (" + String(myConfig.calibr[6].title)
-                      + ")  <" + String(myConfig.calibr[6].border)
-                      + " %> \n Клапан № 8 (" + String(myConfig.calibr[7].title)
-                      + ")  <" + String(myConfig.calibr[7].border)
+        String menu = "Клапан № 1 (" + String(myConfig.chanel[0].title)
+                      + ") <" + String(myConfig.chanel[0].border)
+                      + " %> \n Клапан № 2 (" + String(myConfig.chanel[1].title)
+                      + ")  <" + String(myConfig.chanel[1].border)
+                      + " %> \n Клапан № 3 (" + String(myConfig.chanel[2].title)
+                      + ")  <" + String(myConfig.chanel[2].border)
+                      + " %> \n Клапан № 4 (" + String(myConfig.chanel[3].title)
+                      + ")  <" + String(myConfig.chanel[3].border)
+                      + " %> \n Клапан № 5 (" + String(myConfig.chanel[4].title)
+                      + ")  <" + String(myConfig.chanel[4].border)
+                      + " %> \n Клапан № 6 (" + String(myConfig.chanel[5].title)
+                      + ")  <" + String(myConfig.chanel[5].border)
+                      + " %> \n Клапан № 7 (" + String(myConfig.chanel[6].title)
+                      + ")  <" + String(myConfig.chanel[6].border)
+                      + " %> \n Клапан № 8 (" + String(myConfig.chanel[7].title)
+                      + ")  <" + String(myConfig.chanel[7].border)
                       + " %>  \n Назад";
         String cback = F("/BordersSet_0,/BordersSet_1,/BordersSet_2,/BordersSet_3,/BordersSet_4,/BordersSet_5,/BordersSet_6,/BordersSet_7,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/OperationMode") {
-        String menu = "Клапан № 1 (" + String(myConfig.calibr[0].title)
-                      + ") [" + String(myConfig.calibr[0].mode == 0 ? "-" : myConfig.calibr[0].mode == 1 ? "x"
+        String menu = "Клапан № 1 (" + String(myConfig.chanel[0].title)
+                      + ") [" + String(myConfig.chanel[0].mode == 0 ? "-" : myConfig.chanel[0].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 2 (" + String(myConfig.calibr[1].title)
-                      + ") [" + String(myConfig.calibr[1].mode == 0 ? "-" : myConfig.calibr[1].mode == 1 ? "x"
+                      + "] \n Клапан № 2 (" + String(myConfig.chanel[1].title)
+                      + ") [" + String(myConfig.chanel[1].mode == 0 ? "-" : myConfig.chanel[1].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 3 (" + String(myConfig.calibr[2].title)
-                      + ") [" + String(myConfig.calibr[2].mode == 0 ? "-" : myConfig.calibr[2].mode == 1 ? "x"
+                      + "] \n Клапан № 3 (" + String(myConfig.chanel[2].title)
+                      + ") [" + String(myConfig.chanel[2].mode == 0 ? "-" : myConfig.chanel[2].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 4 (" + String(myConfig.calibr[3].title)
-                      + ") [" + String(myConfig.calibr[3].mode == 0 ? "-" : myConfig.calibr[3].mode == 1 ? "x"
+                      + "] \n Клапан № 4 (" + String(myConfig.chanel[3].title)
+                      + ") [" + String(myConfig.chanel[3].mode == 0 ? "-" : myConfig.chanel[3].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 5 (" + String(myConfig.calibr[4].title)
-                      + ") [" + String(myConfig.calibr[4].mode == 0 ? "-" : myConfig.calibr[4].mode == 1 ? "x"
+                      + "] \n Клапан № 5 (" + String(myConfig.chanel[4].title)
+                      + ") [" + String(myConfig.chanel[4].mode == 0 ? "-" : myConfig.chanel[4].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 6 (" + String(myConfig.calibr[5].title)
-                      + ") [" + String(myConfig.calibr[5].mode == 0 ? "-" : myConfig.calibr[5].mode == 1 ? "x"
+                      + "] \n Клапан № 6 (" + String(myConfig.chanel[5].title)
+                      + ") [" + String(myConfig.chanel[5].mode == 0 ? "-" : myConfig.chanel[5].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 7 (" + String(myConfig.calibr[6].title)
-                      + ") [" + String(myConfig.calibr[6].mode == 0 ? "-" : myConfig.calibr[6].mode == 1 ? "x"
+                      + "] \n Клапан № 7 (" + String(myConfig.chanel[6].title)
+                      + ") [" + String(myConfig.chanel[6].mode == 0 ? "-" : myConfig.chanel[6].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "] \n Клапан № 8 (" + String(myConfig.calibr[7].title)
-                      + ") [" + String(myConfig.calibr[7].mode == 0 ? "-" : myConfig.calibr[7].mode == 1 ? "x"
+                      + "] \n Клапан № 8 (" + String(myConfig.chanel[7].title)
+                      + ") [" + String(myConfig.chanel[7].mode == 0 ? "-" : myConfig.chanel[7].mode == 1 ? "x"
                                                                                                          : "o")
                       + "]  \n Назад";
         String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/status") {
+        String status = String(nightNow ? "Сейчас ночь" : "Сейчас день");
+        status = status + String(rainNow ? ", идёт дождь" : ", дождя нет");
+        status = status + String("\n");
+        status = status + String("\n") + String("Информация по датчикам");
+        for (int i = 0; i < 8; i++) {
+          status = status + String("\n");
+          status = status + String("\n") + String("Канал № ") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")");
+          status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
+          status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
+          status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");
+          status = status + String("\n") + String("Режим: ") + String(myConfig.chanel[i].mode == 0 ? "автоматический" : myConfig.chanel[i].mode == 1 ? "постоянно открыт"
+                                                                                                                                                     : "постоянно закрыт");
+        }
         Serial.println(ESP.getFreeHeap());
         int mem = ESP.getFreeHeap() / 1024;
-        bot.sendMessage("Оставшаяся память : " + String(mem) + " Kb", msg.userID);
+        status = status + String("\n");
+        status = status + String("\n") + "Оставшаяся память : " + String(mem) + " Kb";
+        bot.sendMessage(status, msg.userID);
       } else if (command == "/Searching") {
-        bot.sendMessage(F("Произойдет поиск датчика. Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапусить поиск датчика?"), msg.userID);
+        bot.sendMessage(F("Произойдет поиск датчика. Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить поиск датчика?"), msg.userID);
         bot.showMenuText("<Поиск>", "СТАРТ \t ОТМЕНА", msg.userID, true);
         actionSet(msg.userID, 3000);
       } else if (command == "/control") {
@@ -781,9 +904,84 @@ void newMsg(FB_msg& msg) {
       } else if (command == "/continue") {
         check_user->messages = true;
         bot.sendMessage(F("Статусные сообщения активированы"), msg.userID);
+      } else if (command == "/Reports") {
+        String menu = F("График \n Файл за вчера \n Файл текущий \n Файл... \n Назад");
+        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/control");
+        bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
+      } else if (command == "/Graphics") {
+        String menu = "Канал № 1 (" + String(myConfig.chanel[0].title)
+                      + ") \n Канал № 2 (" + String(myConfig.chanel[1].title)
+                      + ") \n Канал № 3 (" + String(myConfig.chanel[2].title)
+                      + ") \n Канал № 4 (" + String(myConfig.chanel[3].title)
+                      + ") \n Канал № 5 (" + String(myConfig.chanel[4].title)
+                      + ") \n Канал № 6 (" + String(myConfig.chanel[5].title)
+                      + ") \n Канал № 7 (" + String(myConfig.chanel[6].title)
+                      + ") \n Канал № 8 (" + String(myConfig.chanel[7].title) + ") \n Назад ";
+        String cback = F("/GraphicsSet_1,/GraphicsSet_2,/GraphicsSet_3,/GraphicsSet_4,/GraphicsSet_5,/GraphicsSet_6,/GraphicsSet_7,/GraphicsSet_8,/Reports");
+        bot.inlineMenuCallback("<График по каналу>", menu, cback, msg.userID);
+      } else if (command.startsWith("/GraphicsSet")) {
+        String prob = getValue(command, '_', 1);
+        String menu = F("За вчера \n За сегодня \n Назад ");
+        String cback = ("/GrafYesterday_" + prob + ",/GrafToday_" + prob + ",/Graphics");
+        bot.inlineMenuCallback("<График по каналу " + prob + ">", menu, cback, msg.userID);
+      } else if (command.startsWith("/GrafYesterday_")) {
+        String prob = getValue(command, '_', 1);
+        FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
+        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+        if (SD.exists(fn)) {
+          bot.setTextMode(FB_MARKDOWN);
+          bot.sendMessage(fileToGraf(fn, prob), msg.userID);
+          bot.setTextMode(FB_TEXT);
+        } else {
+          bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
+        }
+      } else if (command.startsWith("/GrafToday")) {
+        String prob = getValue(command, '_', 1);
+        FB_Time t(getUnixTime(), 0);
+        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+        if (SD.exists(fn)) {
+          bot.setTextMode(FB_MARKDOWN);
+          bot.sendMessage(fileToGraf(fn, prob), msg.userID);
+          bot.setTextMode(FB_TEXT);
+        } else {
+          bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
+        }
+      } else if (command == "/FileTo") {
+        bot.sendMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите получить файл"), msg.userID);
+        actionSet(msg.userID, 5000);
+      } else if (command == "/FileToday") {
+        FB_Time t(getUnixTime(), 0);
+        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+        if (SD.exists(fn)) {
+          File file = SD.open(fn, FILE_READ);
+          if (!file) {
+            Serial.println("can not read file");
+          } else {
+            fn.replace("/", "_");
+            bot.sendFile(file, FB_DOC, fn, msg.chatID);
+          }
+          file.close();
+        } else {
+          bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
+        }
+      } else if (command == "/FileYesterday") {
+        FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
+        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+        if (SD.exists(fn)) {
+          File file = SD.open(fn, FILE_READ);
+          if (!file) {
+            Serial.println("can not read file");
+          } else {
+            fn.replace("/", "_");
+            bot.sendFile(file, FB_DOC, fn, msg.chatID);
+          }
+          file.close();
+        } else {
+          bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
+        }
+      } else {
+        bot.replyMessage("Бот распознает только команды начинающиеся с символа - '/'", msg.messageID, msg.chatID);
       }
-    } else {
-      bot.replyMessage("Бот распознает только команды начинающиеся с символа - '/'", msg.messageID, msg.chatID);
     }
   } else {
     if (msg.text == "/register") {
