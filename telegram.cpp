@@ -62,6 +62,9 @@ String fileToGraf(String fn, String index) {
   }
   uint8_t sz = 24;
   float arr[sz];
+  for (int i = 0; i < 24; i++) {
+    arr[i] = 0.0;
+  }
 
   String buffer;
   int ind = -1;
@@ -69,7 +72,7 @@ String fileToGraf(String fn, String index) {
   int value = 0;
   while (printFile.available()) {
     buffer = printFile.readStringUntil('\n');
-    
+
     String data = getValue(buffer, ',', 0);
     if (!isNumeric(data)) continue;
 
@@ -98,7 +101,7 @@ String fileToGraf(String fn, String index) {
     //do some action here
   }
   printFile.close();
-  return String("```\n") + CharPlot<LINE_X2>(arr, sz, 10) + ("\n```");
+  return String("```\n") + CharPlot<LINE_X1>(arr, sz, 10) + ("\n```");
 }
 
 String IntWith2Zero(int data) {
@@ -142,9 +145,9 @@ void timeFixed() {
   if (bot.timeSynced()) {
     FB_Time t = bot.getTime(3);
     Serial.println("Time Date");
-    Serial.print(t.timeString());  
+    Serial.print(t.timeString());
     Serial.print(' ');
-    Serial.println(t.dateString()); 
+    Serial.println(t.dateString());
     DateTime now = rtc.now();
 
     int64_t t1 = now.unixtime();
