@@ -19,7 +19,7 @@
 #include <FastBot.h>
 
 
-#define BOT_TOKEN "6535141184:AAHp6iPb1MxGq3u9TH2q9IXb8xKifW9tRCA"
+#define BOT_TOKEN "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #define PIN_SPI_CS 5
 #define CHECK_WIFI_INTERVAL 30000
 #define CHECK_INTERVAL 10000
