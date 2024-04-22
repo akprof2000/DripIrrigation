@@ -9,6 +9,16 @@
 void newMsg(FB_msg& msg);
 void loadUsers();
 
+int64_t getUnixTime() {
+  if (bot.timeSynced()) {
+    return bot.getUnix() + 3600 * 3;
+  } else {
+    DateTime now = rtc.now();
+    return now.unixtime();
+  }
+}
+
+
 bool isNumeric(String str) {
   unsigned int stringLength = str.length();
 
@@ -52,6 +62,81 @@ String getValue(String data, char separator, int index) {
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
+String IntWith2Zero(int data) {
+  String s = String(data);
+  if (data < 10) { s = String("0") + s; }
+  return s;
+}
+
+
+void fileToGrafPeriod(int period, int del, String msgID) {
+
+  uint8_t sz = period * del;
+
+  float arr[8][sz];
+  for (int j = 0; j < 8; j++)
+    for (int i = 0; i < sz; i++) {
+      arr[j][i] = 0.0;
+    }
+
+  String buffer;
+  int count[8];
+  int value[8];
+
+  for (int i = 0; i < 8; i++) {
+    count[i] = 0;
+    value[i] = 0;
+  }
+
+  int64_t ut = getUnixTime() - 60 * 60 * 24 * period;
+
+  for (int p = 0; p < period; p++) {
+    int64_t cut = ut + 60 * 60 * 24 * p;
+    FB_Time t(cut, 0);
+    String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+    Serial.print("Try get file :");
+    Serial.println(fn);
+    if (SD.exists(fn)) {
+      File printFile = SD.open(fn, FILE_READ);
+
+      if (!printFile) {
+        Serial.print("The text file cannot be opened");
+        continue;
+      }
+      unsigned long part = printFile.size() / del;
+      for (int d = 0; d < del; d++) {
+        printFile.seek(part * d);
+        printFile.readStringUntil('\n');
+        int ind = 0;
+        while (printFile.available()) {
+          buffer = printFile.readStringUntil('\n');
+          String data = getValue(buffer, ',', 0);
+          String curr = getValue(buffer, ',', 2);
+          int index = curr.toInt() - 1;
+          curr = getValue(buffer, ',', 4);
+          value[index] += curr.toInt();
+          count[index]++;
+          ind++;
+          if (ind > 72) break;
+        }
+        for (int i = 0; i < 8; i++) {
+          arr[i][p * del + d] = value[i] * 1.0 / count[i];
+          value[i] = 0;
+          count[i] = 0;
+        }
+      }
+      printFile.close();
+    }
+  }
+
+  bot.setTextMode(FB_MARKDOWN);
+  for (int i = 0; i < 8; i++) {
+    bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
+  }
+  bot.setTextMode(FB_TEXT);
+}
+
+
 void fileToGraf(String fn, String msgID) {
 
   File printFile = SD.open(fn, FILE_READ);
@@ -63,7 +148,7 @@ void fileToGraf(String fn, String msgID) {
   uint8_t sz = 24;
   float arr[8][sz];
   for (int j = 0; j < 8; j++)
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < sz; i++) {
       arr[j][i] = 0.0;
     }
 
@@ -77,7 +162,7 @@ void fileToGraf(String fn, String msgID) {
     count[i] = 0;
     value[i] = 0;
   }
-  buffer = printFile.readStringUntil('\n');
+  printFile.readStringUntil('\n');
 
   while (printFile.available()) {
     buffer = printFile.readStringUntil('\n');
@@ -109,15 +194,9 @@ void fileToGraf(String fn, String msgID) {
   printFile.close();
   bot.setTextMode(FB_MARKDOWN);
   for (int i = 0; i < 8; i++) {
-     bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
+    bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
   }
   bot.setTextMode(FB_TEXT);
-}
-
-String IntWith2Zero(int data) {
-  String s = String(data);
-  if (data < 10) { s = String("0") + s; }
-  return s;
 }
 
 void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
@@ -176,14 +255,6 @@ void botInit() {
   timeFixed();
 }
 
-int64_t getUnixTime() {
-  if (bot.timeSynced()) {
-    return bot.getUnix() + 3600 * 3;
-  } else {
-    DateTime now = rtc.now();
-    return now.unixtime();
-  }
-}
 
 
 class Action {
@@ -579,7 +650,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Файл не найден"), msg.userID);
           command = "/Reports";
         }
-        act->action = 0;        
+        act->action = 0;
       } else if (act->action == 5100) {
         String input = String(msg.text);
         String sd = getValue(input, '.', 0);
@@ -589,12 +660,12 @@ void newMsg(FB_msg& msg) {
         String fn = String("/") + sy + String("/") + sm + String("/") + sd + String(".csv");
 
         if (SD.exists(fn)) {
-          fileToGraf(fn, msg.userID);          
+          fileToGraf(fn, msg.userID);
         } else {
           bot.sendMessage(F("Файл не найден"), msg.userID);
         }
         act->action = 0;
-        command = "/Reports";
+        command = "/Graphics";
       } else if (act->action == 1003) {
         String input = String(msg.text);
         if (isNumeric(input)) {
@@ -942,7 +1013,7 @@ void newMsg(FB_msg& msg) {
         } else {
           bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
         }
-        command = "/Reports";
+        command = "/Graphics";
       } else if (command == "/GraphicsToday") {
         FB_Time t(getUnixTime(), 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
@@ -951,7 +1022,7 @@ void newMsg(FB_msg& msg) {
         } else {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
         }
-        command = "/Reports";
+        command = "/Graphics";
       } else if (command == "/GraphicsTo") {
         bot.sendMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите отобразить график"), msg.userID);
         actionSet(msg.userID, 5100);
@@ -973,7 +1044,7 @@ void newMsg(FB_msg& msg) {
         } else {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
           command = "/Reports";
-        }        
+        }
       } else if (command == "/FileYesterday") {
         FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
@@ -989,11 +1060,18 @@ void newMsg(FB_msg& msg) {
         } else {
           bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
           command = "/Reports";
-        }        
+        }
+      } else if (command == "/GraphicsDecade") {
+        fileToGrafPeriod(10, 3, msg.userID);
+        command = "/Reports";
+      } else if (command == "/Reports") {
+        String menu = F(" Графики \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
+        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/control");
+        bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
-      if (command == "/Reports") {
-        String menu = F(" График за вчера \n График за сегодня \n График... \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
-        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsTo,/FileYesterday,/FileToday,/FileTo,/control");
+      if (command == "/Graphics") {
+        String menu = F(" График за вчера \n График за сегодня \n График за декаду \n График... \n Назад");
+        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsDecade,/GraphicsTo,/Reports");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
     } else {
