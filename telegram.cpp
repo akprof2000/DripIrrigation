@@ -52,56 +52,66 @@ String getValue(String data, char separator, int index) {
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-String fileToGraf(String fn, String index) {
+void fileToGraf(String fn, String msgID) {
 
   File printFile = SD.open(fn, FILE_READ);
 
   if (!printFile) {
     Serial.print("The text file cannot be opened");
-    return "";
+    return;
   }
   uint8_t sz = 24;
-  float arr[sz];
-  for (int i = 0; i < 24; i++) {
-    arr[i] = 0.0;
-  }
-
-  String buffer;
-  int ind = -1;
-  int count = 0;
-  int value = 0;
-  while (printFile.available()) {
-    buffer = printFile.readStringUntil('\n');
-
-    String data = getValue(buffer, ',', 0);
-    if (!isNumeric(data)) continue;
-
-    String curr = getValue(buffer, ',', 2);
-
-    if (curr != index) continue;
-
-    curr = getValue(buffer, ',', 4);
-
-    if (!isNumeric(curr)) continue;
-
-    int64_t ut = data.toInt();
-    FB_Time t(ut, 0);
-    if (t.hour > ind) {
-      if (ind >= 0) {
-        arr[ind] = value * 1.0 / count;
-        value = 0;
-        count = 0;
-      }
-      ind = t.hour;
+  float arr[8][sz];
+  for (int j = 0; j < 8; j++)
+    for (int i = 0; i < 24; i++) {
+      arr[j][i] = 0.0;
     }
 
-    value += curr.toInt();
-    count++;
+  String buffer;
+  int ind[8];
+  int count[8];
+  int value[8];
+
+  for (int i = 0; i < 8; i++) {
+    ind[i] = -1;
+    count[i] = 0;
+    value[i] = 0;
+  }
+  buffer = printFile.readStringUntil('\n');
+
+  while (printFile.available()) {
+    buffer = printFile.readStringUntil('\n');
+    String data = getValue(buffer, ',', 0);
+    String curr = getValue(buffer, ',', 2);
+    int index = curr.toInt() - 1;
+    curr = getValue(buffer, ',', 4);
+    int64_t ut = data.toInt();
+    FB_Time t(ut, 0);
+    if (t.hour > ind[index]) {
+      if (ind[index] >= 0) {
+        arr[index][ind[index]] = value[index] * 1.0 / count[index];
+        value[index] = 0;
+        count[index] = 0;
+      }
+      ind[index] = t.hour;
+    }
+
+    value[index] += curr.toInt();
+    count[index]++;
 
     //do some action here
   }
+  for (int i = 0; i < 8; i++) {
+    if (ind[i] >= 0) {
+      arr[i][ind[i]] = value[i] * 1.0 / count[i];
+    }
+  }
   printFile.close();
-  return String("```\n") + CharPlot<LINE_X1>(arr, sz, 10) + ("\n```");
+  bot.setTextMode(FB_MARKDOWN);
+  for (int i = 0; i < 8; i++) {
+     bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
+  }
+  bot.setTextMode(FB_TEXT);
 }
 
 String IntWith2Zero(int data) {
@@ -564,10 +574,27 @@ void newMsg(FB_msg& msg) {
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
           file.close();
+          return;
+        } else {
+          bot.sendMessage(F("Файл не найден"), msg.userID);
+          command = "/Reports";
+        }
+        act->action = 0;        
+      } else if (act->action == 5100) {
+        String input = String(msg.text);
+        String sd = getValue(input, '.', 0);
+        String sm = getValue(input, '.', 1);
+        String sy = getValue(input, '.', 2);
+
+        String fn = String("/") + sy + String("/") + sm + String("/") + sd + String(".csv");
+
+        if (SD.exists(fn)) {
+          fileToGraf(fn, msg.userID);          
         } else {
           bot.sendMessage(F("Файл не найден"), msg.userID);
         }
-
+        act->action = 0;
+        command = "/Reports";
       } else if (act->action == 1003) {
         String input = String(msg.text);
         if (isNumeric(input)) {
@@ -907,48 +934,27 @@ void newMsg(FB_msg& msg) {
       } else if (command == "/continue") {
         check_user->messages = true;
         bot.sendMessage(F("Статусные сообщения активированы"), msg.userID);
-      } else if (command == "/Reports") {
-        String menu = F("График \n Файл за вчера \n Файл текущий \n Файл... \n Назад");
-        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/control");
-        bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
-      } else if (command == "/Graphics") {
-        String menu = "Канал № 1 (" + String(myConfig.chanel[0].title)
-                      + ") \n Канал № 2 (" + String(myConfig.chanel[1].title)
-                      + ") \n Канал № 3 (" + String(myConfig.chanel[2].title)
-                      + ") \n Канал № 4 (" + String(myConfig.chanel[3].title)
-                      + ") \n Канал № 5 (" + String(myConfig.chanel[4].title)
-                      + ") \n Канал № 6 (" + String(myConfig.chanel[5].title)
-                      + ") \n Канал № 7 (" + String(myConfig.chanel[6].title)
-                      + ") \n Канал № 8 (" + String(myConfig.chanel[7].title) + ") \n Назад ";
-        String cback = F("/GraphicsSet_1,/GraphicsSet_2,/GraphicsSet_3,/GraphicsSet_4,/GraphicsSet_5,/GraphicsSet_6,/GraphicsSet_7,/GraphicsSet_8,/Reports");
-        bot.inlineMenuCallback("<График по каналу>", menu, cback, msg.userID);
-      } else if (command.startsWith("/GraphicsSet")) {
-        String prob = getValue(command, '_', 1);
-        String menu = F("За вчера \n За сегодня \n Назад ");
-        String cback = ("/GrafYesterday_" + prob + ",/GrafToday_" + prob + ",/Graphics");
-        bot.inlineMenuCallback("<График по каналу " + prob + ">", menu, cback, msg.userID);
-      } else if (command.startsWith("/GrafYesterday_")) {
-        String prob = getValue(command, '_', 1);
+      } else if (command == "/GraphicsYesterday") {
         FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
         if (SD.exists(fn)) {
-          bot.setTextMode(FB_MARKDOWN);
-          bot.sendMessage(fileToGraf(fn, prob), msg.userID);
-          bot.setTextMode(FB_TEXT);
+          fileToGraf(fn, msg.userID);
         } else {
           bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
         }
-      } else if (command.startsWith("/GrafToday")) {
-        String prob = getValue(command, '_', 1);
+        command = "/Reports";
+      } else if (command == "/GraphicsToday") {
         FB_Time t(getUnixTime(), 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
         if (SD.exists(fn)) {
-          bot.setTextMode(FB_MARKDOWN);
-          bot.sendMessage(fileToGraf(fn, prob), msg.userID);
-          bot.setTextMode(FB_TEXT);
+          fileToGraf(fn, msg.userID);
         } else {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
         }
+        command = "/Reports";
+      } else if (command == "/GraphicsTo") {
+        bot.sendMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите отобразить график"), msg.userID);
+        actionSet(msg.userID, 5100);
       } else if (command == "/FileTo") {
         bot.sendMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите получить файл"), msg.userID);
         actionSet(msg.userID, 5000);
@@ -966,7 +972,8 @@ void newMsg(FB_msg& msg) {
           file.close();
         } else {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
-        }
+          command = "/Reports";
+        }        
       } else if (command == "/FileYesterday") {
         FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
@@ -981,10 +988,16 @@ void newMsg(FB_msg& msg) {
           file.close();
         } else {
           bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
-        }
-      } else {
-        bot.replyMessage("Бот распознает только команды начинающиеся с символа - '/'", msg.messageID, msg.chatID);
+          command = "/Reports";
+        }        
       }
+      if (command == "/Reports") {
+        String menu = F(" График за вчера \n График за сегодня \n График... \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
+        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsTo,/FileYesterday,/FileToday,/FileTo,/control");
+        bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
+      }
+    } else {
+      bot.replyMessage("Бот распознает только команды начинающиеся с символа - '/'", msg.messageID, msg.chatID);
     }
   } else {
     if (msg.text == "/register") {
