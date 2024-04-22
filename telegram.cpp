@@ -430,11 +430,11 @@ void newMsg(FB_msg& msg) {
         int ind = act->action - 1130;
         if (msg.text == "ЗАВЕРШИТЬ") {
           if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
-            bot.sendMessage("Ошибка калибровки датчик № " + String(ind + 1) + " слишком малое значение!\nОтменяем...", msg.userID);
+            bot.sendMessage("Ошибка калибровки датчик № " + String((ind + 1)) + " слишком малое значение!\nОтменяем...", msg.userID);
             hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
             command = F("/Calibrate");
           }
-          bot.sendMessage("Калибровка завершена датчик № " + String(ind + 1) + " полностью функционален!", msg.userID);
+          bot.sendMessage("Калибровка завершена датчик № " + String((ind + 1)) + " полностью функционален!", msg.userID);
           myConfig.chanel[ind].maxVal = hs.getHigh(ind);
           myConfig.chanel[ind].minVal = hs.getLow(ind);
           data.update();
@@ -453,7 +453,7 @@ void newMsg(FB_msg& msg) {
           int val = hs.setHigh(ind);
           Serial.print("Сухое значение: ");
           Serial.println(val);
-          bot.sendMessage("Установите датчик № " + String(ind + 1) + " в почву и нажмите завершить!", msg.userID);
+          bot.sendMessage("Установите датчик № " + String((ind + 1)) + " в почву и нажмите завершить!", msg.userID);
           bot.showMenuText("<Калибровка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
           act->action = 1130 + ind;
           return;
@@ -473,7 +473,7 @@ void newMsg(FB_msg& msg) {
           Serial.print(": ");
           Serial.println(val);
           act->action = 1120 + ind;
-          bot.sendMessage("Достаньте датчик № " + String(ind + 1) + " из воды протрите и нажмите далее!", msg.userID);
+          bot.sendMessage("Достаньте датчик № " + String((ind + 1)) + " из воды протрите и нажмите далее!", msg.userID);
           bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           return;
         } else {
@@ -485,7 +485,7 @@ void newMsg(FB_msg& msg) {
       } else if (act->action >= 1100 && act->action <= 1107) {
         if (msg.text == "СТАРТ") {
           int ind = act->action - 1100;
-          bot.sendMessage("Положите датчик № " + String(ind + 1) + " в воду и нажмите далее!", msg.userID);
+          bot.sendMessage("Положите датчик № " + String((ind + 1)) + " в воду и нажмите далее!", msg.userID);
           bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           act->action = 1110 + ind;
           return;
@@ -724,7 +724,7 @@ void newMsg(FB_msg& msg) {
         } else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
-          bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String(ind + 1) + "?", msg.userID);
+          bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String((ind + 1)) + "?", msg.userID);
           bot.showMenuText("<Калибровка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
           actionSet(msg.userID, 1100 + ind);
         } else if (command == "/Calibrate") {
@@ -881,12 +881,12 @@ void newMsg(FB_msg& msg) {
       if (command.startsWith("/BordersSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
-        bot.sendMessage(("Введите % порога срабатывания клапана № " + String(prob + 1) + ":"), msg.userID);
+        bot.sendMessage(("Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), msg.userID);
         actionSet(msg.userID, 1400 + ind);
       } else if (command.startsWith("/NamingsSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
-        bot.sendMessage(("Введите название датчика № " + String(prob + 1) + ":"), msg.userID);
+        bot.sendMessage(("Введите название датчика № " + String((ind + 1)) + ":"), msg.userID);
         actionSet(msg.userID, 1200 + ind);
       } else if (command.startsWith("/OperationModeSet")) {
         String prob = getValue(command, '_', 1);
@@ -979,7 +979,7 @@ void newMsg(FB_msg& msg) {
         status = status + String("\n") + String("Информация по датчикам");
         for (int i = 0; i < 8; i++) {
           status = status + String("\n");
-          status = status + String("\n") + String("Канал № ") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")");
+          status = status + String("\n") + String("Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
           status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
           status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
           status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");

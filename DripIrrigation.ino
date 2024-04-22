@@ -165,9 +165,17 @@ void loop() {
             Serial.print("Current percent Humidity :");
             Serial.print(p);
             Serial.print(" for ");
-            Serial.println(i);
+            Serial.print(i);
             int b = myConfig.chanel[i].border;
-            int d = myConfig.deltaCalibration;
+            int d = myConfig.deltaHum;
+            Serial.print(" border ");
+            Serial.print(b);
+            Serial.print(" with delta ");
+            Serial.print(d);
+            Serial.print(" from ");
+            Serial.print(b - d);
+            Serial.print(" to ");
+            Serial.println(b + d);
             if (p < (b - d)) {
               if (oldMode[i] != 1) {
                 oldMode[i] = 1;
