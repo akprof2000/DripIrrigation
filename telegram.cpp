@@ -14,7 +14,7 @@ void rm(File dir, String tempPath) {
     if (entry) {
       if (entry.isDirectory()) {
         localPath = tempPath + entry.name();
-        rm(entry, localPath+"/");
+        rm(entry, localPath + "/");
 
 
         if (SD.rmdir(localPath)) {
@@ -26,7 +26,7 @@ void rm(File dir, String tempPath) {
         }
       } else {
         localPath = tempPath + entry.name();
-      
+
         if (SD.remove(localPath)) {
           Serial.print("Deleted ");
           Serial.println(localPath);
@@ -740,14 +740,15 @@ void newMsg(FB_msg& msg) {
             bot.sendMessage(F("Записей запрашиваемого года не найдено!"), msg.userID);
             act->action = 0;
             command = "/Configure";
+          } else {
+            File dir = SD.open(del);
+            bot.sendMessage(F("Началось удаление файлов, ожидайте..."), msg.userID);
+            rm(dir, del + "/");
+            dir.close();
+            SD.rmdir(del);
+            command = "/Configure";
+            act->action = 0;
           }
-          File dir = SD.open(del);
-          bot.sendMessage(F("Началось удаление файлов, ожидайте..."), msg.userID);
-          rm(dir, del+"/");
-          dir.close();
-          SD.rmdir(del);
-          command = "/Configure";
-          act->action = 0;
         } else {
           Serial.println(F("Input error"));
           bot.sendMessage(F("Ожидался ввод года!"), msg.userID);
