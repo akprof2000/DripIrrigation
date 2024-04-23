@@ -69,8 +69,10 @@ String IntWith2Zero(int data) {
 }
 
 
-void fileToGrafPeriod(int period, int del, String msgID) {
+void fileToGrafPeriod(int period, String msgID) {
+  bot.sendMessage(F("Началась генерация отчетов, ждите ..."), msgID);
 
+  int del = 60 / period;
   uint8_t sz = period * del;
 
   float arr[8][sz];
@@ -131,7 +133,7 @@ void fileToGrafPeriod(int period, int del, String msgID) {
 
   bot.setTextMode(FB_MARKDOWN);
   for (int i = 0; i < 8; i++) {
-    bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
+    bot.sendMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X2>(arr[i], sz, 10) + String("\n```"), msgID);
   }
   bot.setTextMode(FB_TEXT);
 }
@@ -639,8 +641,10 @@ void newMsg(FB_msg& msg) {
         if (SD.exists(fn)) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
+            bot.sendMessage(F("Файл не открывается"), msg.userID);
             Serial.println("can not read file");
           } else {
+            bot.sendMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
@@ -651,6 +655,23 @@ void newMsg(FB_msg& msg) {
           command = "/Reports";
         }
         act->action = 0;
+      } else if (act->action == 5200) {
+        String input = String(msg.text);
+        if (isNumeric(input)) {
+          int num = input.toInt();
+          if (num >= 1 && num <= 60) {
+            act->action = 0;
+            fileToGrafPeriod(num, msg.userID);
+            command = "/Graphics";
+          } else {
+            bot.sendMessage(F("Ожидалось значение (от 0 до 60)!"), msg.userID);
+            return;
+          }
+        } else {
+          Serial.println(F("Input error"));
+          bot.sendMessage(F("Ожидался ввод целого числа повторите!"), msg.userID);
+          return;
+        }       
       } else if (act->action == 5100) {
         String input = String(msg.text);
         String sd = getValue(input, '.', 0);
@@ -695,7 +716,7 @@ void newMsg(FB_msg& msg) {
             hs.setBorder(myConfig.deltaCalibration);
             command = "/Configure";
           } else {
-            bot.sendMessage(F("Ожидался значение (от 0 до 2048)!"), msg.userID);
+            bot.sendMessage(F("Ожидалось значение (от 0 до 2048)!"), msg.userID);
             return;
           }
         } else {
@@ -1023,6 +1044,9 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
         }
         command = "/Graphics";
+      } else if (command == "/GraphicsPeriod") {
+        bot.sendMessage(F("Введите число дней за которые хотите отобразить график"), msg.userID);
+        actionSet(msg.userID, 5200);
       } else if (command == "/GraphicsTo") {
         bot.sendMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите отобразить график"), msg.userID);
         actionSet(msg.userID, 5100);
@@ -1036,7 +1060,9 @@ void newMsg(FB_msg& msg) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
             Serial.println("can not read file");
+            bot.sendMessage(F("Файл не открывается"), msg.userID);
           } else {
+            bot.sendMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
@@ -1052,7 +1078,9 @@ void newMsg(FB_msg& msg) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
             Serial.println("can not read file");
+            bot.sendMessage(F("Файл не открывается"), msg.userID);
           } else {
+            bot.sendMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
@@ -1062,16 +1090,17 @@ void newMsg(FB_msg& msg) {
           command = "/Reports";
         }
       } else if (command == "/GraphicsDecade") {
-        fileToGrafPeriod(10, 3, msg.userID);
-        command = "/Reports";
-      } else if (command == "/Reports") {
+        fileToGrafPeriod(10, msg.userID);
+        command = "/Graphics";
+      }
+      if (command == "/Reports") {
         String menu = F(" Графики \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
         String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/control");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
       if (command == "/Graphics") {
-        String menu = F(" График за вчера \n График за сегодня \n График за декаду \n График... \n Назад");
-        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsDecade,/GraphicsTo,/Reports");
+        String menu = F(" График за вчера \n График за сегодня \n График за декаду \n График за период \n График... \n Назад");
+        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsDecade,/GraphicsPeriod,/GraphicsTo,/Reports");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
     } else {
