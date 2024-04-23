@@ -585,6 +585,7 @@ void newMsg(FB_msg& msg) {
           myConfig.deltaHum = 5;
           myConfig.runOnNight = false;
           myConfig.runOnRain = true;
+          hs.setBorder(myConfig.deltaCalibration);
           for (int i = 0; i < 8; i++) {
             myConfig.chanel[i].border = 60;
             myConfig.chanel[i].maxVal = 1024;
