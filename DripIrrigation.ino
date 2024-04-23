@@ -4,7 +4,7 @@
 #include "init.h"
 #include <esp_task_wdt.h>
 
-#define WDT_TIMEOUT 60
+#define WDT_TIMEOUT 300
 
 PCF8574 pcf8574(0x20);
 
