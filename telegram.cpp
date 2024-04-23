@@ -5,6 +5,42 @@
 #include <CharPlot.h>
 
 
+void rm(File dir, String tempPath) {
+  while (true) {
+    File entry = dir.openNextFile();
+    String localPath;
+
+    Serial.println("");
+    if (entry) {
+      if (entry.isDirectory()) {
+        localPath = tempPath + entry.name();
+        rm(entry, localPath+"/");
+
+
+        if (SD.rmdir(localPath)) {
+          Serial.print("Deleted folder ");
+          Serial.println(localPath);
+        } else {
+          Serial.print("Unable to delete folder ");
+          Serial.println(localPath);
+        }
+      } else {
+        localPath = tempPath + entry.name();
+      
+        if (SD.remove(localPath)) {
+          Serial.print("Deleted ");
+          Serial.println(localPath);
+        } else {
+          Serial.print("Failed to delete ");
+          Serial.println(localPath);
+        }
+      }
+    } else {
+      // break out of recursion
+      break;
+    }
+  }
+}
 
 void newMsg(FB_msg& msg);
 void loadUsers();
@@ -688,6 +724,35 @@ void newMsg(FB_msg& msg) {
         }
         act->action = 0;
         command = "/Graphics";
+      } else if (act->action == 1005) {
+        String input = String(msg.text);
+        if (isNumeric(input)) {
+
+          FB_Time t(getUnixTime(), 0);
+          if (t.year == input.toInt()) {
+            Serial.println(F("Input error"));
+            bot.sendMessage(F("Удалять текущий год запрещено!"), msg.userID);
+            return;
+          }
+          String del = "/" + input;
+          if (!SD.exists(del)) {
+            Serial.println(F("Input error"));
+            bot.sendMessage(F("Записей запрашиваемого года не найдено!"), msg.userID);
+            act->action = 0;
+            command = "/Configure";
+          }
+          File dir = SD.open(del);
+          bot.sendMessage(F("Началось удаление файлов, ожидайте..."), msg.userID);
+          rm(dir, del+"/");
+          dir.close();
+          SD.rmdir(del);
+          command = "/Configure";
+          act->action = 0;
+        } else {
+          Serial.println(F("Input error"));
+          bot.sendMessage(F("Ожидался ввод года!"), msg.userID);
+          return;
+        }
       } else if (act->action == 1003) {
         String input = String(msg.text);
         if (isNumeric(input)) {
@@ -753,6 +818,9 @@ void newMsg(FB_msg& msg) {
           String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
+        } else if (command == "/DelFolder") {
+          bot.sendMessage(F("Введите год удаления (формат YYYY):"), msg.userID);
+          actionSet(msg.userID, 1005);
         } else if (command == "/DeltaCalibration") {
           bot.sendMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
           actionSet(msg.userID, 1004);
@@ -769,8 +837,8 @@ void newMsg(FB_msg& msg) {
           actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
-          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Назад");
-          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/DropSettings,/reset");
+          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Удаление файлов \n Назад");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/DropSettings,/DelFolder,/reset");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
