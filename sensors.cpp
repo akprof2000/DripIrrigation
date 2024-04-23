@@ -15,12 +15,12 @@ int HumiditySensors::readSensor(const byte which) {
 
 
 int HumiditySensors::setLow(int index) {
-  _low[index] = _curr[index] - _border;
+  _low[index] = _curr[index];
   return _low[index];
 }
 
 int HumiditySensors::setHigh(int index) {
-  _high[index] = _curr[index] + _border;
+  _high[index] = _curr[index];
   return _high[index];
 }
 
@@ -41,5 +41,5 @@ void HumiditySensors::setAll() {
 
 int HumiditySensors::Percent(int index){
   int val = readSensor(index);
-  return(map(val, _high[index], _low[index], 0, 100));
+  return(map(val, _high[index] + _border, _low[index] - _border, 0, 100));
 }
