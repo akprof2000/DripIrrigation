@@ -140,7 +140,7 @@ void fileToGrafPeriod(int period, String msgID) {
 
 
 void fileToGraf(String fn, String msgID) {
-
+  bot.sendMessage(F("Началась генерация отчетов, ждите ..."), msgID);
   File printFile = SD.open(fn, FILE_READ);
 
   if (!printFile) {
@@ -672,7 +672,7 @@ void newMsg(FB_msg& msg) {
           Serial.println(F("Input error"));
           bot.sendMessage(F("Ожидался ввод целого числа повторите!"), msg.userID);
           return;
-        }       
+        }
       } else if (act->action == 5100) {
         String input = String(msg.text);
         String sd = getValue(input, '.', 0);
