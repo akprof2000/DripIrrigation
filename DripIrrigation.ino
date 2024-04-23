@@ -179,13 +179,13 @@ void loop() {
             if (p < (b - d)) {
               if (oldMode[i] != 1) {
                 oldMode[i] = 1;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, LOW);
             } else if (p > (b + d)) {
               if (oldMode[i] != 2) {
                 oldMode[i] = 2;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности, текущая влажность " + p + " %");
+                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
               }
               pcf8574.digitalWrite(i, HIGH);
             }
