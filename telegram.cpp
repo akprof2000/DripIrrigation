@@ -3,6 +3,7 @@
 #include "hashtable.h"
 #include <EEPROM.h>
 #include <CharPlot.h>
+#include "valves.h"
 
 
 void rm(File dir, String tempPath) {
@@ -604,9 +605,11 @@ void newMsg(FB_msg& msg) {
         if (msg.text == "ВКЛ.") {
           bot.sendMessage(F("Клапан включён!"), msg.userID);
           myConfig.chanel[ind].mode = 1;
+          valve_open(ind);
         } else if (msg.text == "ВЫКЛ.") {
           bot.sendMessage(F("Клапан выключен!"), msg.userID);
           myConfig.chanel[ind].mode = 2;
+          valve_close(ind);
         } else if (msg.text == "АВТО") {
           bot.sendMessage(F("Клапан в ароматическом режиме!"), msg.userID);
           myConfig.chanel[ind].mode = 0;
@@ -794,7 +797,7 @@ void newMsg(FB_msg& msg) {
       }
     }
 
-    if (msg.OTA && check_user->role < 1 && msg.fileName == "update.bin") {
+    if (msg.OTA && check_user->role < 1 && msg.fileName == "DripIrrigation.ino.bin") {
       bot.update();
       return;
     } else {

@@ -1,12 +1,12 @@
-#include <PCF8574.h>
+
 #include "objects.h"
 #include "telegram.h"
 #include "init.h"
 #include <esp_task_wdt.h>
+#include "valves.h"
 
 #define WDT_TIMEOUT 300
 
-PCF8574 pcf8574(0x20);
 
 unsigned long prevCheck = 0;
 unsigned long intervalCheck = CHECK_INTERVAL;
@@ -16,20 +16,9 @@ void setup() {
   Serial.begin(115200);
   init();
   botInit();
-  pcf8574.pinMode(P0, OUTPUT);
-  pcf8574.pinMode(P1, OUTPUT);
-  pcf8574.pinMode(P2, OUTPUT);
-  pcf8574.pinMode(P3, OUTPUT);
-  pcf8574.pinMode(P4, OUTPUT);
-  pcf8574.pinMode(P5, OUTPUT);
-  pcf8574.pinMode(P6, OUTPUT);
-  pcf8574.pinMode(P7, OUTPUT);
+  valves_init();
 
-  if (pcf8574.begin() == 1) {
-    Serial.println("Valve is ok");
-  } else {
-    Serial.println("Valve is Error");
-  }
+
   pinMode(LIGHT, INPUT);
   pinMode(RAIN, INPUT);
 
@@ -139,7 +128,7 @@ void loop() {
           blocked = true;
           if (!oldRMode) {
             Serial.println(F("Set rain low power"));
-            oldNMode = true;
+            oldRMode = true;
             sendStatus("Идет дождь отключаем полив!");
           }
         }
@@ -181,13 +170,13 @@ void loop() {
                 oldMode[i] = 1;
                 sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
               }
-              pcf8574.digitalWrite(i, LOW);
+              valve_open(i);
             } else if (p > (b + d)) {
               if (oldMode[i] != 2) {
                 oldMode[i] = 2;
                 sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
               }
-              pcf8574.digitalWrite(i, HIGH);
+              valve_close(i);
             }
           } else {
             if (myConfig.chanel[i].mode == 1) {
@@ -195,19 +184,19 @@ void loop() {
                 oldMode[i] = 10;
                 sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
               }
-              pcf8574.digitalWrite(i, LOW);
+              valve_open(i);
             } else {
               if (oldMode[i] != 11) {
                 oldMode[i] = 11;
                 sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
               }
-              pcf8574.digitalWrite(i, HIGH);
+              valve_close(i);
             }
           }
         }
       } else {
         for (int i = 0; i < 8; i++) {
-          pcf8574.digitalWrite(i, HIGH);
+          valve_close(i);
           if (oldMode[i] != 11) {
             oldMode[i] = 11;
             sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
