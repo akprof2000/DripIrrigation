@@ -4,6 +4,7 @@
 #include <EEPROM.h>
 #include <CharPlot.h>
 #include "valves.h"
+#include <SD.h>
 
 
 void rm(File dir, String tempPath) {
@@ -416,12 +417,12 @@ void loadUsers() {
     Serial.println("read user UserID = " + String(usr.userID) + " role = " + String(usr.role));
     bot.sendMessage("Система запущенна!", usr.userID);
     if (usr.role < 2) {
-      String menu = F("Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка");
-      String cback = F("/Restart,/Users,/control,/status,/Configure");
+      String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
+      String cback = F("/Restart,/Users,/control,/status,/Reports,/Configure");
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
-    } else {
-      String menu = F("Управление \n Статус ");
-      String cback = F("/control,/status");
+    } else { 
+      String menu = F(" Управление \n Статус \n Отчеты ");
+      String cback = F("/control,/status,/Reports");
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
     }
   }
@@ -819,7 +820,7 @@ void newMsg(FB_msg& msg) {
           bot.showMenuText("<Калибровка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
           actionSet(msg.userID, 1100 + ind);
         } else if (command == "/Calibrate") {
-          String menu = F("Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад");
+          String menu = F(" Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад ");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
         } else if (command == "/DelFolder") {
@@ -841,7 +842,7 @@ void newMsg(FB_msg& msg) {
           actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
-          String menu = ("Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Удаление файлов \n Назад");
+          String menu = (" Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Удаление файлов \n Назад ");
           String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/DropSettings,/DelFolder,/reset");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
@@ -854,7 +855,7 @@ void newMsg(FB_msg& msg) {
           bot.showMenuText("<Перезагрузка>", "ДА \t НЕТ", msg.chatID, true);
           actionSet(msg.userID, 1);
         } else if (command == "/Users") {
-          String menu = F("Список \n Повышение \n Понижение \n Удаление \n Назад");
+          String menu = F(" Список \n Повышение \n Понижение \n Удаление \n Назад ");
           String cback = F("/UsersList,/UsersUpEdit,/UsersDownEdit,/UsersDelete,/reset");
           bot.inlineMenuCallback("<Пользователи>", menu, cback, msg.userID);
 
@@ -999,27 +1000,27 @@ void newMsg(FB_msg& msg) {
         bot.sendMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
       } else if (command == "/reset") {
         if (check_user->role < 2) {
-          String menu = F("Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка");
+          String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка ");
           String cback = F("/Restart,/Users,/control,/status,/Configure");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         } else {
-          String menu = F("Управление \n Статус ");
+          String menu = F(" Управление \n Статус ");
           String cback = F("/control,/status");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         }
       } else if (command == "/Namings") {
-        String menu = "Датчик влажности № 1 (" + String(myConfig.chanel[0].title)
+        String menu = " Датчик влажности № 1 (" + String(myConfig.chanel[0].title)
                       + ") \n Датчик влажности № 2 (" + String(myConfig.chanel[1].title)
                       + ") \n Датчик влажности № 3 (" + String(myConfig.chanel[2].title)
                       + ") \n Датчик влажности № 4 (" + String(myConfig.chanel[3].title)
                       + ") \n Датчик влажности № 5 (" + String(myConfig.chanel[4].title)
                       + ") \n Датчик влажности № 6 (" + String(myConfig.chanel[5].title)
                       + ") \n Датчик влажности № 7 (" + String(myConfig.chanel[6].title)
-                      + ") \n Датчик влажности № 8 (" + String(myConfig.chanel[7].title) + ") \n Назад";
+                      + ") \n Датчик влажности № 8 (" + String(myConfig.chanel[7].title) + ") \n Назад ";
         String cback = F("/NamingsSet_0,/NamingsSet_1,/NamingsSet_2,/NamingsSet_3,/NamingsSet_4,/NamingsSet_5,/NamingsSet_6,/NamingsSet_7,/control");
         bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
       } else if (command == "/Borders") {
-        String menu = "Клапан № 1 (" + String(myConfig.chanel[0].title)
+        String menu = " Клапан № 1 (" + String(myConfig.chanel[0].title)
                       + ") <" + String(myConfig.chanel[0].border)
                       + " %> \n Клапан № 2 (" + String(myConfig.chanel[1].title)
                       + ")  <" + String(myConfig.chanel[1].border)
@@ -1035,11 +1036,11 @@ void newMsg(FB_msg& msg) {
                       + ")  <" + String(myConfig.chanel[6].border)
                       + " %> \n Клапан № 8 (" + String(myConfig.chanel[7].title)
                       + ")  <" + String(myConfig.chanel[7].border)
-                      + " %>  \n Назад";
+                      + " %>  \n Назад ";
         String cback = F("/BordersSet_0,/BordersSet_1,/BordersSet_2,/BordersSet_3,/BordersSet_4,/BordersSet_5,/BordersSet_6,/BordersSet_7,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/OperationMode") {
-        String menu = "Клапан № 1 (" + String(myConfig.chanel[0].title)
+        String menu = " Клапан № 1 (" + String(myConfig.chanel[0].title)
                       + ") [" + String(myConfig.chanel[0].mode == 0 ? "-" : myConfig.chanel[0].mode == 1 ? "x"
                                                                                                          : "o")
                       + "] \n Клапан № 2 (" + String(myConfig.chanel[1].title)
@@ -1063,7 +1064,7 @@ void newMsg(FB_msg& msg) {
                       + "] \n Клапан № 8 (" + String(myConfig.chanel[7].title)
                       + ") [" + String(myConfig.chanel[7].mode == 0 ? "-" : myConfig.chanel[7].mode == 1 ? "x"
                                                                                                          : "o")
-                      + "]  \n Назад";
+                      + "]  \n Назад ";
         String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/status") {
@@ -1090,8 +1091,8 @@ void newMsg(FB_msg& msg) {
         bot.showMenuText("<Поиск>", "СТАРТ \t ОТМЕНА", msg.userID, true);
         actionSet(msg.userID, 3000);
       } else if (command == "/control") {
-        String menu = F("Режим работы \n Названия \n Пороги срабатывания \n Поиск датчика \n Отчеты \n Назад");
-        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/Reports,/reset");
+        String menu = F(" Режим работы \n Названия \n Пороги срабатывания \n Поиск датчика \n Назад ");
+        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/reset");
         bot.inlineMenuCallback("<Управление>", menu, cback, msg.userID);
       } else if (command == "/pause") {
         check_user->messages = false;
@@ -1168,7 +1169,7 @@ void newMsg(FB_msg& msg) {
       }
       if (command == "/Reports") {
         String menu = F(" Графики \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
-        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/control");
+        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/reset");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
       if (command == "/Graphics") {

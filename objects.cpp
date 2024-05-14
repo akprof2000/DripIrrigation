@@ -3,6 +3,8 @@
 // 
 
 #include "objects.h"
+#include <SD.h>
+
 
 Config myConfig;
 FileData data(&SD, "/configuration.dat", 'B', &myConfig, sizeof(myConfig));

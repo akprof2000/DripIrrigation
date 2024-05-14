@@ -13,7 +13,6 @@
 
 #include "sensors.h"
 #include <RTClib.h>
-#include <SD.h>
 #include <SPIFFS.h>
 #include <FileData.h>
 #include <FastBot.h>

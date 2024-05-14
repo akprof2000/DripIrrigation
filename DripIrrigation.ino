@@ -4,6 +4,7 @@
 #include "init.h"
 #include <esp_task_wdt.h>
 #include "valves.h"
+#include <SD.h>
 
 #define WDT_TIMEOUT 300
 
@@ -39,6 +40,7 @@ int oldD = 0;
 int oldY = 0;
 
 File dataFile;
+String fn;
 
 void loop() {
   bot.tick();
@@ -54,29 +56,23 @@ void loop() {
     if (oldTime < (int64_t(curr / 60))) {
       FB_Time t(curr, 0);
       if (oldY < t.year || oldM < t.month || oldD < t.day) {
-        String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
+        fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
         SD.mkdir("/" + String(t.year));
         SD.mkdir("/" + String(t.year) + "/" + IntWith2Zero(t.month));
 
-        Serial.print("Create file ");
+        Serial.print("Check file ");
         Serial.println(fn);
-        if (oldY == 0 && oldM == 0 && oldD == 0) {
-          Serial.println("Run files after restart");
-        } else {
-          dataFile.flush();
-          dataFile.close();
-        }
-        if (SD.exists(fn)) {
-          dataFile = SD.open(fn, FILE_APPEND);
-        } else {
+        if (!SD.exists(fn)) {
+          Serial.print("file not found create new file: ");
+          Serial.println(fn);
           dataFile = SD.open(fn, FILE_WRITE);
           dataFile.println("UnixTime,DateTime,Index,Title,Humidity,Valve,Border,Night,Rain");
+          dataFile.close();
         }
-        dataFile.flush();
+        oldY = t.year;
+        oldM = t.month;
+        oldD = t.day;
       }
-      oldY = t.year;
-      oldM = t.month;
-      oldD = t.day;
 
       oldTime = int64_t(curr / 60);
       if (oldTime % (60 * 24) == 0) {
@@ -205,21 +201,27 @@ void loop() {
       }
       Serial.println("Write file data");
       for (int i = 0; i < 8; i++) {
-        String row = String(curr) + ","
-                     + t.dateString() + " " + t.timeString() + ","
-                     + String(i + 1) + ","
-                     + String(myConfig.chanel[i].title) + ","
-                     + String(hs.Percent(i)) + ","
-                     + String((oldMode[i] == 11 || oldMode[i] == 2) ? 0 : 1) + ","
-                     + String(myConfig.chanel[i].border) + ","
-                     + String(sNm ? 1 : 0) + ","
-                     + String(sRm ? 1 : 0);
-        Serial.println(row);
-        dataFile.println(row);
-        dataFile.flush();
+        dataFile = SD.open(fn, FILE_APPEND);
+        if (dataFile) {
+          String row = String(curr) + ","
+                       + t.dateString() + " " + t.timeString() + ","
+                       + String(i + 1) + ","
+                       + String(myConfig.chanel[i].title) + ","
+                       + String(hs.Percent(i)) + ","
+                       + String((oldMode[i] == 11 || oldMode[i] == 2) ? 0 : 1) + ","
+                       + String(myConfig.chanel[i].border) + ","
+                       + String(sNm ? 1 : 0) + ","
+                       + String(sRm ? 1 : 0);
+          Serial.println(row);
+          dataFile.println(row);
+          dataFile.close();
+        } else {
+          sendStatus("Ошибка записи в файл: " + fn);
+          Serial.print("Can not open file to write: ");
+          Serial.println(fn);
+        }
       }
     }
+    esp_task_wdt_reset();  // Reset watchdog timer
   }
-
-  esp_task_wdt_reset();  // Reset watchdog timer
 }
