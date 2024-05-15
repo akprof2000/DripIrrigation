@@ -1000,12 +1000,12 @@ void newMsg(FB_msg& msg) {
         bot.sendMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
       } else if (command == "/reset") {
         if (check_user->role < 2) {
-          String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Настройка ");
-          String cback = F("/Restart,/Users,/control,/status,/Configure");
+          String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
+          String cback = F("/Restart,/Users,/control,/status,/Reports,/Configure");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         } else {
-          String menu = F(" Управление \n Статус ");
-          String cback = F("/control,/status");
+          String menu = F(" Управление \n Статус \n Отчеты ");
+          String cback = F("/control,/status,/Reports");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         }
       } else if (command == "/Namings") {
