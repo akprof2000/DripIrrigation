@@ -418,11 +418,11 @@ void loadUsers() {
     bot.sendMessage("Система запущенна!", usr.userID);
     if (usr.role < 2) {
       String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
-      String cback = F("/Restart,/Users,/control,/status,/Reports,/Configure");
+      String cback = F("/Restart,/Users,/control,/status,/reports,/Configure");
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
-    } else { 
+    } else {
       String menu = F(" Управление \n Статус \n Отчеты ");
-      String cback = F("/control,/status,/Reports");
+      String cback = F("/control,/status,/reports");
       bot.inlineMenuCallback("<Запуск>", menu, cback, usr.userID);
     }
   }
@@ -693,7 +693,7 @@ void newMsg(FB_msg& msg) {
           return;
         } else {
           bot.sendMessage(F("Файл не найден"), msg.userID);
-          command = "/Reports";
+          command = "/reports";
         }
         act->action = 0;
       } else if (act->action == 5200) {
@@ -1001,11 +1001,11 @@ void newMsg(FB_msg& msg) {
       } else if (command == "/reset") {
         if (check_user->role < 2) {
           String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
-          String cback = F("/Restart,/Users,/control,/status,/Reports,/Configure");
+          String cback = F("/Restart,/Users,/control,/status,/reports,/Configure");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         } else {
           String menu = F(" Управление \n Статус \n Отчеты ");
-          String cback = F("/control,/status,/Reports");
+          String cback = F("/control,/status,/reports");
           bot.inlineMenuCallback("<Запуск>", menu, cback, msg.userID);
         }
       } else if (command == "/Namings") {
@@ -1143,7 +1143,7 @@ void newMsg(FB_msg& msg) {
           file.close();
         } else {
           bot.sendMessage(F("Файл за сегодня не найден"), msg.userID);
-          command = "/Reports";
+          command = "/reports";
         }
       } else if (command == "/FileYesterday") {
         FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
@@ -1161,20 +1161,20 @@ void newMsg(FB_msg& msg) {
           file.close();
         } else {
           bot.sendMessage(F("Файл за вчера не найден"), msg.userID);
-          command = "/Reports";
+          command = "/reports";
         }
       } else if (command == "/GraphicsDecade") {
         fileToGrafPeriod(10, msg.userID);
         command = "/Graphics";
       }
-      if (command == "/Reports") {
+      if (command == "/reports") {
         String menu = F(" Графики \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
         String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/reset");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
       if (command == "/Graphics") {
         String menu = F(" График за вчера \n График за сегодня \n График за декаду \n График за период \n График... \n Назад");
-        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsDecade,/GraphicsPeriod,/GraphicsTo,/Reports");
+        String cback = F("/GraphicsYesterday,/GraphicsToday,/GraphicsDecade,/GraphicsPeriod,/GraphicsTo,/reports");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
     } else {
