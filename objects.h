@@ -13,13 +13,12 @@
 
 #include "sensors.h"
 #include <RTClib.h>
-#include <SD.h>
 #include <SPIFFS.h>
 #include <FileData.h>
 #include <FastBot.h>
 
 
-#define BOT_TOKEN "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#define BOT_TOKEN "XXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
 #define CHECK_WIFI_INTERVAL 30000
 #define CHECK_INTERVAL 10000
@@ -30,9 +29,9 @@
 
 
 const int LED_BUILTIN = 2;
-const int BUTTON = 16;
-const int LIGHT = 4;
-const int RAIN = 17;
+  const int BUTTON = 16;
+  const int LIGHT = 4;
+  const int RAIN = 17;
 
 
 struct HumCalibration {

@@ -6,7 +6,7 @@
 #include "SimplePortal.h"
 #include "objects.h"
 #include "telegram.h"
-
+#include <SD.h>
 
 
 

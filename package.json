@@ -1,0 +1,20 @@
+{
+    "name": "DripIrrigation",
+    "version": "1.0.1",
+    "description": "Контроль капельного полива Arduino",
+    "scripts": {
+        "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
+        "postversion": "git push && git push --tags"
+    },
+    "commitlint": {
+        "extends": [
+            "@commitlint/config-conventional"
+        ]
+    },
+    "husky": {
+        "hooks": {
+            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+        }
+    },
+    "author": "Alexey Kozlov"
+}
