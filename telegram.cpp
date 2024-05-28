@@ -573,7 +573,7 @@ void newMsg(FB_msg& msg) {
           if (ind < 0) {
             bot.sendMessage(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
           } else {
-            bot.sendMessage("Предположительно ваш датчик № " + String(ind) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
+            bot.sendMessage("Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
           }
         } else {
           bot.sendMessage(F("Поиск отменён!"), msg.userID);

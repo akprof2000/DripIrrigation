@@ -25,6 +25,11 @@ unsigned long interval = CHECK_WIFI_INTERVAL;
 bool cd_card = true;
 
 void ReCheck() {
+  bot.tick();
+  if (res) {
+    bot.tickManual();  // Чтобы отметить сообщение прочитанным
+    ESP.restart();
+  }
   if (data.tick() == FD_WRITE) Serial.println("Data updated!");
   unsigned long currentMillis = millis();
   // if WiFi is down, try reconnecting
@@ -43,8 +48,6 @@ void ReCheck() {
       }
     }
   }
-
-  
 }
 
 

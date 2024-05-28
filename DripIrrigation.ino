@@ -19,7 +19,6 @@ void setup() {
   botInit();
   valves_init();
 
-
   pinMode(LIGHT, INPUT);
   pinMode(RAIN, INPUT);
 
@@ -28,7 +27,6 @@ void setup() {
 }
 
 int64_t oldTime = 0;
-
 
 bool oldNMode = false;
 bool oldRMode = false;
@@ -43,11 +41,6 @@ File dataFile;
 String fn;
 
 void loop() {
-  bot.tick();
-  if (res) {
-    bot.tickManual();  // Чтобы отметить сообщение прочитанным
-    ESP.restart();
-  }
   ReCheck();
   unsigned long currentMillis = millis();
   if (currentMillis - prevCheck >= intervalCheck) {
