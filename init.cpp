@@ -26,11 +26,6 @@ bool cd_card = true;
 int OldR = 0;
 void ReCheck() {
   int r = bot.tick();
-  if (r > 1) {
-    if (OldR != r) {
-      OldR = r;
-    }
-  }
   if (res) {
     bot.tickManual();  // Чтобы отметить сообщение прочитанным
     ESP.restart();
@@ -40,14 +35,19 @@ void ReCheck() {
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
     Serial.println("Check status wi-fi");
-    if (OldR > 1) {
+    if (r > 1) {
+      OldR++;
+    } else {
+      OldR = 0;
+    }
+    if (OldR > 0) {
       Serial.print("Current error status from telegram ");
-      Serial.println(OldR);
+      Serial.println(r);
     }
     previousMillis = currentMillis;
-    if (WiFi.status() != WL_CONNECTED || (OldR > 1 && !dropped)) {
+    if (WiFi.status() != WL_CONNECTED || (OldR > 3 && !dropped)) {
       dropped = true;
-      
+
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
       WiFi.reconnect();

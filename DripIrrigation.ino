@@ -49,7 +49,7 @@ File dataFile;
 String fn;
 
 
-const unsigned long blinkInt = 500;
+const unsigned long blinkInt = 300;
 unsigned long prevBlink = 0;
 bool blink = false;
 
