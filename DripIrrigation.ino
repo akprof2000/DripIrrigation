@@ -14,21 +14,27 @@ unsigned long intervalCheck = CHECK_INTERVAL;
 
 
 void setup() {
+
   Serial.begin(115200);
   init();
   botInit();
   valves_init();
 
-
   pinMode(LIGHT, INPUT);
   pinMode(RAIN, INPUT);
+  Serial.println("Configuring WDT...");
+  esp_task_wdt_config_t twdt_config = {
+    .timeout_ms = WDT_TIMEOUT * 1000,
+    .idle_core_mask = 1,  // Bitmask of all cores
+    .trigger_panic = true,
+  };
 
-  esp_task_wdt_init(WDT_TIMEOUT, true);  // Init Watchdog timer
+  esp_task_wdt_deinit();
+  esp_task_wdt_init(&twdt_config);  // Init Watchdog timer
   esp_task_wdt_add(NULL);
 }
 
 int64_t oldTime = 0;
-
 
 bool oldNMode = false;
 bool oldRMode = false;
@@ -42,12 +48,24 @@ int oldY = 0;
 File dataFile;
 String fn;
 
+
+const unsigned long blinkInt = 500;
+unsigned long prevBlink = 0;
+bool blink = false;
+
 void loop() {
-  bot.tick();
-  if (res) {
-    bot.tickManual();  // Чтобы отметить сообщение прочитанным
-    ESP.restart();
+  unsigned long currBlink = millis();
+  if (currBlink - prevBlink >= blinkInt) {
+    prevBlink = currBlink;
+    if (blink) {
+      digitalWrite(LED_BUILTIN, HIGH);
+    } else {
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+    blink = !blink;
   }
+
+
   ReCheck();
   unsigned long currentMillis = millis();
   if (currentMillis - prevCheck >= intervalCheck) {
@@ -200,9 +218,9 @@ void loop() {
         }
       }
       Serial.println("Write file data");
-      for (int i = 0; i < 8; i++) {
-        dataFile = SD.open(fn, FILE_APPEND);
-        if (dataFile) {
+      dataFile = SD.open(fn, FILE_APPEND);
+      if (dataFile) {
+        for (int i = 0; i < 8; i++) {
           String row = String(curr) + ","
                        + t.dateString() + " " + t.timeString() + ","
                        + String(i + 1) + ","
@@ -212,16 +230,18 @@ void loop() {
                        + String(myConfig.chanel[i].border) + ","
                        + String(sNm ? 1 : 0) + ","
                        + String(sRm ? 1 : 0);
+
           Serial.println(row);
           dataFile.println(row);
-          dataFile.close();
-        } else {
-          sendStatus("Ошибка записи в файл: " + fn);
-          Serial.print("Can not open file to write: ");
-          Serial.println(fn);
         }
+      } else {
+        sendStatus("Ошибка записи в файл: " + fn);
+        Serial.print("Can not open file to write: ");
+        Serial.println(fn);
       }
+      dataFile.close();
     }
+
     esp_task_wdt_reset();  // Reset watchdog timer
   }
 }

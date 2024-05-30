@@ -573,7 +573,7 @@ void newMsg(FB_msg& msg) {
           if (ind < 0) {
             bot.sendMessage(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
           } else {
-            bot.sendMessage("Предположительно ваш датчик № " + String(ind) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
+            bot.sendMessage("Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
           }
         } else {
           bot.sendMessage(F("Поиск отменён!"), msg.userID);
@@ -1068,13 +1068,16 @@ void newMsg(FB_msg& msg) {
         String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/status") {
+        hs.setAll();
         String status = String(nightNow ? "Сейчас ночь" : "Сейчас день");
         status = status + String(rainNow ? ", идёт дождь" : ", дождя нет");
         status = status + String("\n");
         status = status + String("\n") + String("Информация по датчикам");
         for (int i = 0; i < 8; i++) {
+
           status = status + String("\n");
           status = status + String("\n") + String("Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
+          status = status + String("\n") + String("Текущее значение: ") + String(hs.getCurrent(i));
           status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
           status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
           status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");

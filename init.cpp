@@ -23,28 +23,43 @@ unsigned long interval = CHECK_WIFI_INTERVAL;
 
 
 bool cd_card = true;
-
+int OldR = 0;
 void ReCheck() {
+  int r = bot.tick();
+  if (r > 1) {
+    if (OldR != r) {
+      OldR = r;
+    }
+  }
+  if (res) {
+    bot.tickManual();  // Чтобы отметить сообщение прочитанным
+    ESP.restart();
+  }
   if (data.tick() == FD_WRITE) Serial.println("Data updated!");
   unsigned long currentMillis = millis();
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
+    Serial.println("Check status wi-fi");
+    if (OldR > 1) {
+      Serial.print("Current error status from telegram ");
+      Serial.println(OldR);
+    }
     previousMillis = currentMillis;
-    if (WiFi.status() != WL_CONNECTED) {
+    if (WiFi.status() != WL_CONNECTED || (OldR > 1 && !dropped)) {
       dropped = true;
+      
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
       WiFi.reconnect();
 
     } else {
       if (dropped) {
+        OldR = 0;
         dropped = false;
         reConnection();
       }
     }
   }
-
-  
 }
 
 
@@ -69,17 +84,17 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 
 void init() {
 
+  Serial.println("begin init");
+
   EEPROM.begin(4096);
 
-  WiFi.disconnect(true);
+  //WiFi.disconnect(true);
 
   delay(1000);
 
   WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
-  /*
-  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
-*/
+
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUTTON, INPUT);
