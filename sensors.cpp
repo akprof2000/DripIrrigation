@@ -4,14 +4,17 @@
 #include "sensors.h"
 
 
-int HumiditySensors::readSensor(const byte which) {
-  // select correct MUX channel
-  digitalWrite(_addressA, (which & 1) ? HIGH : LOW);  // low-order bit
-  digitalWrite(_addressB, (which & 2) ? HIGH : LOW);
-  digitalWrite(_addressC, (which & 4) ? HIGH : LOW);  // high-order bit
-  // now read the sensor
-  return analogRead(_sensor);
-}  // end of readSensor
+int HumiditySensors::readSensor(const byte index) {
+ 
+   for (byte j = 0; j < 3; j++) {
+      if (index & (1 << j))
+        digitalWrite(S[j], HIGH);
+      else
+        digitalWrite(S[j], LOW);
+    }
+    delay(10);
+    return analogRead(Z);
+ }  // end of readSensor
 
 
 int HumiditySensors::setLow(int index) {

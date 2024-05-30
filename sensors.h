@@ -4,21 +4,14 @@
 #ifndef _SENSORS_h
 #define _SENSORS_h
 
-#if defined(ARDUINO) && ARDUINO >= 100
 #include "arduino.h"
-#else
-#include "WProgram.h"
-#endif
 
 class HumiditySensors {
   unsigned long pm = 0;
   unsigned long inter = 1000;
 
-  const byte _sensor = 33;  // where the multiplexer in/out port is connected
-  // the multiplexer address select lines (A/B/C)
-  const byte _addressA = 25;  // low-order bit
-  const byte _addressB = 26;
-  const byte _addressC = 27;  // high-order bit
+const byte S[3] = { 12, 13, 14 };
+const byte Z = 33;
 
   int _low[8];
   int _high[8];
@@ -27,9 +20,10 @@ class HumiditySensors {
   int readSensor(const byte which);
 public:
   void init() {
-    pinMode(_addressA, OUTPUT);
-    pinMode(_addressB, OUTPUT);
-    pinMode(_addressC, OUTPUT);
+    pinMode(S[0], OUTPUT);
+    pinMode(S[1], OUTPUT);
+    pinMode(S[2], OUTPUT);
+    pinMode(Z, INPUT);
     Serial.println("Init Humidity Sensors");
   }
   void setLowHighValue(byte index, int lValue, int hValue) {

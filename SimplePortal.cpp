@@ -1,10 +1,7 @@
 #include "SimplePortal.h"
 static DNSServer _SP_dnsServer;
-#ifdef ESP8266
-static ESP8266WebServer _SP_server(80);
-#else
 static WebServer _SP_server(80);
-#endif
+
 
 String SP_connect_page = R"rawliteral(
 <!DOCTYPE HTML><html><head>
