@@ -31,7 +31,7 @@
 const int LED_BUILTIN = 2;
   const int BUTTON = 16;
   const int LIGHT = 4;
-  const int RAIN = 17;
+  const int RAIN = 15;
 
 
 struct HumCalibration {

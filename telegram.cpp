@@ -348,14 +348,17 @@ void saveUsers() {
   EEPROM.end();
 }
 
-void reConnection() {
+void reConnection(unsigned long time) {
+
   Serial.println("try send reconnect message");
-  SimpleVector<String> keys = users.keys();
-  for (const String& key : keys) {
-    User* user = users.get(key);
-    Serial.print("Send message for user: ");
-    Serial.println(user->userID);
-    bot.sendMessage("Система снова в сети!", user->userID);
+  if (time > 300 * 1000) {
+    SimpleVector<String> keys = users.keys();
+    for (const String& key : keys) {
+      User* user = users.get(key);
+      Serial.print("Send message for user: ");
+      Serial.println(user->userID);
+      bot.sendMessage("Система снова в сети!", user->userID);
+    }
   }
   timeFixed();
 }

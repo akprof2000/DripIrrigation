@@ -8,7 +8,7 @@
 
 
 void botInit();
-void reConnection();
+void reConnection(unsigned long time);
 void dropCDCard();
 void connectCDCard();
 

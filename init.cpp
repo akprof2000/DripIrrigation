@@ -21,6 +21,7 @@ byte init_config = 0;
 unsigned long previousMillis = 0;
 unsigned long interval = CHECK_WIFI_INTERVAL;
 
+unsigned long lastGood = 0;
 
 bool cd_card = true;
 int OldR = 0;
@@ -35,19 +36,21 @@ void ReCheck() {
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
     Serial.println("Check status wi-fi");
-    if (r > 1) {
+    if (r == 3 or r == 4) {
       OldR++;
     } else {
       OldR = 0;
+      if (!dropped)
+        lastGood = millis();
     }
     if (OldR > 0) {
       Serial.print("Current error status from telegram ");
       Serial.println(r);
     }
     previousMillis = currentMillis;
-    if (WiFi.status() != WL_CONNECTED || (OldR > 3 && !dropped)) {
+    if (WiFi.status() != WL_CONNECTED || (OldR > 5 && !dropped)) {
       dropped = true;
-
+      OldR = 0;
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
       WiFi.reconnect();
@@ -56,7 +59,7 @@ void ReCheck() {
       if (dropped) {
         OldR = 0;
         dropped = false;
-        reConnection();
+        reConnection(abs(long(millis() - lastGood)));
       }
     }
   }
