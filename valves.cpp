@@ -6,8 +6,15 @@
 
 PCF8574 pcf8574(0x20);
 
-void valves_init()
-{
+bool isOpen = false;
+
+bool valve_opened() {
+  bool opn = isOpen;
+  isOpen = false;
+  return opn;
+}
+
+void valves_init() {
   pcf8574.pinMode(P0, OUTPUT);
   pcf8574.pinMode(P1, OUTPUT);
   pcf8574.pinMode(P2, OUTPUT);
@@ -25,10 +32,11 @@ void valves_init()
 }
 
 
-void valve_open(int index){
+void valve_open(int index) {
   pcf8574.digitalWrite(index, LOW);
+  isOpen = true;
 }
 
-void valve_close(int index){
+void valve_close(int index) {
   pcf8574.digitalWrite(index, HIGH);
 }

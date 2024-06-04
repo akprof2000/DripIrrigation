@@ -12,7 +12,7 @@ int HumiditySensors::readSensor(const byte index) {
       else
         digitalWrite(S[j], LOW);
     }
-    delay(10);
+    delay(100);
     return analogRead(Z);
  }  // end of readSensor
 
@@ -43,6 +43,6 @@ void HumiditySensors::setAll() {
 }
 
 int HumiditySensors::Percent(int index){
-  int val = readSensor(index);
+  int val = getCurrent(index);
   return(map(val, _high[index] + _border, _low[index] - _border, 0, 100));
 }

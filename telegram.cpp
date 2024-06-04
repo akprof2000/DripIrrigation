@@ -1080,7 +1080,9 @@ void newMsg(FB_msg& msg) {
 
           status = status + String("\n");
           status = status + String("\n") + String("Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
-          status = status + String("\n") + String("Текущее значение: ") + String(hs.getCurrent(i));
+          if (check_user->role == 0) {
+            status = status + String("\n") + String("Текущее значение: ") + String(hs.getCurrent(i));
+          }
           status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
           status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
           status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");

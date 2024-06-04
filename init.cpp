@@ -48,7 +48,7 @@ void ReCheck() {
       Serial.println(r);
     }
     previousMillis = currentMillis;
-    if (WiFi.status() != WL_CONNECTED || (OldR > 5 && !dropped)) {
+    if (WiFi.status() != WL_CONNECTED || (OldR >= 3 && !dropped)) {
       dropped = true;
       OldR = 0;
       Serial.println("Reconnecting to WiFi...");
