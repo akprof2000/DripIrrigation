@@ -348,14 +348,17 @@ void saveUsers() {
   EEPROM.end();
 }
 
-void reConnection() {
+void reConnection(unsigned long time) {
+
   Serial.println("try send reconnect message");
-  SimpleVector<String> keys = users.keys();
-  for (const String& key : keys) {
-    User* user = users.get(key);
-    Serial.print("Send message for user: ");
-    Serial.println(user->userID);
-    bot.sendMessage("Система снова в сети!", user->userID);
+  if (time > 300 * 1000) {
+    SimpleVector<String> keys = users.keys();
+    for (const String& key : keys) {
+      User* user = users.get(key);
+      Serial.print("Send message for user: ");
+      Serial.println(user->userID);
+      bot.sendMessage("Система снова в сети!", user->userID);
+    }
   }
   timeFixed();
 }
@@ -1077,7 +1080,9 @@ void newMsg(FB_msg& msg) {
 
           status = status + String("\n");
           status = status + String("\n") + String("Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
-          status = status + String("\n") + String("Текущее значение: ") + String(hs.getCurrent(i));
+          if (check_user->role == 0) {
+            status = status + String("\n") + String("Текущее значение: ") + String(hs.getCurrent(i));
+          }
           status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
           status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
           status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");

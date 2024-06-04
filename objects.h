@@ -18,20 +18,21 @@
 #include <FastBot.h>
 
 
-#define BOT_TOKEN "XXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+#define BOT_TOKEN "XXXXXXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
 #define CHECK_WIFI_INTERVAL 30000
 #define CHECK_INTERVAL 10000
 #define CHECK_LIGHT true
 #define CHECK_RAIN true
-
+#define FILLING_WAIT 300
 
 
 
 const int LED_BUILTIN = 2;
-  const int BUTTON = 16;
-  const int LIGHT = 4;
-  const int RAIN = 17;
+const int BUTTON = 16;
+const int LIGHT = 4;
+const int RAIN = 15;
+const int FILL = 17;
 
 
 struct HumCalibration {
@@ -67,7 +68,3 @@ extern bool nightNow;
 extern byte oldMode[8];
 
 #endif
-
-
-
-

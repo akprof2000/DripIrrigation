@@ -123,9 +123,9 @@ void portalRun(uint32_t prd) {
       Serial.print(" | ");
       Serial.printf("%-32.32s", WiFi.SSID(i).c_str());
       Serial.print(" | ");
-      Serial.printf("%4d", WiFi.RSSI(i));
+      Serial.printf("%4lu", WiFi.RSSI(i));
       Serial.print(" | ");
-      Serial.printf("%2d", WiFi.channel(i));
+      Serial.printf("%2lu", WiFi.channel(i));
       Serial.print(" | ");
       switch (WiFi.encryptionType(i)) {
         case WIFI_AUTH_OPEN:

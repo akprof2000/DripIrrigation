@@ -22,6 +22,9 @@ void setup() {
 
   pinMode(LIGHT, INPUT);
   pinMode(RAIN, INPUT);
+  pinMode(FILL, OUTPUT);
+  
+  digitalWrite(FILL, LOW);
   Serial.println("Configuring WDT...");
   esp_task_wdt_config_t twdt_config = {
     .timeout_ms = WDT_TIMEOUT * 1000,
@@ -49,7 +52,7 @@ File dataFile;
 String fn;
 
 
-const unsigned long blinkInt = 500;
+const unsigned long blinkInt = 300;
 unsigned long prevBlink = 0;
 bool blink = false;
 
@@ -115,6 +118,10 @@ void loop() {
             Serial.println(F("Set night low power"));
             oldNMode = true;
             sendStatus("Переход в энергосберегающее состояние!");
+            Serial.println(F("Set filling signal"));
+            digitalWrite(FILL, HIGH);
+            delay(FILLING_WAIT);
+            digitalWrite(FILL, LOW);         
           }
         }
       } else {
@@ -162,6 +169,7 @@ void loop() {
 
 
       if (!blocked) {
+        hs.setAll();
         for (int i = 0; i < 8; i++) {
           int p = hs.Percent(i);
           if (myConfig.chanel[i].mode == 0) {
