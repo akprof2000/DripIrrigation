@@ -24,7 +24,7 @@
 #define CHECK_INTERVAL 10000
 #define CHECK_LIGHT true
 #define CHECK_RAIN true
-#define FILLING_WAIT 300
+#define FILLING_WAIT 3000
 
 
 
