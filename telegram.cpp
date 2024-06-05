@@ -604,6 +604,27 @@ void newMsg(FB_msg& msg) {
         command = F("/Namings");
         act->action = 0;
         data.update();
+      } else if (act->action >= 1800 && act->action <= 1807) {
+
+        int ind = act->action - 1800;
+        String minvs = getValue(msg.text, ',', 0);
+        String maxvs = getValue(msg.text, ',', 1);
+
+        if (isNumeric(minvs) && isNumeric(maxvs)) {
+          int minv = minvs.toInt();
+          int maxv = maxvs.toInt();
+          if (minv >= 0 && minv <= 4096 && maxv >= 0 && maxv <= 4096) {
+            act->action = 0;
+            hs.setLowHighValue(ind, minv, maxv);
+            command = "/CalibrateManual";
+          } else {
+            bot.sendMessage(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);
+            return;
+          }
+        } else {
+          bot.sendMessage(F("Ожидалось значение в формате (целое,целое)!"), msg.userID);
+          return;
+        }
       } else if (act->action >= 1300 && act->action <= 1307) {
         int ind = act->action - 1300;
         if (msg.text == "ВКЛ.") {
@@ -822,10 +843,26 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String((ind + 1)) + "?", msg.userID);
           bot.showMenuText("<Калибровка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
           actionSet(msg.userID, 1100 + ind);
+        } else if (command.startsWith("/HumidityMCalibrate")) {
+          String prob = getValue(command, '_', 1);
+          int ind = prob.toInt();
+          bot.sendMessage("Введите минимальное и максимальное значение датчика № " + String(ind + 1) + " в формате: целое,целое, текущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "].", msg.userID);
+          actionSet(msg.userID, 1800 + ind);
         } else if (command == "/Calibrate") {
           String menu = F(" Датчик влажности № 1 \n Датчик влажности № 2 \n Датчик влажности № 3 \n Датчик влажности № 4 \n Датчик влажности № 5 \n Датчик влажности № 6 \n Датчик влажности № 7 \n Датчик влажности № 8 \n Назад ");
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
+        } else if (command == "/CalibrateManual") {
+          String menu = " Датчик влажности № 1 [" + String(hs.getLow(0)) + ";" + String(hs.getHigh(0))
+                        + "] \n Датчик влажности № 2 [" + String(hs.getLow(1)) + ";" + String(hs.getHigh(1))
+                        + "] \n Датчик влажности № 3 [" + String(hs.getLow(2)) + ";" + String(hs.getHigh(2))
+                        + "] \n Датчик влажности № 4 [" + String(hs.getLow(3)) + ";" + String(hs.getHigh(3))
+                        + "] \n Датчик влажности № 5 [" + String(hs.getLow(4)) + ";" + String(hs.getHigh(4))
+                        + "] \n Датчик влажности № 6 [" + String(hs.getLow(5)) + ";" + String(hs.getHigh(5))
+                        + "] \n Датчик влажности № 7 [" + String(hs.getLow(6)) + ";" + String(hs.getHigh(6))
+                        + "] \n Датчик влажности № 8 [" + String(hs.getLow(7)) + ";" + String(hs.getHigh(7)) + "] \n Назад ";
+          String cback = F("/HumidityMCalibrate_0,/HumidityMCalibrate_1,/HumidityMCalibrate_2,/HumidityMCalibrate_3,/HumidityMCalibrate_4,/HumidityMCalibrate_5,/HumidityMCalibrate_6,/HumidityMCalibrate_7,/Configure");
+          bot.inlineMenuCallback("<Ручная Калибровка>", menu, cback, msg.userID);
         } else if (command == "/DelFolder") {
           bot.sendMessage(F("Введите год удаления (формат YYYY):"), msg.userID);
           actionSet(msg.userID, 1005);
@@ -845,8 +882,8 @@ void newMsg(FB_msg& msg) {
           actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
-          String menu = (" Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка \n Сброс настроек \n Удаление файлов \n Назад ");
-          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/DropSettings,/DelFolder,/reset");
+          String menu = (" Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка  \n Ручная калибровка \n Сброс настроек \n Удаление файлов \n Назад ");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/CalibrateManual,/DropSettings,/DelFolder,/reset");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
