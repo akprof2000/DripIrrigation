@@ -856,14 +856,14 @@ void newMsg(FB_msg& msg) {
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
         } else if (command == "/CalibrateManual") {
           String menu = " Датчик влажности № 1 [" + String(hs.getLow(0)) + ";" + String(hs.getHigh(0))
-                        + "] " + String(hs.Percent(0)) + "% \n Датчик влажности № 2 [" + String(hs.getLow(1)) + ";" + String(hs.getHigh(1))
-                        + "] " + String(hs.Percent(1)) + "% \n Датчик влажности № 3 [" + String(hs.getLow(2)) + ";" + String(hs.getHigh(2))
-                        + "] " + String(hs.Percent(2)) + "% \n Датчик влажности № 4 [" + String(hs.getLow(3)) + ";" + String(hs.getHigh(3))
-                        + "] " + String(hs.Percent(3)) + "% \n Датчик влажности № 5 [" + String(hs.getLow(4)) + ";" + String(hs.getHigh(4))
-                        + "] " + String(hs.Percent(4)) + "% \n Датчик влажности № 6 [" + String(hs.getLow(5)) + ";" + String(hs.getHigh(5))
-                        + "] " + String(hs.Percent(5)) + "% \n Датчик влажности № 7 [" + String(hs.getLow(6)) + ";" + String(hs.getHigh(6))
-                        + "] " + String(hs.Percent(6)) + "% \n Датчик влажности № 8 [" + String(hs.getLow(7)) + ";" + String(hs.getHigh(7)) 
-                        + "] " + String(hs.Percent(7)) + "% \n Назад ";
+                        + "] " + String(hs.Percent(0)) + "% - " + String(hs.getCurrent(0)) + " \n Датчик влажности № 2 [" + String(hs.getLow(1)) + ";" + String(hs.getHigh(1))
+                        + "] " + String(hs.Percent(1)) + "% - " + String(hs.getCurrent(1)) + " \n Датчик влажности № 3 [" + String(hs.getLow(2)) + ";" + String(hs.getHigh(2))
+                        + "] " + String(hs.Percent(2)) + "% - " + String(hs.getCurrent(2)) + " \n Датчик влажности № 4 [" + String(hs.getLow(3)) + ";" + String(hs.getHigh(3))
+                        + "] " + String(hs.Percent(3)) + "% - " + String(hs.getCurrent(3)) + " \n Датчик влажности № 5 [" + String(hs.getLow(4)) + ";" + String(hs.getHigh(4))
+                        + "] " + String(hs.Percent(4)) + "% - " + String(hs.getCurrent(4)) + " \n Датчик влажности № 6 [" + String(hs.getLow(5)) + ";" + String(hs.getHigh(5))
+                        + "] " + String(hs.Percent(5)) + "% - " + String(hs.getCurrent(5)) + " \n Датчик влажности № 7 [" + String(hs.getLow(6)) + ";" + String(hs.getHigh(6))
+                        + "] " + String(hs.Percent(6)) + "% - " + String(hs.getCurrent(6)) + " \n Датчик влажности № 8 [" + String(hs.getLow(7)) + ";" + String(hs.getHigh(7)) 
+                        + "] " + String(hs.Percent(7)) + "% - " + String(hs.getCurrent(7)) + " \n Назад ";
           String cback = F("/HumidityMCalibrate_0,/HumidityMCalibrate_1,/HumidityMCalibrate_2,/HumidityMCalibrate_3,/HumidityMCalibrate_4,/HumidityMCalibrate_5,/HumidityMCalibrate_6,/HumidityMCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Ручная Калибровка>", menu, cback, msg.userID);
         } else if (command == "/DelFolder") {
