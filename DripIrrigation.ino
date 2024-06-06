@@ -23,7 +23,7 @@ void setup() {
   pinMode(LIGHT, INPUT);
   pinMode(RAIN, INPUT);
   pinMode(FILL, OUTPUT);
-  
+
   digitalWrite(FILL, LOW);
   Serial.println("Configuring WDT...");
   esp_task_wdt_config_t twdt_config = {
@@ -56,6 +56,56 @@ const unsigned long blinkInt = 300;
 unsigned long prevBlink = 0;
 bool blink = false;
 
+
+
+void checkValve(int i) {
+  int p = hs.Percent(i);
+  if (myConfig.chanel[i].mode == 0 || myConfig.chanel[i].mode == 3) {
+    Serial.print("Current percent Humidity :");
+    Serial.print(p);
+    Serial.print(" for ");
+    Serial.print(i);
+    int b = myConfig.chanel[i].border;
+    int d = myConfig.deltaHum;
+    Serial.print(" border ");
+    Serial.print(b);
+    Serial.print(" with delta ");
+    Serial.print(d);
+    Serial.print(" from ");
+    Serial.print(b - d);
+    Serial.print(" to ");
+    Serial.println(b + d);
+    if (p < (b - d)) {
+      if (oldMode[i] != 1) {
+        oldMode[i] = 1;
+        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
+      }
+      valve_open(i);
+    } else if (p > (b + d)) {
+      if (oldMode[i] != 2) {
+        oldMode[i] = 2;
+        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
+      }
+      valve_close(i);
+    }
+  } else {
+    if (myConfig.chanel[i].mode == 1) {
+      if (oldMode[i] != 10) {
+        oldMode[i] = 10;
+        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
+      }
+      valve_open(i);
+    } else {
+      if (oldMode[i] != 11) {
+        oldMode[i] = 11;
+        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
+      }
+      valve_close(i);
+    }
+  }
+}
+
+
 void loop() {
   unsigned long currBlink = millis();
   if (currBlink - prevBlink >= blinkInt) {
@@ -67,7 +117,6 @@ void loop() {
     }
     blink = !blink;
   }
-
 
   ReCheck();
   unsigned long currentMillis = millis();
@@ -105,6 +154,8 @@ void loop() {
 
       int night = digitalRead(LIGHT);
       bool blocked = false;
+      bool nightW = false;
+      bool rainW = false;
       if (night == HIGH) {
         Serial.println(F("Night"));
         if (!sNm) {
@@ -114,20 +165,23 @@ void loop() {
         }
         if (!myConfig.runOnNight) {
           blocked = true;
+          nightW = true;
           if (!oldNMode) {
             Serial.println(F("Set night low power"));
             oldNMode = true;
             sendStatus("Переход в энергосберегающее состояние!");
-            Serial.println(F("Set filling signal"));
-            digitalWrite(FILL, HIGH);
-            delay(FILLING_WAIT);
-            digitalWrite(FILL, LOW);         
+            if (valve_opened()) {
+              Serial.println(F("Set filling signal"));
+              digitalWrite(FILL, HIGH);
+              delay(FILLING_WAIT);
+              digitalWrite(FILL, LOW);
+            }
           }
         }
       } else {
         if (sNm) {
           sNm = false;
-          nightNow = false;
+          nightNow = false;        
           sendStatus("Наступил день");
         }
         if (oldNMode) {
@@ -147,6 +201,7 @@ void loop() {
         }
         if (!myConfig.runOnRain) {
           blocked = true;
+          rainW = true;
           if (!oldRMode) {
             Serial.println(F("Set rain low power"));
             oldRMode = true;
@@ -166,65 +221,25 @@ void loop() {
         }
       }
 
-
-
       if (!blocked) {
         hs.setAll();
         for (int i = 0; i < 8; i++) {
-          int p = hs.Percent(i);
-          if (myConfig.chanel[i].mode == 0) {
-            Serial.print("Current percent Humidity :");
-            Serial.print(p);
-            Serial.print(" for ");
-            Serial.print(i);
-            int b = myConfig.chanel[i].border;
-            int d = myConfig.deltaHum;
-            Serial.print(" border ");
-            Serial.print(b);
-            Serial.print(" with delta ");
-            Serial.print(d);
-            Serial.print(" from ");
-            Serial.print(b - d);
-            Serial.print(" to ");
-            Serial.println(b + d);
-            if (p < (b - d)) {
-              if (oldMode[i] != 1) {
-                oldMode[i] = 1;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
-              }
-              valve_open(i);
-            } else if (p > (b + d)) {
-              if (oldMode[i] != 2) {
-                oldMode[i] = 2;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
-              }
-              valve_close(i);
-            }
-          } else {
-            if (myConfig.chanel[i].mode == 1) {
-              if (oldMode[i] != 10) {
-                oldMode[i] = 10;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
-              }
-              valve_open(i);
-            } else {
-              if (oldMode[i] != 11) {
-                oldMode[i] = 11;
-                sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
-              }
-              valve_close(i);
-            }
-          }
+          checkValve(i);
         }
       } else {
         for (int i = 0; i < 8; i++) {
-          valve_close(i);
-          if (oldMode[i] != 11) {
-            oldMode[i] = 11;
-            sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
+          if (!nightW && rainW && myConfig.chanel[i].mode == 3) {
+            checkValve(i);
+          } else {
+            valve_close(i);
+            if (oldMode[i] != 11) {
+              oldMode[i] = 11;
+              sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
+            }
           }
         }
       }
+
       Serial.println("Write file data");
       dataFile = SD.open(fn, FILE_APPEND);
       if (dataFile) {
