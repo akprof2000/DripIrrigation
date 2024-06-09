@@ -886,7 +886,7 @@ void newMsg(FB_msg& msg) {
         } else if (command == "/Configure") {
           ///TODO сделать конфигурацию в зависимости от датчиков
           String menu = (" Работа ночью " + String(myConfig.runOnNight ? "[x]" : "[o]") + " \n Работа под дождём " + String(myConfig.runOnRain ? "[x]" : "[o]") + " \n Дельта влажности % (" + String(myConfig.deltaHum) + ") \n Дельта калибровки (" + String(myConfig.deltaCalibration) + ") \n Калибровка  \n Ручная калибровка \n Сброс настроек \n Удаление файлов \n Назад ");
-          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/CalibrateManual,/DropSettings,/DelFolder,/reset");
+          String cback = F("/WorkAtNight,/WorkAtRain,/DeltaHumidity,/DeltaCalibration,/Calibrate,/CalibrateManual,/DropSettings,/DelFolder,/start");
           bot.inlineMenuCallback("<Настройка>", menu, cback, msg.userID);
         } else if (command == "/Restart") {
           SimpleVector<String> keys = users.keys();
@@ -899,7 +899,7 @@ void newMsg(FB_msg& msg) {
           actionSet(msg.userID, 1);
         } else if (command == "/Users") {
           String menu = F(" Список \n Повышение \n Понижение \n Удаление \n Назад ");
-          String cback = F("/UsersList,/UsersUpEdit,/UsersDownEdit,/UsersDelete,/reset");
+          String cback = F("/UsersList,/UsersUpEdit,/UsersDownEdit,/UsersDelete,/start");
           bot.inlineMenuCallback("<Пользователи>", menu, cback, msg.userID);
 
         } else if (command == "/UsersList") {
@@ -1041,7 +1041,7 @@ void newMsg(FB_msg& msg) {
           }
         }
         bot.sendMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
-      } else if (command == "/reset") {
+      } else if (command == "/start") {
         if (check_user->role < 2) {
           String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
           String cback = F("/Restart,/Users,/control,/status,/reports,/Configure");
@@ -1149,7 +1149,7 @@ void newMsg(FB_msg& msg) {
         actionSet(msg.userID, 3000);
       } else if (command == "/control") {
         String menu = F(" Режим работы \n Названия \n Пороги срабатывания \n Поиск датчика \n Назад ");
-        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/reset");
+        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/start");
         bot.inlineMenuCallback("<Управление>", menu, cback, msg.userID);
       } else if (command == "/pause") {
         check_user->messages = false;
@@ -1226,7 +1226,7 @@ void newMsg(FB_msg& msg) {
       }
       if (command == "/reports") {
         String menu = F(" Графики \n  Файл за вчера \n Файл текущий \n Файл... \n Назад");
-        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/reset");
+        String cback = F("/Graphics,/FileYesterday,/FileToday,/FileTo,/start");
         bot.inlineMenuCallback("<Отчеты>", menu, cback, msg.userID);
       }
       if (command == "/Graphics") {

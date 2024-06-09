@@ -170,11 +170,12 @@ void loop() {
             Serial.println(F("Set night low power"));
             oldNMode = true;
             sendStatus("Переход в энергосберегающее состояние!");
-            if (valve_opened()) {
+            if (valve_opened() == true) {
               Serial.println(F("Set filling signal"));
               digitalWrite(FILL, HIGH);
               delay(FILLING_WAIT);
               digitalWrite(FILL, LOW);
+              sendStatus("Старт заливки бака!");
             }
           }
         }
