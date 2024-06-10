@@ -855,6 +855,7 @@ void newMsg(FB_msg& msg) {
           String cback = F("/HumidityCalibrate_0,/HumidityCalibrate_1,/HumidityCalibrate_2,/HumidityCalibrate_3,/HumidityCalibrate_4,/HumidityCalibrate_5,/HumidityCalibrate_6,/HumidityCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Калибровка>", menu, cback, msg.userID);
         } else if (command == "/CalibrateManual") {
+          hs.setAll();
           String menu = " Датчик влажности № 1 [" + String(hs.getLow(0)) + ";" + String(hs.getHigh(0))
                         + "] " + String(hs.Percent(0)) + "% - " + String(hs.getCurrent(0)) + " \n Датчик влажности № 2 [" + String(hs.getLow(1)) + ";" + String(hs.getHigh(1))
                         + "] " + String(hs.Percent(1)) + "% - " + String(hs.getCurrent(1)) + " \n Датчик влажности № 3 [" + String(hs.getLow(2)) + ";" + String(hs.getHigh(2))
