@@ -291,6 +291,7 @@ void timeFixed() {
 
 void botInit() {
   bot.attach(newMsg);
+  bot.skipUpdates();
   loadUsers();
   timeFixed();
 }
@@ -636,6 +637,7 @@ void newMsg(FB_msg& msg) {
             act->action = 0;
             hs.setLowHighValue(ind, minv, maxv);
             command = "/CalibrateManual";
+            data.update();
           } else {
             bot.sendMessage(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);
             return;
