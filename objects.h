@@ -4,16 +4,12 @@
 #ifndef _OBJECTS_h
 #define _OBJECTS_h
 
-#if defined(ARDUINO) && ARDUINO >= 100
 #include "arduino.h"
-#else
-#include "WProgram.h"
-#endif
 
 
 #include "sensors.h"
 #include <RTClib.h>
-#include <SPIFFS.h>
+#include <SD.h>
 #include <FileData.h>
 #include <FastBot.h>
 

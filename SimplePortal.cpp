@@ -67,7 +67,9 @@ void portalStart() {
   IPAddress subnet(255, 255, 255, 0);
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, subnet);
-  WiFi.softAP(SP_AP_NAME);
+  String wifi_name = String(SP_AP_NAME) + "_" + WiFi.macAddress();
+  wifi_name.replace(":", "");
+  WiFi.softAP(wifi_name);
   
   _SP_dnsServer.start(53, "*", apIP);
 

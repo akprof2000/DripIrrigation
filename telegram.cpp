@@ -4,7 +4,6 @@
 #include <EEPROM.h>
 #include <CharPlot.h>
 #include "valves.h"
-#include <SD.h>
 
 
 void rm(File dir, String tempPath) {
@@ -635,8 +634,10 @@ void newMsg(FB_msg& msg) {
           int maxv = maxvs.toInt();
           if (minv >= 0 && minv <= 4096 && maxv >= 0 && maxv <= 4096) {
             act->action = 0;
-            hs.setLowHighValue(ind, minv, maxv);
+            hs.setLowHighValue(ind, minv, maxv);            
             command = "/CalibrateManual";
+            myConfig.chanel[ind].maxVal = hs.getHigh(ind);
+            myConfig.chanel[ind].minVal = hs.getLow(ind);
             data.update();
           } else {
             bot.sendMessage(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);

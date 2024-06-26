@@ -210,21 +210,22 @@ void init() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("");
-    Serial.println("WiFi not connected wait foe connect after");
+    Serial.println("WiFi not connected wait for connect after");
   } else {
     Serial.println("");
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+
+    if (init_config == 0) {
+      init_config = 1;
+      EEPROM.put(0, init_config);
+      Serial.println("");
+      Serial.println("WiFi write status");
+      EEPROM.commit();
+    }
   }
 
-  if (init_config == 0) {
-    init_config = 1;
-    EEPROM.put(0, init_config);
-    Serial.println("");
-    Serial.println("WiFi write status");
-    EEPROM.commit();
-  }
   EEPROM.end();
   hs.init();
 

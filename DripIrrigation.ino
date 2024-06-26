@@ -4,7 +4,6 @@
 #include "init.h"
 #include <esp_task_wdt.h>
 #include "valves.h"
-#include <SD.h>
 
 #define WDT_TIMEOUT 300
 

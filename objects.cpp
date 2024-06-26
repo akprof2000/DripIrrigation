@@ -3,7 +3,6 @@
 // 
 
 #include "objects.h"
-#include <SD.h>
 
 
 Config myConfig;
