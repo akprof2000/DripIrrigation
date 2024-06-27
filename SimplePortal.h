@@ -5,7 +5,7 @@
 
 
 
-#define SP_AP_NAME "ESP Config - Drip Irrigation"     // название точки
+#define SP_AP_NAME "ESPCfg_DripIrrigation"     // название точки
 #define SP_AP_IP 192,168,1,1        // IP точки
 
 
