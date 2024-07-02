@@ -35,6 +35,7 @@ void ReCheck() {
   unsigned long currentMillis = millis();
   // if WiFi is down, try reconnecting
   if (currentMillis - previousMillis >= interval) {
+    
     Serial.println("Check status wi-fi");
     if (r == 3 or r == 4) {
       OldR++;
@@ -95,12 +96,18 @@ void init() {
 
   delay(1000);
 
+  attachSendFunction(sendStatus);
+
   WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
 
 
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(DRAIN, OUTPUT);
   pinMode(BUTTON, INPUT);
+  digitalWrite(DRAIN, LOW);
+  pinMode(PUMP, OUTPUT);
+  digitalWrite(PUMP, LOW);
   int state = HIGH;
   bool nClear = false;
   for (int i = 0; i < 3000; i++) {

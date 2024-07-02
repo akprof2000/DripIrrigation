@@ -18,4 +18,6 @@ void timeFixed();
 String IntWith2Zero(int data);
 void sendStatus(String text);
 
+bool telegram_needUpdate();
+
 #endif

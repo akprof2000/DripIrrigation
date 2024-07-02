@@ -15,5 +15,6 @@ bool valve_opened();
 
 void valve_open(int index);
 void valve_close(int index);
+bool valve_needUpdate();
 
 #endif

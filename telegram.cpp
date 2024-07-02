@@ -5,6 +5,12 @@
 #include <CharPlot.h>
 #include "valves.h"
 
+bool needUpdate = false;
+bool telegram_needUpdate() {
+  bool nu = needUpdate;
+  needUpdate = false;
+  return nu;
+}
 
 void rm(File dir, String tempPath) {
   while (true) {
@@ -46,14 +52,6 @@ void rm(File dir, String tempPath) {
 void newMsg(FB_msg& msg);
 void loadUsers();
 
-int64_t getUnixTime() {
-  if (bot.timeSynced()) {
-    return bot.getUnix() + 3600 * 3;
-  } else {
-    DateTime now = rtc.now();
-    return now.unixtime();
-  }
-}
 
 
 bool isNumeric(String str) {
@@ -480,7 +478,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage("Калибровка завершена датчик № " + String((ind + 1)) + " полностью функционален!", msg.userID);
           myConfig.chanel[ind].maxVal = hs.getHigh(ind);
           myConfig.chanel[ind].minVal = hs.getLow(ind);
-          data.update();
+          needUpdate = true;
           act->action = 0;
           command = F("/Calibrate");
         } else {
@@ -591,7 +589,7 @@ void newMsg(FB_msg& msg) {
           if (num >= 0 && num <= 100) {
             act->action = 0;
             myConfig.chanel[ind].border = num;
-            data.update();
+            needUpdate = true;
             command = "/Borders";
           } else {
             bot.sendMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
@@ -603,7 +601,7 @@ void newMsg(FB_msg& msg) {
         strcpy(myConfig.chanel[ind].title, msg.text.c_str());
         command = F("/Namings");
         act->action = 0;
-        data.update();
+        needUpdate = true;
       } else if (act->action >= 1300 && act->action <= 1307) {
         int ind = act->action - 1300;
         if (msg.text == "ВКЛ.") {
@@ -621,7 +619,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Клапан в ароматическом режиме для парника!"), msg.userID);
           myConfig.chanel[ind].mode = 3;
         }
-        data.update();
+        needUpdate = true;
         act->action = 0;
         command = F("/OperationMode");
       } else if (act->action >= 1800 && act->action <= 1807) {
@@ -634,11 +632,11 @@ void newMsg(FB_msg& msg) {
           int maxv = maxvs.toInt();
           if (minv >= 0 && minv <= 4096 && maxv >= 0 && maxv <= 4096) {
             act->action = 0;
-            hs.setLowHighValue(ind, minv, maxv);            
+            hs.setLowHighValue(ind, minv, maxv);
             command = "/CalibrateManual";
             myConfig.chanel[ind].maxVal = hs.getHigh(ind);
             myConfig.chanel[ind].minVal = hs.getLow(ind);
-            data.update();
+            needUpdate = true;
           } else {
             bot.sendMessage(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);
             return;
@@ -667,7 +665,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Сброс отменён!"), msg.userID);
         }
         command = "/Configure";
-        data.update();
+        needUpdate = true;
       } else if (act->action == 1) {
         act->action = 0;
         if (msg.text == "ДА") {
@@ -688,7 +686,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Работа ночью выключена!"), msg.userID);
         }
         command = "/Configure";
-        data.update();
+        needUpdate = true;
       } else if (act->action == 1002) {
         act->action = 0;
         if (msg.text == "ДА") {
@@ -699,7 +697,7 @@ void newMsg(FB_msg& msg) {
           bot.sendMessage(F("Работа под дождём выключена!"), msg.userID);
         }
         command = "/Configure";
-        data.update();
+        needUpdate = true;
       } else if (act->action == 5000) {
         String input = String(msg.text);
         String sd = getValue(input, '.', 0);
@@ -794,7 +792,7 @@ void newMsg(FB_msg& msg) {
           if (num >= 0 && num <= 100) {
             act->action = 0;
             myConfig.deltaHum = num;
-            data.update();
+            needUpdate = true;
             command = "/Configure";
           } else {
             bot.sendMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
@@ -812,7 +810,7 @@ void newMsg(FB_msg& msg) {
           if (num >= 0 && num <= 2048) {
             act->action = 0;
             myConfig.deltaCalibration = num;
-            data.update();
+            needUpdate = true;
             hs.setBorder(myConfig.deltaCalibration);
             command = "/Configure";
           } else {
@@ -827,7 +825,7 @@ void newMsg(FB_msg& msg) {
       }
     }
 
-    if (msg.OTA && check_user->role < 1 && msg.fileName == "DripIrrigation.ino.bin") {
+    if (msg.OTA && check_user->role < 1 && (msg.fileName == "DripIrrigation.ino.bin" || msg.fileName == "DripIrrigation.ino.bin.gz")) {
       bot.update();
       return;
     } else {
@@ -866,7 +864,7 @@ void newMsg(FB_msg& msg) {
                         + "] " + String(hs.Percent(3)) + "% - " + String(hs.getCurrent(3)) + " \n Датчик влажности № 5 [" + String(hs.getLow(4)) + ";" + String(hs.getHigh(4))
                         + "] " + String(hs.Percent(4)) + "% - " + String(hs.getCurrent(4)) + " \n Датчик влажности № 6 [" + String(hs.getLow(5)) + ";" + String(hs.getHigh(5))
                         + "] " + String(hs.Percent(5)) + "% - " + String(hs.getCurrent(5)) + " \n Датчик влажности № 7 [" + String(hs.getLow(6)) + ";" + String(hs.getHigh(6))
-                        + "] " + String(hs.Percent(6)) + "% - " + String(hs.getCurrent(6)) + " \n Датчик влажности № 8 [" + String(hs.getLow(7)) + ";" + String(hs.getHigh(7)) 
+                        + "] " + String(hs.Percent(6)) + "% - " + String(hs.getCurrent(6)) + " \n Датчик влажности № 8 [" + String(hs.getLow(7)) + ";" + String(hs.getHigh(7))
                         + "] " + String(hs.Percent(7)) + "% - " + String(hs.getCurrent(7)) + " \n Назад ";
           String cback = F("/HumidityMCalibrate_0,/HumidityMCalibrate_1,/HumidityMCalibrate_2,/HumidityMCalibrate_3,/HumidityMCalibrate_4,/HumidityMCalibrate_5,/HumidityMCalibrate_6,/HumidityMCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Ручная Калибровка>", menu, cback, msg.userID);

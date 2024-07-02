@@ -264,7 +264,19 @@ void loop() {
       }
       dataFile.close();
     }
+    if (pumpStart != 0){
+      if (curr - pumpStart > PUMP_TIMEOUT){
+        pumpStart = 0;
+        digitalWrite(PUMP, LOW);
+      }
+    }
+    bool duv = valve_needUpdate();
+    bool dut = telegram_needUpdate();
 
+    if (duv || dut)
+    {
+      data.update();
+    }
     esp_task_wdt_reset();  // Reset watchdog timer
   }
 }
