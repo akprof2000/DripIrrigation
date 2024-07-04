@@ -63,11 +63,23 @@ void SP_handleExit() {
 void portalStart() {
   WiFi.softAPdisconnect();
   WiFi.disconnect();
+  WiFi.mode(WIFI_AP);
+  WiFi.begin(SP_AP_NAME);
+  delay(1000);
+  String wifi_name = String(SP_AP_NAME) + "_" + WiFi.macAddress();
+  wifi_name.replace(":", "");
+  Serial.println(wifi_name);
+  WiFi.softAPdisconnect();
+  WiFi.disconnect();
+
+  WiFi.softAPdisconnect();
+  WiFi.disconnect();
   IPAddress apIP(SP_AP_IP);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, subnet);
-  WiFi.softAP(SP_AP_NAME);
+ 
+  WiFi.softAP(wifi_name);
   
   _SP_dnsServer.start(53, "*", apIP);
 

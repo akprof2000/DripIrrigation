@@ -5,18 +5,13 @@
 
 
 
-#define SP_AP_NAME "ESP Config - Drip Irrigation"     // название точки
+#define SP_AP_NAME "ESPCfg_DripIrrigation"     // название точки
 #define SP_AP_IP 192,168,1,1        // IP точки
 
 
 #include <DNSServer.h>
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#else
 #include <WiFi.h>
 #include <WebServer.h>
-#endif
 
 #define SP_ERROR 0
 #define SP_SUBMIT 1
