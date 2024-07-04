@@ -27,90 +27,62 @@ unsigned long intervalSmall = CHECK_WIFI_INTERVAL_SMALL;
 unsigned long lastGood = 0;
 
 bool cd_card = true;
-int OldR = 0;
 
-int prevR = 0;
 
 void ReCheck() {
 
   unsigned long currentMillis = millis();
 
-  bool tk = true;
-
-  int r = prevR;
   if (currentMillis - previousMillisSmall >= intervalSmall) {
     previousMillisSmall = currentMillis;
-    if (WiFi.status() != WL_CONNECTED) {
-      WiFi.disconnect();
-      delay(10);
-      Serial.println("Status wi-fi is broken");
-      WiFi.reconnect();
-      int ind = 0;
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(300);
-        Serial.print(".");
-        ind++;
-        if (ind > 30) {
-          break;
-        }
+    int r = bot.tick();
+    if (res) {
+      bot.tickManual();  // Чтобы отметить сообщение прочитанным
+      ESP.restart();
+    }
+
+    bool recon = (r == 3 or r == 4);
+
+    // if WiFi is down, try reconnecting
+    if (recon || dropped || (currentMillis - previousMillis >= interval)) {
+
+      Serial.println("Check status wi-fi");
+
+      if (recon) {
+        Serial.print("Current error status from telegram ");
+        Serial.println(r);
       }
 
-      tk = WiFi.status() == WL_CONNECTED;
-      dropped = true;
+      previousMillis = currentMillis;
+      if (WiFi.status() != WL_CONNECTED || recon) {
+        dropped = true;
+        Serial.println("Reconnecting to WiFi...");
+        WiFi.disconnect();
+        delay(10);
+        WiFi.reconnect();
+        int ind = 0;
+        while (WiFi.status() != WL_CONNECTED) {
+          delay(300);
+          Serial.print(".");
+          ind++;
+          if (ind > 30) {
+            break;
+          }
+        }
+
+      } else {
+        if (dropped) {
+          dropped = false;
+          reConnection(abs(long(currentMillis - lastGood)));
+        }
+        lastGood = currentMillis;
+      }
     }
-    r = 4;
-    if (tk) r = bot.tick();
-    prevR = r;
   }
 
 
-  if (res) {
-    bot.tickManual();  // Чтобы отметить сообщение прочитанным
-    ESP.restart();
-  }
+
   if (data.tick() == FD_WRITE) Serial.println("Data updated!");
-
-  // if WiFi is down, try reconnecting
-  if (dropped || currentMillis - previousMillis >= interval) {
-
-    Serial.println("Check status wi-fi");
-    if (r == 3 or r == 4) {
-      OldR++;
-    } else {
-      OldR = 0;
-      if (!dropped)
-        lastGood = millis();
-    }
-    if (OldR > 0) {
-      Serial.print("Current error status from telegram ");
-      Serial.println(r);
-    }
-    previousMillis = currentMillis;
-    if (WiFi.status() != WL_CONNECTED || (OldR >= 3 && !dropped)) {
-      dropped = true;
-      OldR = 0;
-      Serial.println("Reconnecting to WiFi...");
-      WiFi.disconnect();
-      delay(10);
-      WiFi.reconnect();
-      int ind = 0;
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(300);
-        Serial.print(".");
-        ind++;
-        if (ind > 30) {
-          break;
-        }
-      }
-
-    } else {
-      if (dropped) {
-        OldR = 0;
-        dropped = false;
-        reConnection(abs(long(millis() - lastGood)));
-      }
-    }
-  }
 }
 
 
