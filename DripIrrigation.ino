@@ -77,13 +77,13 @@ void checkValve(int i) {
     if (p < (b - d)) {
       if (oldMode[i] != 1) {
         oldMode[i] = 1;
-        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
+        sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ")  открыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
       }
       valve_open(i);
     } else if (p > (b + d)) {
       if (oldMode[i] != 2) {
         oldMode[i] = 2;
-        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
+        sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
       }
       valve_close(i);
     }
@@ -91,13 +91,13 @@ void checkValve(int i) {
     if (myConfig.chanel[i].mode == 1) {
       if (oldMode[i] != 10) {
         oldMode[i] = 10;
-        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
+        sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") открыт по настройке, текущая влажность " + p + " %");
       }
       valve_open(i);
     } else {
       if (oldMode[i] != 11) {
         oldMode[i] = 11;
-        sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
+        sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по настройке, текущая влажность " + p + " %");
       }
       valve_close(i);
     }
@@ -160,7 +160,7 @@ void loop() {
         if (!sNm) {
           sNm = true;
           nightNow = true;
-          sendStatus("Наступила ночь");
+          sendTelegramStatus("Наступила ночь");
         }
         if (!myConfig.runOnNight) {
           blocked = true;
@@ -168,26 +168,26 @@ void loop() {
           if (!oldNMode) {
             Serial.println(F("Set night low power"));
             oldNMode = true;
-            sendStatus("Переход в энергосберегающее состояние!");
+            sendTelegramStatus("Переход в энергосберегающее состояние!");
             if (valve_opened() == true) {
               Serial.println(F("Set filling signal"));
               digitalWrite(FILL, HIGH);
               delay(FILLING_WAIT);
               digitalWrite(FILL, LOW);
-              sendStatus("Старт заливки бака!");
+              sendTelegramStatus("Старт заливки бака!");
             }
           }
         }
       } else {
         if (sNm) {
           sNm = false;
-          nightNow = false;        
-          sendStatus("Наступил день");
+          nightNow = false;
+          sendTelegramStatus("Наступил день");
         }
         if (oldNMode) {
           Serial.println(F("Set night high power"));
           oldNMode = false;
-          sendStatus("Восстановление работы после ночного режима!");
+          sendTelegramStatus("Восстановление работы после ночного режима!");
         }
       }
 
@@ -195,7 +195,7 @@ void loop() {
       if (rain_t == LOW) {
         Serial.println(F("Rain"));
         if (!sRm) {
-          sendStatus("Пошел сильный дождь");
+          sendTelegramStatus("Пошел сильный дождь");
           sRm = true;
           rainNow = true;
         }
@@ -205,19 +205,19 @@ void loop() {
           if (!oldRMode) {
             Serial.println(F("Set rain low power"));
             oldRMode = true;
-            sendStatus("Идет дождь отключаем полив!");
+            sendTelegramStatus("Идет дождь отключаем полив!");
           }
         }
       } else {
         if (sRm) {
           sRm = false;
           rainNow = false;
-          sendStatus("Влажность после дождя достигла нормы");
+          sendTelegramStatus("Влажность после дождя достигла нормы");
         }
         if (oldRMode) {
           Serial.println(F("Set rain high power"));
           oldRMode = false;
-          sendStatus("Восстановление работы после дождя!");
+          sendTelegramStatus("Восстановление работы после дождя!");
         }
       }
 
@@ -234,7 +234,7 @@ void loop() {
             valve_close(i);
             if (oldMode[i] != 11) {
               oldMode[i] = 11;
-              sendStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
+              sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт");
             }
           }
         }
@@ -258,14 +258,14 @@ void loop() {
           dataFile.println(row);
         }
       } else {
-        sendStatus("Ошибка записи в файл: " + fn);
+        sendTelegramStatus("Ошибка записи в файл: " + fn);
         Serial.print("Can not open file to write: ");
         Serial.println(fn);
       }
       dataFile.close();
     }
-    if (pumpStart != 0){
-      if (curr - pumpStart > PUMP_TIMEOUT){
+    if (pumpStart != 0) {
+      if (curr - pumpStart > PUMP_TIMEOUT) {
         pumpStart = 0;
         digitalWrite(PUMP, LOW);
       }
@@ -273,8 +273,7 @@ void loop() {
     bool duv = valve_needUpdate();
     bool dut = telegram_needUpdate();
 
-    if (duv || dut)
-    {
+    if (duv || dut) {
       data.update();
     }
     esp_task_wdt_reset();  // Reset watchdog timer

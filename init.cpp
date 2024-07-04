@@ -21,21 +21,58 @@ byte init_config = 0;
 unsigned long previousMillis = 0;
 unsigned long interval = CHECK_WIFI_INTERVAL;
 
+unsigned long previousMillisSmall = 0;
+unsigned long intervalSmall = CHECK_WIFI_INTERVAL_SMALL;
+
 unsigned long lastGood = 0;
 
 bool cd_card = true;
 int OldR = 0;
+
+int prevR = 0;
+
 void ReCheck() {
-  int r = bot.tick();
+
+  unsigned long currentMillis = millis();
+
+  bool tk = true;
+
+  int r = prevR;
+  if (currentMillis - previousMillisSmall >= intervalSmall) {
+    previousMillisSmall = currentMillis;
+    if (WiFi.status() != WL_CONNECTED) {
+      WiFi.disconnect();
+      delay(10);
+      Serial.println("Status wi-fi is broken");
+      WiFi.reconnect();
+      int ind = 0;
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(300);
+        Serial.print(".");
+        ind++;
+        if (ind > 30) {
+          break;
+        }
+      }
+
+      tk = WiFi.status() == WL_CONNECTED;
+      dropped = true;
+    }
+    r = 4;
+    if (tk) r = bot.tick();
+    prevR = r;
+  }
+
+
   if (res) {
     bot.tickManual();  // Чтобы отметить сообщение прочитанным
     ESP.restart();
   }
   if (data.tick() == FD_WRITE) Serial.println("Data updated!");
-  unsigned long currentMillis = millis();
+
   // if WiFi is down, try reconnecting
-  if (currentMillis - previousMillis >= interval) {
-    
+  if (dropped || currentMillis - previousMillis >= interval) {
+
     Serial.println("Check status wi-fi");
     if (r == 3 or r == 4) {
       OldR++;
@@ -54,7 +91,17 @@ void ReCheck() {
       OldR = 0;
       Serial.println("Reconnecting to WiFi...");
       WiFi.disconnect();
+      delay(10);
       WiFi.reconnect();
+      int ind = 0;
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(300);
+        Serial.print(".");
+        ind++;
+        if (ind > 30) {
+          break;
+        }
+      }
 
     } else {
       if (dropped) {
@@ -90,13 +137,9 @@ void init() {
 
   Serial.println("begin init");
 
-  EEPROM.begin(4096);
-
-  //WiFi.disconnect(true);
-
-  delay(1000);
-
   attachSendFunction(sendStatus);
+  EEPROM.begin(4096);
+  delay(1000);
 
   WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);

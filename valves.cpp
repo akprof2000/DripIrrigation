@@ -46,6 +46,7 @@ void valve_open(int index) {
     unsigned long  ut = getUnixTime();
     if (ut - myConfig.utimeAllClosed > TIMEOUT_WAIT)
     {
+      Serial.println("Filling drenage");
       sendTelegramStatus("Запуск пролива дренажа");
       digitalWrite(DRAIN, HIGH);
       digitalWrite(PUMP, HIGH);
@@ -53,6 +54,7 @@ void valve_open(int index) {
       digitalWrite(DRAIN, LOW);
       digitalWrite(PUMP, LOW);
       sendTelegramStatus("Пролива дренажа завершон");
+       Serial.println("End filling drenage");
     }
     myConfig.utimeAllClosed = 0;
     needValveUpdate = true;

@@ -30,17 +30,17 @@ int64_t getUnixTime() {
   }
 }
 
-void (*p_sendTelegramfunction)(String text);   // указатель на p_function
+void (*p_sendTelegramFunction)(String text);   // указатель на p_function
 
 
 void attachSendFunction(void (*function)(String text)) { // передача указателя на функцию
-  p_sendTelegramfunction = *function;
+  p_sendTelegramFunction = *function;
 }
 
 
 void sendTelegramStatus(String text)
 {
-  (*p_sendTelegramfunction)(text);
+  (*p_sendTelegramFunction)(text);
 }
 
 

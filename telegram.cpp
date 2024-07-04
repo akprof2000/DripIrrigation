@@ -375,11 +375,33 @@ void dropCDCard() {
 void sendStatus(String text) {
   if (dropped) return;
 
-  SimpleVector<String> keys = users.keys();
-  for (const String& key : keys) {
-    User* user = users.get(key);
-    if (user->messages) {
-      bot.sendMessage(text, user->userID);
+  bool tk = true;
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.disconnect();
+    delay(10);
+    Serial.println("Status wi-fi is broken");
+    WiFi.reconnect();
+    int ind = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(300);
+      Serial.print(".");
+      ind++;
+      if (ind > 30) {
+        break;
+      }
+    }
+
+    tk = WiFi.status() == WL_CONNECTED;
+    dropped = true;
+  }
+
+  if (tk) {
+    SimpleVector<String> keys = users.keys();
+    for (const String& key : keys) {
+      User* user = users.get(key);
+      if (user->messages) {
+        bot.sendMessage(text, user->userID);
+      }
     }
   }
 }
