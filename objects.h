@@ -14,7 +14,7 @@
 #include <FastBot.h>
 
 
-#define BOT_TOKEN "XXXXXXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+#define BOT_TOKEN "XXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
 #define CHECK_WIFI_INTERVAL_SMALL 3000 //miliseconds
 #define CHECK_WIFI_INTERVAL 30000 //miliseconds
@@ -23,8 +23,8 @@
 #define CHECK_RAIN true
 #define FILLING_WAIT 3000 //miliseconds
 #define TIMEOUT_WAIT 18000 //seconds
-#define DRAIN_TIMEOUT 9000 //miliseconds
-#define PUMP_TIMEOUT 60 //seconds
+#define DRAIN_TIMEOUT 12000 //miliseconds
+#define PUMP_TIMEOUT 30 //seconds
 
 
 

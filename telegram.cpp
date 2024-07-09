@@ -1043,7 +1043,9 @@ void newMsg(FB_msg& msg) {
           }
         }
       }
-      if (command.startsWith("/BordersSet")) {
+      if (command == "/Spillage") {
+        spillage();
+      } else if (command.startsWith("/BordersSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
         sendReconnectMessgae(("Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), msg.userID);
@@ -1160,7 +1162,8 @@ void newMsg(FB_msg& msg) {
           }
           status = status + String("\n") + String("Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
           status = status + String("\n") + String("Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
-          status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : "открыт");
+          status = status + String("\n") + String("Клапан: ") + String((oldMode[i] == 11 || oldMode[i] == 2) ? "закрыт" : oldMode[i] == 3 ? "без контроля"
+                                                                                                                                          : "открыт");
           status = status + String("\n") + String("Режим: ") + String(myConfig.chanel[i].mode == 0 ? "автоматический" : myConfig.chanel[i].mode == 1 ? "постоянно открыт"
                                                                                                                       : myConfig.chanel[i].mode == 2 ? "постоянно закрыт"
                                                                                                                                                      : "автоматический (парник)");
@@ -1175,8 +1178,8 @@ void newMsg(FB_msg& msg) {
         bot.showMenuText("<Поиск>", "СТАРТ \t ОТМЕНА", msg.userID, true);
         actionSet(msg.userID, 3000);
       } else if (command == "/control") {
-        String menu = F(" Режим работы \n Названия \n Пороги срабатывания \n Поиск датчика \n Назад ");
-        String cback = F("/OperationMode,/Namings,/Borders,/Searching,/start");
+        String menu = F(" Режим работы \n Названия \n Пороги срабатывания \n Пролив дренажа \n Поиск датчика \n Назад ");
+        String cback = F("/OperationMode,/Namings,/Borders,/Spillage,/Searching,/start");
         bot.inlineMenuCallback("<Управление>", menu, cback, msg.userID);
       } else if (command == "/pause") {
         check_user->messages = false;

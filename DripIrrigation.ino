@@ -86,6 +86,11 @@ void checkValve(int i) {
         sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") закрыт по порогу влажности (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
       }
       valve_close(i);
+    } else {
+      if (oldMode[i] != 1 && oldMode[i] != 2 && oldMode[i] != 3) {
+        oldMode[i] = 3;
+        sendTelegramStatus("Клапан № " + String(i + 1) + " (" + myConfig.chanel[i].title + ") находиться в промежуточном состоянии (" + myConfig.chanel[i].border + " %), текущая влажность " + p + " %");
+      }
     }
   } else {
     if (myConfig.chanel[i].mode == 1) {
