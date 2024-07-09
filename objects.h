@@ -23,8 +23,8 @@
 #define CHECK_RAIN true
 #define FILLING_WAIT 3000 //miliseconds
 #define TIMEOUT_WAIT 18000 //seconds
-#define DRAIN_TIMEOUT 9000 //miliseconds
-#define PUMP_TIMEOUT 60 //seconds
+#define DRAIN_TIMEOUT 12000 //miliseconds
+#define PUMP_TIMEOUT 30 //seconds
 
 
 

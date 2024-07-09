@@ -12,7 +12,7 @@
 void valves_init();
 
 bool valve_opened();
-
+void spillage();
 void valve_open(int index);
 void valve_close(int index);
 bool valve_needUpdate();

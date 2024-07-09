@@ -36,32 +36,35 @@ void valves_init() {
   }
 }
 
+void spillage() {
+  Serial.println("Filling drenage");
+  sendTelegramStatus("Запуск пролива дренажа");
+  digitalWrite(DRAIN, HIGH);
+  digitalWrite(PUMP, HIGH);
+  delay(DRAIN_TIMEOUT);
+  digitalWrite(DRAIN, LOW);
+  digitalWrite(PUMP, LOW);
+  sendTelegramStatus("Пролива дренажа завершон");
+  Serial.println("End filling drenage");
+}
 
 void valve_open(int index) {
   pcf8574.digitalWrite(index, LOW);
   isOpen = true;
+
+  if (isClose[index]) {
+    digitalWrite(PUMP, HIGH);
+    pumpStart = getUnixTime();
+  }
   isClose[index] = false;
-  if (myConfig.utimeAllClosed != 0)
-  {
-    unsigned long  ut = getUnixTime();
-    if (ut - myConfig.utimeAllClosed > TIMEOUT_WAIT)
-    {
-      Serial.println("Filling drenage");
-      sendTelegramStatus("Запуск пролива дренажа");
-      digitalWrite(DRAIN, HIGH);
-      digitalWrite(PUMP, HIGH);
-      delay(DRAIN_TIMEOUT);
-      digitalWrite(DRAIN, LOW);
-      digitalWrite(PUMP, LOW);
-      sendTelegramStatus("Пролива дренажа завершон");
-       Serial.println("End filling drenage");
+  if (myConfig.utimeAllClosed != 0) {
+    unsigned long ut = getUnixTime();
+    if (ut - myConfig.utimeAllClosed > TIMEOUT_WAIT) {
+      spillage();
     }
     myConfig.utimeAllClosed = 0;
     needValveUpdate = true;
   }
-  digitalWrite(PUMP, HIGH);
-  pumpStart = getUnixTime();
-
 }
 
 void valve_close(int index) {
@@ -83,8 +86,7 @@ void valve_close(int index) {
   }
 }
 
-bool valve_needUpdate()
-{
+bool valve_needUpdate() {
   bool nu = needValveUpdate;
   needValveUpdate = false;
   return nu;
