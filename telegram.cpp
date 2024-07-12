@@ -26,7 +26,7 @@ void sendReconnectMessgae(String text, String id) {
         delay(300);
         Serial.print(".");
         ind++;
-        if (ind > 30) {
+        if (ind > 60) {
           break;
         }
       }
