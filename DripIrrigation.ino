@@ -40,8 +40,7 @@ int64_t oldTime = 0;
 
 bool oldNMode = false;
 bool oldRMode = false;
-bool sRm = false;
-bool sNm = false;
+
 
 int oldM = 0;
 int oldD = 0;
@@ -156,14 +155,44 @@ void loop() {
       Serial.println(F("Check status"));
       hs.setAll();
 
-      int night = digitalRead(LIGHT);
+
       bool blocked = false;
       bool nightW = false;
       bool rainW = false;
+
+
+      int rain_t = digitalRead(RAIN);
+      if (rain_t == LOW) {
+        Serial.println(F("Rain"));
+        if (!rainNow) {
+          sendTelegramStatus("Пошел сильный дождь");
+          rainNow = true;
+        }
+        if (!myConfig.runOnRain) {
+          blocked = true;
+          rainW = true;
+          if (!oldRMode) {
+            Serial.println(F("Set rain low power"));
+            oldRMode = true;
+            sendTelegramStatus("Идет дождь отключаем полив!");
+          }
+        }
+      } else {
+        if (rainNow) {
+          rainNow = false;
+          sendTelegramStatus("Влажность после дождя достигла нормы");
+        }
+        if (oldRMode) {
+          Serial.println(F("Set rain high power"));
+          oldRMode = false;
+          sendTelegramStatus("Восстановление работы после дождя!");
+        }
+      }
+
+      int night = digitalRead(LIGHT);
       if (night == HIGH) {
         Serial.println(F("Night"));
-        if (!sNm) {
-          sNm = true;
+        if (!nightNow) {
           nightNow = true;
           sendTelegramStatus("Наступила ночь");
         }
@@ -184,8 +213,8 @@ void loop() {
           }
         }
       } else {
-        if (sNm) {
-          sNm = false;
+        Serial.println(F("Day"));
+        if (nightNow) {
           nightNow = false;
           sendTelegramStatus("Наступил день");
         }
@@ -193,38 +222,11 @@ void loop() {
           Serial.println(F("Set night high power"));
           oldNMode = false;
           sendTelegramStatus("Восстановление работы после ночного режима!");
+          if (rainNow && !myConfig.runOnRain)
+              sendTelegramStatus("Погодная обстановка не достигла нормы!");
         }
       }
 
-      int rain_t = digitalRead(RAIN);
-      if (rain_t == LOW) {
-        Serial.println(F("Rain"));
-        if (!sRm) {
-          sendTelegramStatus("Пошел сильный дождь");
-          sRm = true;
-          rainNow = true;
-        }
-        if (!myConfig.runOnRain) {
-          blocked = true;
-          rainW = true;
-          if (!oldRMode) {
-            Serial.println(F("Set rain low power"));
-            oldRMode = true;
-            sendTelegramStatus("Идет дождь отключаем полив!");
-          }
-        }
-      } else {
-        if (sRm) {
-          sRm = false;
-          rainNow = false;
-          sendTelegramStatus("Влажность после дождя достигла нормы");
-        }
-        if (oldRMode) {
-          Serial.println(F("Set rain high power"));
-          oldRMode = false;
-          sendTelegramStatus("Восстановление работы после дождя!");
-        }
-      }
 
       if (!blocked) {
         hs.setAll();
@@ -256,8 +258,8 @@ void loop() {
                        + String(hs.Percent(i)) + ","
                        + String((oldMode[i] == 11 || oldMode[i] == 2) ? 0 : 1) + ","
                        + String(myConfig.chanel[i].border) + ","
-                       + String(sNm ? 1 : 0) + ","
-                       + String(sRm ? 1 : 0);
+                       + String(nightNow ? 1 : 0) + ","
+                       + String(rainNow ? 1 : 0);
 
           Serial.println(row);
           dataFile.println(row);
