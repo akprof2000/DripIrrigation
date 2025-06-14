@@ -12,11 +12,11 @@ bool telegram_needUpdate() {
   return nu;
 }
 
-void sendReconnectMessgae(String text, String id) {
+void sendReconnectMessage(String text, String id) {
   for (int i = 0; i < 3; i++) {
     int r = bot.sendMessage(text, id);
 
-    if (r == 3 || r == 4) {
+    if (r != 1) {
       WiFi.disconnect();
       delay(10);
       Serial.println("Status wi-fi is broken");
@@ -26,7 +26,7 @@ void sendReconnectMessgae(String text, String id) {
         delay(300);
         Serial.print(".");
         ind++;
-        if (ind > 30) {
+        if (ind > 60) {
           break;
         }
       }
@@ -128,7 +128,7 @@ String IntWith2Zero(int data) {
 
 
 void fileToGrafPeriod(int period, String msgID) {
-  sendReconnectMessgae(F("Началась генерация отчетов, ждите ..."), msgID);
+  sendReconnectMessage(F("Началась генерация отчетов, ждите ..."), msgID);
 
   int del = 60 / period;
   uint8_t sz = period * del;
@@ -191,14 +191,14 @@ void fileToGrafPeriod(int period, String msgID) {
 
   bot.setTextMode(FB_MARKDOWN);
   for (int i = 0; i < 8; i++) {
-    sendReconnectMessgae(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X2>(arr[i], sz, 10) + String("\n```"), msgID);
+    sendReconnectMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X2>(arr[i], sz, 10) + String("\n```"), msgID);
   }
   bot.setTextMode(FB_TEXT);
 }
 
 
 void fileToGraf(String fn, String msgID) {
-  sendReconnectMessgae(F("Началась генерация отчетов, ждите ..."), msgID);
+  sendReconnectMessage(F("Началась генерация отчетов, ждите ..."), msgID);
   File printFile = SD.open(fn, FILE_READ);
 
   if (!printFile) {
@@ -254,7 +254,7 @@ void fileToGraf(String fn, String msgID) {
   printFile.close();
   bot.setTextMode(FB_MARKDOWN);
   for (int i = 0; i < 8; i++) {
-    sendReconnectMessgae(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
+    sendReconnectMessage(String("```\nКанал №") + String(i + 1) + String(" (") + String(myConfig.chanel[i].title) + String(")\n") + CharPlot<LINE_X1>(arr[i], sz, 10) + String("\n```"), msgID);
   }
   bot.setTextMode(FB_TEXT);
 }
@@ -378,7 +378,7 @@ void reConnection(unsigned long time) {
       User* user = users.get(key);
       Serial.print("Send message for user: ");
       Serial.println(user->userID);
-      sendReconnectMessgae("Система снова в сети!", user->userID);
+      sendReconnectMessage("Система снова в сети!", user->userID);
     }
   }
   timeFixed();
@@ -391,7 +391,7 @@ void dropCDCard() {
     User* user = users.get(key);
     Serial.print("Send message for user: ");
     Serial.println(user->userID);
-    sendReconnectMessgae(F("Отсутствует CD карта система не сможет работать!"), user->userID);
+    sendReconnectMessage(F("Отсутствует CD карта система не сможет работать!"), user->userID);
   }
 }
 
@@ -404,7 +404,7 @@ void sendStatus(String text) {
   for (const String& key : keys) {
     User* user = users.get(key);
     if (user->messages) {
-      sendReconnectMessgae(text, user->userID);
+      sendReconnectMessage(text, user->userID);
     }
   }
 }
@@ -424,7 +424,7 @@ void connectCDCard() {
     User* user = users.get(key);
     Serial.print("Send message for user: ");
     Serial.println(user->userID);
-    sendReconnectMessgae(F("CD карта снова активна!"), user->userID);
+    sendReconnectMessage(F("CD карта снова активна!"), user->userID);
   }
 }
 
@@ -441,7 +441,7 @@ void loadUsers() {
     EEPROM.get(shift, usr);
     users.put(String(usr.userID), User(String(usr.userID), usr.role));
     Serial.println("read user UserID = " + String(usr.userID) + " role = " + String(usr.role));
-    sendReconnectMessgae("Система запущенна!", usr.userID);
+    sendReconnectMessage("Система запущенна!", usr.userID);
     if (usr.role < 2) {
       String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
       String cback = F("/Restart,/Users,/control,/status,/reports,/Configure");
@@ -496,18 +496,18 @@ void newMsg(FB_msg& msg) {
         int ind = act->action - 1130;
         if (msg.text == "ЗАВЕРШИТЬ") {
           if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
-            sendReconnectMessgae("Ошибка калибровки датчик № " + String((ind + 1)) + " слишком малое значение!\nОтменяем...", msg.userID);
+            sendReconnectMessage("Ошибка калибровки датчик № " + String((ind + 1)) + " слишком малое значение!\nОтменяем...", msg.userID);
             hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
             command = F("/Calibrate");
           }
-          sendReconnectMessgae("Калибровка завершена датчик № " + String((ind + 1)) + " полностью функционален!", msg.userID);
+          sendReconnectMessage("Калибровка завершена датчик № " + String((ind + 1)) + " полностью функционален!", msg.userID);
           myConfig.chanel[ind].maxVal = hs.getHigh(ind);
           myConfig.chanel[ind].minVal = hs.getLow(ind);
           needUpdate = true;
           act->action = 0;
           command = F("/Calibrate");
         } else {
-          sendReconnectMessgae(F("Калибровка отменена!"), msg.userID);
+          sendReconnectMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
@@ -519,12 +519,12 @@ void newMsg(FB_msg& msg) {
           int val = hs.setHigh(ind);
           Serial.print("Сухое значение: ");
           Serial.println(val);
-          sendReconnectMessgae("Установите датчик № " + String((ind + 1)) + " в почву и нажмите завершить!", msg.userID);
+          sendReconnectMessage("Установите датчик № " + String((ind + 1)) + " в почву и нажмите завершить!", msg.userID);
           bot.showMenuText("<Калибровка>", "ЗАВЕРШИТЬ \t ОТМЕНА", msg.userID, true);
           act->action = 1130 + ind;
           return;
         } else {
-          sendReconnectMessgae(F("Калибровка отменена!"), msg.userID);
+          sendReconnectMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
@@ -539,11 +539,11 @@ void newMsg(FB_msg& msg) {
           Serial.print(": ");
           Serial.println(val);
           act->action = 1120 + ind;
-          sendReconnectMessgae("Достаньте датчик № " + String((ind + 1)) + " из воды протрите и нажмите далее!", msg.userID);
+          sendReconnectMessage("Достаньте датчик № " + String((ind + 1)) + " из воды протрите и нажмите далее!", msg.userID);
           bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           return;
         } else {
-          sendReconnectMessgae(F("Калибровка отменена!"), msg.userID);
+          sendReconnectMessage(F("Калибровка отменена!"), msg.userID);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
         }
@@ -551,23 +551,23 @@ void newMsg(FB_msg& msg) {
       } else if (act->action >= 1100 && act->action <= 1107) {
         if (msg.text == "СТАРТ") {
           int ind = act->action - 1100;
-          sendReconnectMessgae("Положите датчик № " + String((ind + 1)) + " в воду и нажмите далее!", msg.userID);
+          sendReconnectMessage("Положите датчик № " + String((ind + 1)) + " в воду и нажмите далее!", msg.userID);
           bot.showMenuText("<Калибровка>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           act->action = 1110 + ind;
           return;
         } else {
-          sendReconnectMessgae(F("Калибровка отменена!"), msg.userID);
+          sendReconnectMessage(F("Калибровка отменена!"), msg.userID);
           command = F("/Calibrate");
         }
         act->action = 0;
       } else if (act->action == 3000) {
         if (msg.text == "СТАРТ") {
-          sendReconnectMessgae("Положите датчик в воду и нажмите далее!", msg.userID);
+          sendReconnectMessage("Положите датчик в воду и нажмите далее!", msg.userID);
           bot.showMenuText("<Поиск>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           act->action = 3010;
           return;
         } else {
-          sendReconnectMessgae(F("Поиск отменён!"), msg.userID);
+          sendReconnectMessage(F("Поиск отменён!"), msg.userID);
           command = F("/control");
         }
         act->action = 0;
@@ -577,12 +577,12 @@ void newMsg(FB_msg& msg) {
           for (int i = 0; i < 8; i++) {
             search[i] = hs.getCurrent(i);
           }
-          sendReconnectMessgae("Достаньте датчик из воды протрите и нажмите далее!", msg.userID);
+          sendReconnectMessage("Достаньте датчик из воды протрите и нажмите далее!", msg.userID);
           bot.showMenuText("<Поиск>", "ДАЛЕЕ \t ОТМЕНА", msg.userID, true);
           act->action = 3020;
           return;
         } else {
-          sendReconnectMessgae(F("Поиск отменён!"), msg.userID);
+          sendReconnectMessage(F("Поиск отменён!"), msg.userID);
           command = F("/control");
         }
         act->action = 0;
@@ -597,12 +597,12 @@ void newMsg(FB_msg& msg) {
             }
           }
           if (ind < 0) {
-            sendReconnectMessgae(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
+            sendReconnectMessage(F("Не удалось определить датчик! Повторите операцию."), msg.userID);
           } else {
-            sendReconnectMessgae("Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
+            sendReconnectMessage("Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", msg.userID);
           }
         } else {
-          sendReconnectMessgae(F("Поиск отменён!"), msg.userID);
+          sendReconnectMessage(F("Поиск отменён!"), msg.userID);
         }
         command = F("/control");
         act->action = 0;
@@ -617,7 +617,7 @@ void newMsg(FB_msg& msg) {
             needUpdate = true;
             command = "/Borders";
           } else {
-            sendReconnectMessgae(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
+            sendReconnectMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
             return;
           }
         }
@@ -630,19 +630,46 @@ void newMsg(FB_msg& msg) {
       } else if (act->action >= 1300 && act->action <= 1307) {
         int ind = act->action - 1300;
         if (msg.text == "ВКЛ.") {
-          sendReconnectMessgae(F("Клапан включён!"), msg.userID);
+          sendReconnectMessage(F("Клапан включён!"), msg.userID);
           myConfig.chanel[ind].mode = 1;
           valve_open(ind);
         } else if (msg.text == "ВЫКЛ.") {
-          sendReconnectMessgae(F("Клапан выключен!"), msg.userID);
+          sendReconnectMessage(F("Клапан выключен!"), msg.userID);
           myConfig.chanel[ind].mode = 2;
           valve_close(ind);
         } else if (msg.text == "АВТО") {
-          sendReconnectMessgae(F("Клапан в ароматическом режиме!"), msg.userID);
+          sendReconnectMessage(F("Клапан в ароматическом режиме!"), msg.userID);
           myConfig.chanel[ind].mode = 0;
         } else if (msg.text == "А.П.") {
-          sendReconnectMessgae(F("Клапан в ароматическом режиме для парника!"), msg.userID);
+          sendReconnectMessage(F("Клапан в ароматическом режиме для парника!"), msg.userID);
           myConfig.chanel[ind].mode = 3;
+        }
+        needUpdate = true;
+        act->action = 0;
+        command = F("/OperationMode");
+      } else if (act->action == 1399) {        
+        int md = 0;
+        if (msg.text == "ВКЛ.") {
+          sendReconnectMessage(F("Клапаны включены!"), msg.userID);
+          md = 1;          
+        } else if (msg.text == "ВЫКЛ.") {
+          sendReconnectMessage(F("Клапаны выключены!"), msg.userID);
+          md = 2;
+        } else if (msg.text == "АВТО") {
+          sendReconnectMessage(F("Клапаны в ароматическом режиме!"), msg.userID);
+          md = 0;
+        } else if (msg.text == "А.П.") {
+          sendReconnectMessage(F("Клапаны в ароматическом режиме для парника!"), msg.userID);
+          md = 3;
+        }     
+        for(int l = 0; l < 8; l ++){
+            myConfig.chanel[l].mode = md;
+            if (md == 1){
+              valve_open(l);
+            }
+            if (md == 2){
+              valve_close(l);
+            }
         }
         needUpdate = true;
         act->action = 0;
@@ -663,11 +690,11 @@ void newMsg(FB_msg& msg) {
             myConfig.chanel[ind].minVal = hs.getLow(ind);
             needUpdate = true;
           } else {
-            sendReconnectMessgae(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);
+            sendReconnectMessage(F("Ожидалось значение (от 0 до 4096) % !"), msg.userID);
             return;
           }
         } else {
-          sendReconnectMessgae(F("Ожидалось значение в формате (целое,целое)!"), msg.userID);
+          sendReconnectMessage(F("Ожидалось значение в формате (целое,целое)!"), msg.userID);
           return;
         }
       } else if (act->action == 2000) {
@@ -685,9 +712,9 @@ void newMsg(FB_msg& msg) {
             myConfig.chanel[i].mode = 0;
             strcpy(myConfig.chanel[i].title, String("Растение").c_str());
           }
-          sendReconnectMessgae(F("Сброс выполнен!"), msg.userID);
+          sendReconnectMessage(F("Сброс выполнен!"), msg.userID);
         } else {
-          sendReconnectMessgae(F("Сброс отменён!"), msg.userID);
+          sendReconnectMessage(F("Сброс отменён!"), msg.userID);
         }
         command = "/Configure";
         needUpdate = true;
@@ -695,20 +722,20 @@ void newMsg(FB_msg& msg) {
         act->action = 0;
         if (msg.text == "ДА") {
           res = 1;
-          sendReconnectMessgae(F("Перезагрузка начата!"), msg.userID);
+          sendReconnectMessage(F("Перезагрузка начата!"), msg.userID);
           return;
         } else {
-          sendReconnectMessgae(F("Перезагрузка отменена!"), msg.userID);
+          sendReconnectMessage(F("Перезагрузка отменена!"), msg.userID);
           return;
         }
       } else if (act->action == 1001) {
         act->action = 0;
         if (msg.text == "ДА") {
           myConfig.runOnNight = true;
-          sendReconnectMessgae(F("Работа ночью включена!"), msg.userID);
+          sendReconnectMessage(F("Работа ночью включена!"), msg.userID);
         } else {
           myConfig.runOnNight = false;
-          sendReconnectMessgae(F("Работа ночью выключена!"), msg.userID);
+          sendReconnectMessage(F("Работа ночью выключена!"), msg.userID);
         }
         command = "/Configure";
         needUpdate = true;
@@ -716,10 +743,10 @@ void newMsg(FB_msg& msg) {
         act->action = 0;
         if (msg.text == "ДА") {
           myConfig.runOnRain = true;
-          sendReconnectMessgae(F("Работа под дождём включена!"), msg.userID);
+          sendReconnectMessage(F("Работа под дождём включена!"), msg.userID);
         } else {
           myConfig.runOnRain = false;
-          sendReconnectMessgae(F("Работа под дождём выключена!"), msg.userID);
+          sendReconnectMessage(F("Работа под дождём выключена!"), msg.userID);
         }
         command = "/Configure";
         needUpdate = true;
@@ -734,17 +761,17 @@ void newMsg(FB_msg& msg) {
         if (SD.exists(fn)) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
-            sendReconnectMessgae(F("Файл не открывается"), msg.userID);
+            sendReconnectMessage(F("Файл не открывается"), msg.userID);
             Serial.println("can not read file");
           } else {
-            sendReconnectMessgae(F("Файл открывается, ждите ..."), msg.userID);
+            sendReconnectMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
           file.close();
           return;
         } else {
-          sendReconnectMessgae(F("Файл не найден"), msg.userID);
+          sendReconnectMessage(F("Файл не найден"), msg.userID);
           command = "/reports";
         }
         act->action = 0;
@@ -757,12 +784,12 @@ void newMsg(FB_msg& msg) {
             fileToGrafPeriod(num, msg.userID);
             command = "/Graphics";
           } else {
-            sendReconnectMessgae(F("Ожидалось значение (от 0 до 60)!"), msg.userID);
+            sendReconnectMessage(F("Ожидалось значение (от 0 до 60)!"), msg.userID);
             return;
           }
         } else {
           Serial.println(F("Input error"));
-          sendReconnectMessgae(F("Ожидался ввод целого числа повторите!"), msg.userID);
+          sendReconnectMessage(F("Ожидался ввод целого числа повторите!"), msg.userID);
           return;
         }
       } else if (act->action == 5100) {
@@ -776,7 +803,7 @@ void newMsg(FB_msg& msg) {
         if (SD.exists(fn)) {
           fileToGraf(fn, msg.userID);
         } else {
-          sendReconnectMessgae(F("Файл не найден"), msg.userID);
+          sendReconnectMessage(F("Файл не найден"), msg.userID);
         }
         act->action = 0;
         command = "/Graphics";
@@ -787,18 +814,18 @@ void newMsg(FB_msg& msg) {
           FB_Time t(getUnixTime(), 0);
           if (t.year == input.toInt()) {
             Serial.println(F("Input error"));
-            sendReconnectMessgae(F("Удалять текущий год запрещено!"), msg.userID);
+            sendReconnectMessage(F("Удалять текущий год запрещено!"), msg.userID);
             return;
           }
           String del = "/" + input;
           if (!SD.exists(del)) {
             Serial.println(F("Input error"));
-            sendReconnectMessgae(F("Записей запрашиваемого года не найдено!"), msg.userID);
+            sendReconnectMessage(F("Записей запрашиваемого года не найдено!"), msg.userID);
             act->action = 0;
             command = "/Configure";
           } else {
             File dir = SD.open(del);
-            sendReconnectMessgae(F("Началось удаление файлов, ожидайте..."), msg.userID);
+            sendReconnectMessage(F("Началось удаление файлов, ожидайте..."), msg.userID);
             rm(dir, del + "/");
             dir.close();
             SD.rmdir(del);
@@ -807,7 +834,7 @@ void newMsg(FB_msg& msg) {
           }
         } else {
           Serial.println(F("Input error"));
-          sendReconnectMessgae(F("Ожидался ввод года!"), msg.userID);
+          sendReconnectMessage(F("Ожидался ввод года!"), msg.userID);
           return;
         }
       } else if (act->action == 1003) {
@@ -820,12 +847,12 @@ void newMsg(FB_msg& msg) {
             needUpdate = true;
             command = "/Configure";
           } else {
-            sendReconnectMessgae(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
+            sendReconnectMessage(F("Ожидалось значение (от 0 до 100) % !"), msg.userID);
             return;
           }
         } else {
           Serial.println(F("Input error"));
-          sendReconnectMessgae(F("Ожидалось ввод целого числа повторите!"), msg.userID);
+          sendReconnectMessage(F("Ожидалось ввод целого числа повторите!"), msg.userID);
           return;
         }
       } else if (act->action == 1004) {
@@ -839,12 +866,12 @@ void newMsg(FB_msg& msg) {
             hs.setBorder(myConfig.deltaCalibration);
             command = "/Configure";
           } else {
-            sendReconnectMessgae(F("Ожидалось значение (от 0 до 2048)!"), msg.userID);
+            sendReconnectMessage(F("Ожидалось значение (от 0 до 2048)!"), msg.userID);
             return;
           }
         } else {
           Serial.println(F("Input error"));
-          sendReconnectMessgae(F("Ожидался ввод целого числа повторите!"), msg.userID);
+          sendReconnectMessage(F("Ожидался ввод целого числа повторите!"), msg.userID);
           return;
         }
       }
@@ -854,7 +881,7 @@ void newMsg(FB_msg& msg) {
       bot.update();
       return;
     } else {
-      if (msg.OTA) sendReconnectMessgae("Только владельцы системы могут отправлять обновления устройства", msg.chatID);
+      if (msg.OTA) sendReconnectMessage("Только владельцы системы могут отправлять обновления устройства", msg.chatID);
     }
 
     if (command[0] == '/') {
@@ -862,18 +889,18 @@ void newMsg(FB_msg& msg) {
       }
       if (check_user->role < 2) {
         if (command == "/DropSettings") {
-          sendReconnectMessgae(F("Сбросить все настройки в значение по умолчанию!"), msg.userID);
+          sendReconnectMessage(F("Сбросить все настройки в значение по умолчанию!"), msg.userID);
           bot.showMenuText("<Сброс>", "ДА \t НЕТ", msg.userID, true);
           actionSet(msg.userID, 2000);
         } else if (command.startsWith("/HumidityMCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
-          sendReconnectMessgae("Введите минимальное и максимальное значение датчика № " + String(ind + 1) + " в формате: целое,целое, текущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "].", msg.userID);
+          sendReconnectMessage("Введите минимальное и максимальное значение датчика № " + String(ind + 1) + " в формате: целое,целое, текущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "].", msg.userID);
           actionSet(msg.userID, 1800 + ind);
         } else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
-          sendReconnectMessgae("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String((ind + 1)) + "?", msg.userID);
+          sendReconnectMessage("Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить калибровку датчика № " + String((ind + 1)) + "?", msg.userID);
           bot.showMenuText("<Калибровка>", "СТАРТ \t ОТМЕНА", msg.userID, true);
           actionSet(msg.userID, 1100 + ind);
         } else if (command == "/Calibrate") {
@@ -894,20 +921,20 @@ void newMsg(FB_msg& msg) {
           String cback = F("/HumidityMCalibrate_0,/HumidityMCalibrate_1,/HumidityMCalibrate_2,/HumidityMCalibrate_3,/HumidityMCalibrate_4,/HumidityMCalibrate_5,/HumidityMCalibrate_6,/HumidityMCalibrate_7,/Configure");
           bot.inlineMenuCallback("<Ручная Калибровка>", menu, cback, msg.userID);
         } else if (command == "/DelFolder") {
-          sendReconnectMessgae(F("Введите год удаления (формат YYYY):"), msg.userID);
+          sendReconnectMessage(F("Введите год удаления (формат YYYY):"), msg.userID);
           actionSet(msg.userID, 1005);
         } else if (command == "/DeltaCalibration") {
-          sendReconnectMessgae(F("Введите значение (от 0 до 2048):"), msg.userID);
+          sendReconnectMessage(F("Введите значение (от 0 до 2048):"), msg.userID);
           actionSet(msg.userID, 1004);
         } else if (command == "/DeltaHumidity") {
-          sendReconnectMessgae(F("Введите значение (от 0 до 100) %:"), msg.userID);
+          sendReconnectMessage(F("Введите значение (от 0 до 100) %:"), msg.userID);
           actionSet(msg.userID, 1003);
         } else if (command == "/WorkAtRain") {
-          sendReconnectMessgae(F("Включить режим работы во время дождя!"), msg.userID);
+          sendReconnectMessage(F("Включить режим работы во время дождя!"), msg.userID);
           bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
           actionSet(msg.userID, 1002);
         } else if (command == "/WorkAtNight") {
-          sendReconnectMessgae(F("Включить режим работы в ночное время!"), msg.userID);
+          sendReconnectMessage(F("Включить режим работы в ночное время!"), msg.userID);
           bot.showMenuText("<Включить>", "ДА \t НЕТ", msg.userID, true);
           actionSet(msg.userID, 1001);
         } else if (command == "/Configure") {
@@ -919,7 +946,7 @@ void newMsg(FB_msg& msg) {
           SimpleVector<String> keys = users.keys();
           for (const String& key : keys) {
             User* user = users.get(key);
-            sendReconnectMessgae("Система будет перезагружена!", user->userID);
+            sendReconnectMessage("Система будет перезагружена!", user->userID);
           }
           // res = 1;
           bot.showMenuText("<Перезагрузка>", "ДА \t НЕТ", msg.chatID, true);
@@ -933,7 +960,7 @@ void newMsg(FB_msg& msg) {
           SimpleVector<String> keys = users.keys();
           for (const String& key : keys) {
             User* user = users.get(key);
-            sendReconnectMessgae("Пользователь йд: " + user->userID + ". Роль: " + user->role, msg.chatID);
+            sendReconnectMessage("Пользователь йд: " + user->userID + ". Роль: " + user->role, msg.chatID);
           }
           //if (msg.query == 1) bot.answer("Выполнено", FB_NOTIF);
         } else if (command == "/UsersDownEdit") {
@@ -988,58 +1015,58 @@ void newMsg(FB_msg& msg) {
           String userId = getValue(command, '_', 1);
           if (!users.containsKey(userId)) {
             users.put(userId, User(userId, 2));
-            sendReconnectMessgae("Вас добавил " + msg.username + " в систему как пользователя!", userId);
-            sendReconnectMessgae("Регистрация пользователя успешно завершена!", msg.chatID);
+            sendReconnectMessage("Вас добавил " + msg.username + " в систему как пользователя!", userId);
+            sendReconnectMessage("Регистрация пользователя успешно завершена!", msg.chatID);
             saveUsers();
           } else {
-            sendReconnectMessgae("Данный пользователь уже есть в системе!", msg.chatID);
+            sendReconnectMessage("Данный пользователь уже есть в системе!", msg.chatID);
           }
         } else if (command.startsWith("/GradeUser")) {
           String userId = getValue(command, '_', 1);
           if (users.containsKey(userId)) {
             User* user = users.get(userId);
             if (user->role < 2) {
-              sendReconnectMessgae("Пользователя с таким йд " + userId + " уже администратор", msg.chatID);
+              sendReconnectMessage("Пользователя с таким йд " + userId + " уже администратор", msg.chatID);
             } else {
               user->role = 1;
-              sendReconnectMessgae("Вас повысил " + msg.username + " в правах, вы теперь администратор!", user->userID);
-              sendReconnectMessgae("Повышение пользователя " + user->userID + " успешно завершено!", msg.chatID);
+              sendReconnectMessage("Вас повысил " + msg.username + " в правах, вы теперь администратор!", user->userID);
+              sendReconnectMessage("Повышение пользователя " + user->userID + " успешно завершено!", msg.chatID);
               //users.put(user.userID, user);
               saveUsers();
             }
 
           } else {
-            sendReconnectMessgae("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
+            sendReconnectMessage("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
           }
         } else if (command.startsWith("/DownGradeUser")) {
           String userId = getValue(command, '_', 1);
           if (users.containsKey(userId)) {
             User* user = users.get(userId);
             if (user->role == 2) {
-              sendReconnectMessgae("Пользователя с таким йд " + userId + " уже пользователь", msg.chatID);
+              sendReconnectMessage("Пользователя с таким йд " + userId + " уже пользователь", msg.chatID);
             } else {
               user->role = 2;
-              sendReconnectMessgae("Вас понизил " + msg.username + " в правах, вы теперь пользователь!", user->userID);
-              sendReconnectMessgae("Понижение пользователя " + user->userID + " успешно завершено!", msg.chatID);
+              sendReconnectMessage("Вас понизил " + msg.username + " в правах, вы теперь пользователь!", user->userID);
+              sendReconnectMessage("Понижение пользователя " + user->userID + " успешно завершено!", msg.chatID);
               //users.put(user.userID, user);
               saveUsers();
             }
           } else {
-            sendReconnectMessgae("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
+            sendReconnectMessage("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
           }
         } else if (command.startsWith("/RemoveUser")) {
           String userId = getValue(command, '_', 1);
           if (users.containsKey(userId)) {
             User* user = users.get(userId);
             if (user->role == 0) {
-              sendReconnectMessgae("Нельзя удалять главного администратора", msg.chatID);
+              sendReconnectMessage("Нельзя удалять главного администратора", msg.chatID);
             } else {
-              sendReconnectMessgae("Вас удалил " + msg.username + " из системы!", user->userID);
-              sendReconnectMessgae("Удаление пользователя " + user->userID + " успешно завершено!", msg.chatID);
+              sendReconnectMessage("Вас удалил " + msg.username + " из системы!", user->userID);
+              sendReconnectMessage("Удаление пользователя " + user->userID + " успешно завершено!", msg.chatID);
               users.remove(user->userID);
             }
           } else {
-            sendReconnectMessgae("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
+            sendReconnectMessage("Пользователя с таким йд " + userId + " не найдено", msg.chatID);
           }
         }
       }
@@ -1048,28 +1075,32 @@ void newMsg(FB_msg& msg) {
       } else if (command.startsWith("/BordersSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
-        sendReconnectMessgae(("Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), msg.userID);
+        sendReconnectMessage(("Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), msg.userID);
         actionSet(msg.userID, 1400 + ind);
       } else if (command.startsWith("/NamingsSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
-        sendReconnectMessgae(("Введите название датчика № " + String((ind + 1)) + ":"), msg.userID);
+        sendReconnectMessage(("Введите название датчика № " + String((ind + 1)) + ":"), msg.userID);
         actionSet(msg.userID, 1200 + ind);
       } else if (command.startsWith("/OperationModeSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
-        sendReconnectMessgae(F("Выберите режим работы!"), msg.userID);
+        sendReconnectMessage(F("Выберите режим работы!"), msg.userID);
         bot.showMenuText("<Режим>", "ВКЛ. \t ВЫКЛ. \t АВТО \t А.П.", msg.userID, true);
         actionSet(msg.userID, 1300 + ind);
+      } else if (command == "/AllOperationModeSet") {
+        sendReconnectMessage(F("Выберите режим работы!"), msg.userID);
+        bot.showMenuText("<Режим>", "ВКЛ. \t ВЫКЛ. \t АВТО \t А.П.", msg.userID, true);
+        actionSet(msg.userID, 1300 + 99);
       } else if (command == "/GradeMeUp") {
         SimpleVector<String> keys = users.keys();
         for (const String& key : keys) {
           User* user = users.get(key);
           if (user->role < 2) {
-            sendReconnectMessgae("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит поднять его в правах. /GradeUser_" + msg.userID, user->userID);
+            sendReconnectMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит поднять его в правах. /GradeUser_" + msg.userID, user->userID);
           }
         }
-        sendReconnectMessgae("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
+        sendReconnectMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
       } else if (command == "/start") {
         if (check_user->role < 2) {
           String menu = F(" Перезагрузка \n Пользователи \n Управление \n Статус \n Отчеты \n Настройка ");
@@ -1144,8 +1175,8 @@ void newMsg(FB_msg& msg) {
                       + ") [" + String(myConfig.chanel[7].mode == 0 ? "-" : myConfig.chanel[7].mode == 1 ? "x"
                                                                           : myConfig.chanel[7].mode == 2 ? "o"
                                                                                                          : "v")
-                      + "]  \n Назад ";
-        String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/control");
+                      + "] \n Установить для всех \n Назад ";
+        String cback = F("/OperationModeSet_0,/OperationModeSet_1,/OperationModeSet_2,/OperationModeSet_3,/OperationModeSet_4,/OperationModeSet_5,/OperationModeSet_6,/OperationModeSet_7,/AllOperationModeSet,/control");
         bot.inlineMenuCallback("<Режим работы>", menu, cback, msg.userID);
       } else if (command == "/status") {
         hs.setAll();
@@ -1172,9 +1203,9 @@ void newMsg(FB_msg& msg) {
         int mem = ESP.getFreeHeap() / 1024;
         status = status + String("\n");
         status = status + String("\n") + "Оставшаяся память : " + String(mem) + " Kb";
-        sendReconnectMessgae(status, msg.userID);
+        sendReconnectMessage(status, msg.userID);
       } else if (command == "/Searching") {
-        sendReconnectMessgae(F("Произойдет поиск датчика. Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить поиск датчика?"), msg.userID);
+        sendReconnectMessage(F("Произойдет поиск датчика. Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\nЗапустить поиск датчика?"), msg.userID);
         bot.showMenuText("<Поиск>", "СТАРТ \t ОТМЕНА", msg.userID, true);
         actionSet(msg.userID, 3000);
       } else if (command == "/control") {
@@ -1183,17 +1214,17 @@ void newMsg(FB_msg& msg) {
         bot.inlineMenuCallback("<Управление>", menu, cback, msg.userID);
       } else if (command == "/pause") {
         check_user->messages = false;
-        sendReconnectMessgae(F("Отключены все статусные сообщения"), msg.userID);
+        sendReconnectMessage(F("Отключены все статусные сообщения"), msg.userID);
       } else if (command == "/continue") {
         check_user->messages = true;
-        sendReconnectMessgae(F("Статусные сообщения активированы"), msg.userID);
+        sendReconnectMessage(F("Статусные сообщения активированы"), msg.userID);
       } else if (command == "/GraphicsYesterday") {
         FB_Time t(getUnixTime() - 60 * 60 * 24, 0);
         String fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
         if (SD.exists(fn)) {
           fileToGraf(fn, msg.userID);
         } else {
-          sendReconnectMessgae(F("Файл за вчера не найден"), msg.userID);
+          sendReconnectMessage(F("Файл за вчера не найден"), msg.userID);
         }
         command = "/Graphics";
       } else if (command == "/GraphicsToday") {
@@ -1202,17 +1233,17 @@ void newMsg(FB_msg& msg) {
         if (SD.exists(fn)) {
           fileToGraf(fn, msg.userID);
         } else {
-          sendReconnectMessgae(F("Файл за сегодня не найден"), msg.userID);
+          sendReconnectMessage(F("Файл за сегодня не найден"), msg.userID);
         }
         command = "/Graphics";
       } else if (command == "/GraphicsPeriod") {
-        sendReconnectMessgae(F("Введите число дней за которые хотите отобразить график"), msg.userID);
+        sendReconnectMessage(F("Введите число дней за которые хотите отобразить график"), msg.userID);
         actionSet(msg.userID, 5200);
       } else if (command == "/GraphicsTo") {
-        sendReconnectMessgae(F("Введите дату в формате dd.mm.yyyy за которую хотите отобразить график"), msg.userID);
+        sendReconnectMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите отобразить график"), msg.userID);
         actionSet(msg.userID, 5100);
       } else if (command == "/FileTo") {
-        sendReconnectMessgae(F("Введите дату в формате dd.mm.yyyy за которую хотите получить файл"), msg.userID);
+        sendReconnectMessage(F("Введите дату в формате dd.mm.yyyy за которую хотите получить файл"), msg.userID);
         actionSet(msg.userID, 5000);
       } else if (command == "/FileToday") {
         FB_Time t(getUnixTime(), 0);
@@ -1221,15 +1252,15 @@ void newMsg(FB_msg& msg) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
             Serial.println("can not read file");
-            sendReconnectMessgae(F("Файл не открывается"), msg.userID);
+            sendReconnectMessage(F("Файл не открывается"), msg.userID);
           } else {
-            sendReconnectMessgae(F("Файл открывается, ждите ..."), msg.userID);
+            sendReconnectMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
           file.close();
         } else {
-          sendReconnectMessgae(F("Файл за сегодня не найден"), msg.userID);
+          sendReconnectMessage(F("Файл за сегодня не найден"), msg.userID);
           command = "/reports";
         }
       } else if (command == "/FileYesterday") {
@@ -1239,15 +1270,15 @@ void newMsg(FB_msg& msg) {
           File file = SD.open(fn, FILE_READ);
           if (!file) {
             Serial.println("can not read file");
-            sendReconnectMessgae(F("Файл не открывается"), msg.userID);
+            sendReconnectMessage(F("Файл не открывается"), msg.userID);
           } else {
-            sendReconnectMessgae(F("Файл открывается, ждите ..."), msg.userID);
+            sendReconnectMessage(F("Файл открывается, ждите ..."), msg.userID);
             fn.replace("/", "_");
             bot.sendFile(file, FB_DOC, fn, msg.chatID);
           }
           file.close();
         } else {
-          sendReconnectMessgae(F("Файл за вчера не найден"), msg.userID);
+          sendReconnectMessage(F("Файл за вчера не найден"), msg.userID);
           command = "/reports";
         }
       } else if (command == "/GraphicsDecade") {
@@ -1273,10 +1304,10 @@ void newMsg(FB_msg& msg) {
       for (const String& key : keys) {
         User* user = users.get(key);
         if (user->role < 2) {
-          sendReconnectMessgae("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит его зарегистрировать. /AddUser_" + msg.userID, user->userID);
+          sendReconnectMessage("Пользователь: " + msg.username + " йд: " + msg.userID + ". Просит его зарегистрировать. /AddUser_" + msg.userID, user->userID);
         }
       }
-      sendReconnectMessgae("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
+      sendReconnectMessage("Ваша регистрация принята, ожидайте ответа от Администратора", msg.chatID);
     } else {
       bot.replyMessage("Только зарегистрированные пользователи могут общаться со мной, если хотите зарегистрироваться пришлите запрос на регистрацию /register", msg.messageID, msg.chatID);
     }
