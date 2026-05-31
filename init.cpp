@@ -1,62 +1,60 @@
+// init.cpp 🌱💧 Инициализация системы капельного полива
 #include "init.h"
 #include <WiFi.h>
 #include <EEPROM.h>
-
 
 #include "SimplePortal.h"
 #include "objects.h"
 #include "telegram.h"
 #include <SD.h>
 
-
-
-
+// 📡 WiFi настройки
 char SSID[32] = "";
 char pass[32] = "";
 
-wifi_mode_t mode = WIFI_AP;  // (1 WIFI_STA, 2 WIFI_AP)
+wifi_mode_t mode = WIFI_AP;  // 📡 1=WIFI_STA, 2=WIFI_AP
 
-byte init_config = 0;
+byte init_config = 0;  // ⚙️ Флаг первичной инициализации (0=нужна настройка)
 
+// ⏱️ Таймеры для проверки WiFi
 unsigned long previousMillis = 0;
 unsigned long interval = CHECK_WIFI_INTERVAL;
 
 unsigned long previousMillisSmall = 0;
 unsigned long intervalSmall = CHECK_WIFI_INTERVAL_SMALL;
 
-unsigned long lastGood = 0;
+unsigned long lastGood = 0;  // ⏱️ Время последнего удачного соединения
 
-bool cd_card = true;
+bool cd_card = true;  // 💾 Флаг наличия SD-карты
 
-
+// ============================================================
+// 🔄 Периодическая проверка WiFi и обработка Telegram
+// ============================================================
 void ReCheck() {
-
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillisSmall >= intervalSmall) {
     previousMillisSmall = currentMillis;
-    int r = bot.tick();
+
+    // 🤖 Вызываем тикер FastBot2 (обработка входящих сообщений)
+     bot.tick();
+
+    // 🔄 Если установлен флаг перезагрузки — выполняем tickManual и перезагружаем
     if (res) {
-      bot.tickManual();  // Чтобы отметить сообщение прочитанным
+      bot.tickManual();  // 📤 Чтобы отметить сообщение прочитанным
       ESP.restart();
     }
 
-    bool recon = (r == 3 or r == 4);
-
-    // if WiFi is down, try reconnecting
-    if (recon || dropped || (currentMillis - previousMillis >= interval)) {
-
-      Serial.println("Check status wi-fi");
-
-      if (recon) {
-        Serial.print("Current error status from telegram ");
-        Serial.println(r);
-      }
-
+    // 🆘 Проверяем наличие ошибок соединения с Telegram
+    
+    // 📡 Если WiFi не работает или есть ошибка Telegram — пытаемся переподключиться
+    if (dropped || (currentMillis - previousMillis >= interval)) {
+      Serial.println("📡 Check status wi-fi");
+      
       previousMillis = currentMillis;
-      if (WiFi.status() != WL_CONNECTED || recon) {
+      if (WiFi.status() != WL_CONNECTED) {
         dropped = true;
-        Serial.println("Reconnecting to WiFi...");
+        Serial.println("📡 Reconnecting to WiFi...");
         WiFi.disconnect();
         delay(10);
         WiFi.reconnect();
@@ -69,7 +67,6 @@ void ReCheck() {
             break;
           }
         }
-
       } else {
         if (dropped) {
           dropped = false;
@@ -80,49 +77,56 @@ void ReCheck() {
     }
   }
 
-
-
-  if (data.tick() == FD_WRITE) Serial.println("Data updated!");
+  // 💾 Проверяем необходимость сохранения конфигурации на SD
+  if (data.tick() == FD_WRITE) Serial.println("💾 Data updated!");
 }
 
-
+// ============================================================
+// 📡 Обработчики событий WiFi
+// ============================================================
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("Connected to AP successfully!");
+  Serial.println("✅ Connected to AP successfully!");
 }
 
 void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  Serial.println("📡 WiFi connected");
+  Serial.println("🌐 IP address: ");
   Serial.println(WiFi.localIP());
 }
 
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("Disconnected from WiFi access point");
-  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println("❌ Disconnected from WiFi access point");
+  Serial.print("📡 WiFi lost connection. Reason: ");
   Serial.println(info.wifi_sta_disconnected.reason);
-  Serial.println("Trying to Reconnect");
+  Serial.println("🔄 Trying to Reconnect");
   WiFi.begin(SSID, pass);
 }
 
-
+// ============================================================
+// 🚀 Главная функция инициализации системы
+// ============================================================
 void init() {
+  Serial.println("🚀 begin init");
 
-  Serial.println("begin init");
-
+  // 📡 Подключаем функцию отправки статуса
   attachSendFunction(sendStatus);
+
   EEPROM.begin(4096);
   delay(1000);
 
+  // 📡 Регистрируем обработчики событий WiFi
   WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
 
-
+  // 🔌 Настройка пинов
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(DRAIN, OUTPUT);
   pinMode(BUTTON, INPUT);
   digitalWrite(DRAIN, LOW);
   pinMode(PUMP, OUTPUT);
   digitalWrite(PUMP, LOW);
+
+  // 💡 Мигание LED при старте + проверка кнопки сброса
   int state = HIGH;
   bool nClear = false;
   for (int i = 0; i < 3000; i++) {
@@ -154,6 +158,7 @@ void init() {
       break;
   }
 
+  // 🔄 Сброс настроек при удержании кнопки > 5 сек
   if (nClear) {
     for (int i = 0; i < 6; i++) {
       delay(300);
@@ -170,18 +175,19 @@ void init() {
 
   digitalWrite(LED_BUILTIN, LOW);
 
+  // 📖 Читаем флаг инициализации из EEPROM
   EEPROM.get(0, init_config);
 
   Serial.println("");
   Serial.println(init_config);
 
+  // 🆕 Первичная настройка через WiFi портал
   if (init_config == 0) {
-
     digitalWrite(LED_BUILTIN, HIGH);
-    portalRun(180000);
+    portalRun(180000);  // ⏱️ 3 минуты на настройку
 
     Serial.println(portalStatus());
-    // статус: 0 error, 1 connect, 2 ap, 3 local, 4 exit, 5 timeout
+    // 📡 статус: 0 error, 1 connect, 2 ap, 3 local, 4 exit, 5 timeout
 
     if (portalStatus() == SP_SUBMIT) {
       strcpy(SSID, portalCfg.SSID);
@@ -198,13 +204,14 @@ void init() {
       EEPROM.put(1 + 33 + 33 + 33, mode);
       EEPROM.put(250, 0);
       EEPROM.commit();
-      // забираем логин-пароль
+      // 💾 Сохраняем логин-пароль
       digitalWrite(LED_BUILTIN, LOW);
       Serial.println("");
-      Serial.println("WiFi write info");
+      Serial.println("📡 WiFi write info");
     }
   }
 
+  // 📖 Читаем сохранённые настройки WiFi из EEPROM
   EEPROM.get(1, SSID);
   EEPROM.get(1 + 33, pass);
   EEPROM.get(1 + 33 + 33, tstr);
@@ -212,13 +219,14 @@ void init() {
 
   Serial.println();
   Serial.println("******************************************************");
-  Serial.print("Connecting to ");
+  Serial.print("📡 Connecting to ");
   Serial.println(SSID);
 
   WiFi.setHostname("DripIrrigationEsp");
   WiFi.mode(mode);
   WiFi.begin(SSID, pass);
 
+  // ⏱️ Ожидание подключения к WiFi (макс 15 сек)
   int ind = 0;
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -229,42 +237,43 @@ void init() {
     }
   }
 
-
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("");
-    Serial.println("WiFi not connected wait for connect after");
+    Serial.println("❌ WiFi not connected — wait for connect after");
   } else {
     Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
+    Serial.println("✅ WiFi connected");
+    Serial.println("🌐 IP address: ");
     Serial.println(WiFi.localIP());
 
     if (init_config == 0) {
       init_config = 1;
       EEPROM.put(0, init_config);
       Serial.println("");
-      Serial.println("WiFi write status");
+      Serial.println("💾 WiFi write status");
       EEPROM.commit();
     }
   }
 
   EEPROM.end();
+
+  // 💧 Инициализация датчиков влажности
   hs.init();
 
+  // 💾 Инициализация SD-карты
   while (!SD.begin(5)) {
     delay(1000);
-    Serial.println("Card Mount Failed");
+    Serial.println("💾 Card Mount Failed");
   }
-
 
   uint8_t cardType = SD.cardType();
 
   if (cardType == CARD_NONE) {
-    Serial.println("No SD card attached");
+    Serial.println("❌ No SD card attached");
     return;
   }
 
-  Serial.print("SD Card Type: ");
+  Serial.print("💾 SD Card Type: ");
   if (cardType == CARD_MMC) {
     Serial.println("MMC");
   } else if (cardType == CARD_SD) {
@@ -276,57 +285,50 @@ void init() {
   }
 
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+  Serial.printf("💾 SD Card Size: %lluMB\n", cardSize);
 
-
-
+  // 📖 Читаем конфигурацию с SD-карты
   FDstat_t stat = data.read();
 
   switch (stat) {
     case FD_FS_ERR:
-      Serial.println("FS Error");
+      Serial.println("❌ FS Error");
       break;
     case FD_FILE_ERR:
-      Serial.println("Error");
+      Serial.println("❌ Error");
       break;
     case FD_WRITE:
-      Serial.println("Data Write");
+      Serial.println("💾 Data Write");
       break;
     case FD_ADD:
-      Serial.println("Data Add");
+      Serial.println("💾 Data Add");
       break;
     case FD_READ:
-      Serial.println("Data Read");
+      Serial.println("📖 Data Read");
       break;
     default:
       break;
   }
 
-  Serial.println("Data read:");
-  Serial.print("Run on rain ");
+  // 📋 Выводим прочитанную конфигурацию
+  Serial.println("📖 Data read:");
+  Serial.print("🌧️ Run on rain ");
   Serial.println(myConfig.runOnRain);
-  Serial.print("Run on night ");
+  Serial.print("🌙 Run on night ");
   Serial.println(myConfig.runOnNight);
-  Serial.print("Delta calibration ");
+  Serial.print("🔧 Delta calibration ");
   Serial.println(myConfig.deltaCalibration);
   hs.setBorder(myConfig.deltaCalibration);
-  Serial.print("Delta humidity ");
+  Serial.print("💧 Delta humidity ");
   Serial.println(myConfig.deltaHum);
 
   for (int i = 0; i < 8; i++) {
-    Serial.print("Calibration data on ");
+    Serial.print("🔧 Calibration data on ");
     Serial.print(i);
     Serial.print(" min value ");
     Serial.print(myConfig.chanel[i].minVal);
     Serial.print(" max value ");
     Serial.println(myConfig.chanel[i].maxVal);
     hs.setLowHighValue(i, myConfig.chanel[i].minVal, myConfig.chanel[i].maxVal);
-  }
-
-
-  while (!rtc.begin()) {
-    delay(1000);
-    Serial.println("Couldn't find RTC");
-    Serial.flush();
   }
 }

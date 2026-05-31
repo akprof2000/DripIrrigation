@@ -1,48 +1,63 @@
-//
-//
-//
+// sensors.cpp 💧 Модуль датчиков влажности почвы (8-канальный мультиплексор)
 #include "sensors.h"
 
-
+// ============================================================
+// 📟 Чтение АЦП с указанного канала мультиплексора
+// ============================================================
 int HumiditySensors::readSensor(const byte index) {
- 
-   for (byte j = 0; j < 3; j++) {
-      if (index & (1 << j))
-        digitalWrite(S[j], HIGH);
-      else
-        digitalWrite(S[j], LOW);
-    }
-    delay(100);
-    return analogRead(Z);
- }  // end of readSensor
+  // 🔌 Устанавливаем 3-битный адрес канала на пинах S0-S2
+  for (byte j = 0; j < 3; j++) {
+    if (index & (1 << j))
+      digitalWrite(S[j], HIGH);
+    else
+      digitalWrite(S[j], LOW);
+  }
+  delay(100);  // ⏱️ Задержка переключения мультиплексора
+  return analogRead(Z);  // 📟 Чтение АЦП
+}
 
-
+// ============================================================
+// 💧 Установить текущее значение как минимум (вода = 100%)
+// ============================================================
 int HumiditySensors::setLow(int index) {
   _low[index] = _curr[index];
   return _low[index];
 }
 
+// ============================================================
+// 🌵 Установить текущее значение как максимум (сухо = 0%)
+// ============================================================
 int HumiditySensors::setHigh(int index) {
   _high[index] = _curr[index];
   return _high[index];
 }
 
+// ============================================================
+// 📟 Опросить и сохранить текущее значение канала
+// ============================================================
 int HumiditySensors::setCurrent(int index) {
   _curr[index] = readSensor(index);
   return _curr[index];
 }
 
+// ============================================================
+// 📟 Опросить все 8 каналов и вывести в Serial
+// ============================================================
 void HumiditySensors::setAll() {
   for (int i = 0; i < 8; i++) {
     int val = setCurrent(i);
-    Serial.print("value sensor ");
+    Serial.print("💧 value sensor ");
     Serial.print(i);
     Serial.print(": ");
     Serial.println(val);
   }
 }
 
-int HumiditySensors::Percent(int index){
+// ============================================================
+// 📊 Рассчитать процент влажности (0-100%) с учётом гистерезиса
+// ============================================================
+int HumiditySensors::Percent(int index) {
   int val = getCurrent(index);
+  // 📊 Линейная интерполяция с учётом дельты калибровки
   return(map(val, _high[index] + _border, _low[index] - _border, 0, 100));
 }

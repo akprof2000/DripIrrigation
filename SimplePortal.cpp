@@ -1,8 +1,10 @@
+// SimplePortal.cpp 📡 Модуль WiFi конфигурационного портала
 #include "SimplePortal.h"
+
 static DNSServer _SP_dnsServer;
 static WebServer _SP_server(80);
 
-
+// 🌐 HTML страница конфигурации WiFi
 String SP_connect_page = R"rawliteral(
 <!DOCTYPE HTML><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,19 +14,19 @@ String SP_connect_page = R"rawliteral(
     input[type="submit"] {width:180px; height:60px;margin-bottom:8px;font-size:20px;}
 </style>
 <center>
-<h3>WiFi настройка</h3>
+<h3>📡 WiFi настройка</h3>
 <form action="/connect" method="POST">
     <select name="ssid" placeholder="SSID">
           {BoxItems}
     </select></br>
     <input type="text" name="pass" placeholder="Pass">
-    <input type="submit" value="Подключить">
+    <input type="submit" value="🔗 Подключить">
 </form>
-<h3>Telegram кодовое слово для регистрации администратора</h3>
+<h3>🤖 Telegram кодовое слово для регистрации администратора</h3>
 <h4>{textTelegramConnect}</h4>
-<p>При активации бота в Telegram потребуется ввести данное кодовое слово, чтобы бот воспринял вас как официального администратора</p>
+<p>🔐 При активации бота в Telegram потребуется ввести данное кодовое слово, чтобы бот воспринял вас как официального администратора</p>
 <form action="/exit" method="POST">
-    <input type="submit" value="Выход">
+    <input type="submit" value="🚪 Выход">
 </form>
 </center>
 </body></html>)rawliteral";
@@ -35,19 +37,20 @@ PortalCfg portalCfg;
 
 const int MAX_UID = 30;
 
-const String  generateUID(){
-  /* Change to allowable characters */
+// 🔐 Генерация случайного кодового слова для регистрации
+const String generateUID() {
   const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  String uid="";
-  for(int i = 0; i < MAX_UID; i++){
+  String uid = "";
+  for (int i = 0; i < MAX_UID; i++) {
     int r = random(0, strlen(possible));
     uid += possible[r];
   }
   return uid;
 }
 
-String t_str; 
+String t_str;
 
+// 📡 Обработчик подключения к WiFi
 void SP_handleConnect() {
   strcpy(portalCfg.SSID, _SP_server.arg("ssid").c_str());
   strcpy(portalCfg.pass, _SP_server.arg("pass").c_str());
@@ -56,10 +59,12 @@ void SP_handleConnect() {
   _SP_status = 1;
 }
 
+// 🚪 Обработчик выхода из портала
 void SP_handleExit() {
   _SP_status = 4;
 }
 
+// 🚀 Запуск точки доступа и DNS сервера
 void portalStart() {
   WiFi.softAPdisconnect();
   WiFi.disconnect();
@@ -78,9 +83,9 @@ void portalStart() {
   IPAddress subnet(255, 255, 255, 0);
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, subnet);
- 
+
   WiFi.softAP(wifi_name);
-  
+
   _SP_dnsServer.start(53, "*", apIP);
 
   _SP_server.onNotFound([]() {
@@ -93,6 +98,7 @@ void portalStart() {
   _SP_status = 0;
 }
 
+// 🛑 Остановка портала
 void portalStop() {
   WiFi.softAPdisconnect();
   _SP_server.stop();
@@ -100,6 +106,7 @@ void portalStop() {
   _SP_started = false;
 }
 
+// 🔄 Неблокирующий тикер портала
 bool portalTick() {
   if (_SP_started) {
     _SP_dnsServer.processNextRequest();
@@ -113,24 +120,24 @@ bool portalTick() {
   return 0;
 }
 
+// ⏱️ Блокирующий запуск портала с таймаутом
 void portalRun(uint32_t prd) {
   uint32_t tmr = millis();
-  Serial.println("Scan start");
+  Serial.println("📡 Scan start");
 
-  // WiFi.scanNetworks will return the number of networks found.
+  // 📡 Сканирование доступных WiFi сетей
   int n = WiFi.scanNetworks();
-  Serial.println("Scan done");
+  Serial.println("📡 Scan done");
   String data = String("");
   if (n == 0) {
-    data = "<option value=\"-\">Нет сетей</option>";
+    data = "<option value="-">❌ Нет сетей</option>";
   } else {
     Serial.print(n);
     Serial.println(" networks found");
     Serial.println("Nr | SSID                             | RSSI | CH | Encryption");
     for (int i = 0; i < n; ++i) {
-      String s_name =  WiFi.SSID(i).c_str();
-      data += String("<option value=\""+s_name+"\">"+s_name+"</option>\n");
-      // Print SSID and RSSI for each network found
+      String s_name = WiFi.SSID(i).c_str();
+      data += String("<option value="" + s_name + "">" + s_name + "</option>\n");
       Serial.printf("%2d", i + 1);
       Serial.print(" | ");
       Serial.printf("%-32.32s", WiFi.SSID(i).c_str());
@@ -175,13 +182,12 @@ void portalRun(uint32_t prd) {
     }
   }
   Serial.println("");
-   // Delete the scan result to free memory for code below.
   WiFi.scanDelete();
 
+  // 🔐 Генерируем кодовое слово и обновляем HTML
   t_str = generateUID();
   SP_connect_page.replace("{BoxItems}", data);
   SP_connect_page.replace("{textTelegramConnect}", t_str);
-  
 
   portalStart();
   while (!portalTick()) {
@@ -194,6 +200,7 @@ void portalRun(uint32_t prd) {
   }
 }
 
+// 📊 Получить статус портала
 byte portalStatus() {
   return _SP_status;
 }
