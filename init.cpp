@@ -37,7 +37,7 @@ void ReCheck() {
     previousMillisSmall = currentMillis;
 
     // 🤖 Вызываем тикер FastBot2 (обработка входящих сообщений)
-     bot.tick();
+    bot.tick();
 
     // 🔄 Если установлен флаг перезагрузки — выполняем tickManual и перезагружаем
     if (res) {
@@ -46,11 +46,11 @@ void ReCheck() {
     }
 
     // 🆘 Проверяем наличие ошибок соединения с Telegram
-    
+
     // 📡 Если WiFi не работает или есть ошибка Telegram — пытаемся переподключиться
     if (dropped || (currentMillis - previousMillis >= interval)) {
       Serial.println("📡 Check status wi-fi");
-      
+
       previousMillis = currentMillis;
       if (WiFi.status() != WL_CONNECTED) {
         dropped = true;
@@ -260,6 +260,8 @@ void init() {
   // 💧 Инициализация датчиков влажности
   hs.init();
 
+
+
   // 💾 Инициализация SD-карты
   while (!SD.begin(5)) {
     delay(1000);
@@ -309,6 +311,9 @@ void init() {
     default:
       break;
   }
+
+    // 💧 Инициализация датчика потока воды (пин 27)
+  flowInit();
 
   // 📋 Выводим прочитанную конфигурацию
   Serial.println("📖 Data read:");

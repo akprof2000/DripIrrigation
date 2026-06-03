@@ -166,6 +166,7 @@ void loop() {
 
   unsigned long currentMillis = millis();
   if (currentMillis - prevCheck >= intervalCheck) {
+    flowGetSessionLitersTick();
     prevCheck = currentMillis;
     Datime t = getDateTime();
     uint32_t curr = t.getUnix();

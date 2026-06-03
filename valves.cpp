@@ -71,6 +71,19 @@ void valve_open(int index) {
   if (isClose[index]) {
     digitalWrite(PUMP, HIGH);
     pumpStart = getDateTime().getUnix();
+
+    // 💧 Проверяем, был ли кто-то из клапанов уже открыт (для сброса счётчика расхода)
+    bool anyOpen = false;
+    for (int i = 0; i < 8; i++) {
+      if (!isClose[i]) {
+        anyOpen = true;
+        break;
+      }
+    }
+    // 🔄 Если до этого все клапаны были закрыты — начинаем новую сессию замера расхода воды
+    if (!anyOpen) {
+      flowResetSession();
+    }
   }
   isClose[index] = false;
 
@@ -106,6 +119,9 @@ void valve_close(int index) {
     if (myConfig.utimeAllClosed == 0) {
       myConfig.utimeAllClosed = getDateTime().getUnix();
       needValveUpdate = true;
+
+      // 💧 Все клапаны закрыты — фиксируем расход воды за сессию
+      flowAddToTotal();
     }
   }
 }

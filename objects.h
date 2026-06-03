@@ -15,7 +15,7 @@
 // 🔐 Токен Telegram бота (получен у 🤖 BotFather)
 #define BOT_TOKEN "REMOVED_BOT_TOKEN_XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PIN_SPI_CS 5
-#define CHECK_WIFI_INTERVAL_SMALL 3000 // ⏱️ миллисекунды (малый интервал проверки)
+#define CHECK_WIFI_INTERVAL_SMALL 300 // ⏱️ миллисекунды (малый интервал проверки)
 #define CHECK_WIFI_INTERVAL 30000      // ⏱️ миллисекунды (основной интервал проверки)
 #define CHECK_INTERVAL 10000           // ⏱️ миллисекунды (интервал цикла полива)
 #define CHECK_LIGHT true
@@ -33,6 +33,7 @@ const int RAIN = 15;          // 🌧️ Датчик дождя
 const int FILL = 17;          // 🚰 Клапан наполнения бака
 const int DRAIN = 25;         // 🗑️ Клапан слива (дренаж)
 const int PUMP = 26;          // ⚡ Реле насоса
+const int FLOW_SENSOR = 27;   // 💧 Датчик потока воды (расходомер)
 
 // 🌱 Структура калибровки одного канала датчика влажности почвы
 struct HumCalibration {
@@ -51,6 +52,9 @@ struct Config {
   int deltaHum = 5;                 // 💧 Дельта влажности (% гистерезис)
   HumCalibration chanel[8];         // 🌱 8 каналов датчиков/клапанов
   unsigned long utimeAllClosed = 0; // ⏱️ Unix-время закрытия всех клапанов
+  float flowSessionLiters = 0.0; // 💧 Расход воды за текущую сессию полива (литры)
+  float flowTotalLiters = 0.0;// 📊 Общий накопленный расход воды с момента включения (литры)
+  unsigned long  pulses = 0; // импульсов за смену 
 };
 
 extern Config myConfig;       // ⚙️ Глобальная конфигурация системы
@@ -68,6 +72,19 @@ extern bool nightNow;         // 🌙 Флаг ночного времени
 extern int64_t pumpStart;     // ⏱️ Unix-время запуска насоса
 
 extern byte oldMode[8];       // 🚰 Предыдущие состояния клапанов (для отслеживания изменений)
+
+// 💧 Переменные для замера расхода воды через датчик потока
+extern volatile unsigned long flowPulseCount;   // 🔄 Счётчик импульсов датчика потока (volatile — обновляется в ISR)
+extern unsigned long flowLastSessionPulses;     // 📝 Импульсы за предыдущую сессию
+
+// 💧 Функции для работы с датчиком потока воды
+void flowInit();                // 🔌 Инициализация датчика потока (пин + прерывание)
+void flowResetSession();        // 🔄 Сброс счётчика текущей сессии
+float flowGetSessionLiters(); // 💧 Получить расход за текущую сессию
+float flowGetTotalLiters();   // 📊 Получить общий расход
+void flowAddToTotal();        // ➕ Перенести расход сессии в общий счётчик
+void flowGetSessionLitersTick();     // ⏱️ обработка литров по таймеру
+void clearDataFlow();
 
 // 📟 Получить актуальную дату и время (синхронизация NTP + RTC)
 Datime getDateTime();

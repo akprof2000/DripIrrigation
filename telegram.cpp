@@ -24,12 +24,19 @@ bool telegram_needUpdate() {
 // ============================================================
 // 💬 Отправить текстовое сообщение пользователю с 3 попытками.
 //    При ошибке связи с Telegram (result.isError()) — переподключает WiFi
-void sendReconnectMessage(String text, String id) {
+void sendReconnectMessage(String text, String id, bool kbRem = false) {
   for (int i = 0; i < 3; i++) {
     // 📝 Создаём объект сообщения FastBot2
     fb::Message msg;
+    msg.setModeHTML();
     msg.text = text;        // 💬 Текст сообщения
     msg.chatID = id;        // 👤 ID чата получателя
+
+
+    if (kbRem)
+    {
+      msg.removeKeyboard();
+    }
 
     // 📤 Отправляем сообщение (wait=true — синхронная отправка)
     fb::Result result = bot.sendMessage(msg, true);
@@ -341,11 +348,13 @@ void botInit() {
   // 🔐 Устанавливаем токен бота
   bot.setToken(BOT_TOKEN);
 
-  // 📎 Подключаем обработчик входящих обновлений (FastBot2 стиль)
-  bot.onUpdate(newMsg);
-
   // ⏭️ Пропускаем накопившиеся сообщения
   bot.skipUpdates();
+
+  // 📎 Подключаем обработчик входящих обновлений (FastBot2 стиль)
+  bot.attachUpdate(newMsg);
+
+  bot.setPollMode(fb::Poll::Long, 60000);
 
   // 📥 Загружаем зарегистрированных пользователей из EEPROM
   loadUsers();
@@ -505,12 +514,12 @@ void loadUsers() {
     if (usr.role < 2) {
       // 🎭 Администратор/владелец — полное меню
       fb::InlineKeyboard menu;
-      menu.addButton("🔄 Перезагрузка", "/Restart").newRow()
-          .addButton("👥 Пользователи", "/Users").newRow()
-          .addButton("⚙️ Управление", "/control").newRow()
-          .addButton("📊 Статус", "/status").newRow()
-          .addButton("📈 Отчёты", "/reports").newRow()
-          .addButton("🔧 Настройка", "/Configure");
+      menu.addButton("🔄 Перезагрузка", "/Restart", fb::KeyStyle::Danger).newRow()
+          .addButton("👥 Пользователи", "/Users", fb::KeyStyle::Primary).newRow()
+          .addButton("⚙️ Управление", "/control", fb::KeyStyle::Primary).newRow()
+          .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+          .addButton("📈 Отчёты", "/reports", fb::KeyStyle::Primary).newRow()
+          .addButton("🔧 Настройка", "/Configure", fb::KeyStyle::Primary);
 
       fb::Message msg;
       msg.text = "🚀 <b>Запуск</b>";
@@ -521,9 +530,9 @@ void loadUsers() {
     } else {
       // 👤 Обычный пользователь — ограниченное меню
       fb::InlineKeyboard menu;
-      menu.addButton("⚙️ Управление", "/control").newRow()
-          .addButton("📊 Статус", "/status").newRow()
-          .addButton("📈 Отчёты", "/reports");
+      menu.addButton("⚙️ Управление", "/control", fb::KeyStyle::Primary).newRow()
+          .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+          .addButton("📈 Отчёты", "/reports", fb::KeyStyle::Primary);
 
       fb::Message msg;
       msg.text = "🚀 <b>Запуск</b>";
@@ -667,7 +676,7 @@ void newMsg(fb::Update& u) {
           act->action = 1130 + ind;
           return;
         } else {
-          sendReconnectMessage(F("❌ Калибровка отменена!"), userID);
+          sendReconnectMessage(F("❌ Калибровка отменена!"), userID, true);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
           act->action = 0;
@@ -696,7 +705,7 @@ void newMsg(fb::Update& u) {
 
           return;
         } else {
-          sendReconnectMessage(F("❌ Калибровка отменена!"), userID);
+          sendReconnectMessage(F("❌ Калибровка отменена!"), userID, true);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
           act->action = 0;
@@ -719,7 +728,7 @@ void newMsg(fb::Update& u) {
           act->action = 1110 + ind;
           return;
         } else {
-          sendReconnectMessage(F("❌ Калибровка отменена!"), userID);
+          sendReconnectMessage(F("❌ Калибровка отменена!"), userID, true);
           command = F("/Calibrate");
           act->action = 0;
         }
@@ -740,7 +749,7 @@ void newMsg(fb::Update& u) {
           act->action = 3010;
           return;
         } else {
-          sendReconnectMessage(F("❌ Поиск отменён!"), userID);
+          sendReconnectMessage(F("❌ Поиск отменён!"), userID, true);
           command = F("/control");
           act->action = 0;
         }
@@ -765,7 +774,7 @@ void newMsg(fb::Update& u) {
           act->action = 3020;
           return;
         } else {
-          sendReconnectMessage(F("❌ Поиск отменён!"), userID);
+          sendReconnectMessage(F("❌ Поиск отменён!"), userID, true);
           command = F("/control");
           act->action = 0;
         }
@@ -782,12 +791,12 @@ void newMsg(fb::Update& u) {
             }
           }
           if (ind < 0) {
-            sendReconnectMessage(F("❌ Не удалось определить датчик! Повторите операцию."), userID);
+            sendReconnectMessage(F("❌ Не удалось определить датчик! Повторите операцию."), userID, true);
           } else {
-            sendReconnectMessage("🔍 Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", userID);
+            sendReconnectMessage("🔍 Предположительно ваш датчик № " + String(ind + 1) + " (" + myConfig.chanel[ind].title + ")!", userID, true);
           }
         } else {
-          sendReconnectMessage(F("❌ Поиск отменён!"), userID);
+          sendReconnectMessage(F("❌ Поиск отменён!"), userID, true);
         }
         command = F("/control");
         act->action = 0;
@@ -821,18 +830,18 @@ void newMsg(fb::Update& u) {
       else if (act->action >= 1300 && act->action <= 1307) {
         int ind = act->action - 1300;
         if (text == "✅ ВКЛ.") {
-          sendReconnectMessage(F("✅ Клапан включён!"), userID);
+          sendReconnectMessage(F("✅ Клапан включён!"), userID, true);
           myConfig.chanel[ind].mode = 1;
           valve_open(ind);
         } else if (text == "⛔ ВЫКЛ.") {
-          sendReconnectMessage(F("⛔ Клапан выключен!"), userID);
+          sendReconnectMessage(F("⛔ Клапан выключен!"), userID, true);
           myConfig.chanel[ind].mode = 2;
           valve_close(ind);
         } else if (text == "🤖 АВТО") {
-          sendReconnectMessage(F("🤖 Клапан в автоматическом режиме!"), userID);
+          sendReconnectMessage(F("🤖 Клапан в автоматическом режиме!"), userID, true);
           myConfig.chanel[ind].mode = 0;
         } else if (text == "🏠 А.П.") {
-          sendReconnectMessage(F("🏠 Клапан в автоматическом режиме для парника!"), userID);
+          sendReconnectMessage(F("🏠 Клапан в автоматическом режиме для парника!"), userID, true);
           myConfig.chanel[ind].mode = 3;
         }
         needUpdate = true;
@@ -843,16 +852,16 @@ void newMsg(fb::Update& u) {
       else if (act->action == 1399) {
         int md = 0;
         if (text == "✅ ВКЛ.") {
-          sendReconnectMessage(F("✅ Клапаны включены!"), userID);
+          sendReconnectMessage(F("✅ Клапаны включены!"), userID, true);
           md = 1;
         } else if (text == "⛔ ВЫКЛ.") {
-          sendReconnectMessage(F("⛔ Клапаны выключены!"), userID);
+          sendReconnectMessage(F("⛔ Клапаны выключены!"), userID, true);
           md = 2;
         } else if (text == "🤖 АВТО") {
-          sendReconnectMessage(F("🤖 Клапаны в автоматическом режиме!"), userID);
+          sendReconnectMessage(F("🤖 Клапаны в автоматическом режиме!"), userID, true);
           md = 0;
         } else if (text == "🏠 А.П.") {
-          sendReconnectMessage(F("🏠 Клапаны в автоматическом режиме для парника!"), userID);
+          sendReconnectMessage(F("🏠 Клапаны в автоматическом режиме для парника!"), userID, true);
           md = 3;
         }
         for (int l = 0; l < 8; l++) {
@@ -909,9 +918,9 @@ void newMsg(fb::Update& u) {
             myConfig.chanel[i].mode = 0;
             strcpy(myConfig.chanel[i].title, String("🌱 Растение").c_str());
           }
-          sendReconnectMessage(F("✅ Сброс выполнен!"), userID);
+          sendReconnectMessage(F("✅ Сброс выполнен!"), userID, true);
         } else {
-          sendReconnectMessage(F("❌ Сброс отменён!"), userID);
+          sendReconnectMessage(F("❌ Сброс отменён!"), userID, true);
         }
         command = "/Configure";
         needUpdate = true;
@@ -921,10 +930,22 @@ void newMsg(fb::Update& u) {
         act->action = 0;
         if (text == "✅ ДА") {
           res = 1;
-          sendReconnectMessage(F("🔄 Перезагрузка начата!"), userID);
+          sendReconnectMessage(F("🔄 Перезагрузка начата!"), userID, true);
           return;
         } else {
-          sendReconnectMessage(F("❌ Перезагрузка отменена!"), userID);
+          sendReconnectMessage(F("❌ Перезагрузка отменена!"), userID, true);
+          return;
+        }
+      }
+      // Стереь все данные по проливу
+      else if (act->action == 4000) {
+        act->action = 0;
+        if (text == "✅ ДА") {
+          clearDataFlow();
+          sendReconnectMessage(F("🔄 Данные стерты!"), userID, true);
+          return;
+        } else {
+          sendReconnectMessage(F("❌ Отмена!"), userID, true);
           return;
         }
       }
@@ -933,10 +954,10 @@ void newMsg(fb::Update& u) {
         act->action = 0;
         if (text == "✅ ДА") {
           myConfig.runOnNight = true;
-          sendReconnectMessage(F("🌙 Работа ночью включена!"), userID);
+          sendReconnectMessage(F("🌙 Работа ночью включена!"), userID, true);
         } else {
           myConfig.runOnNight = false;
-          sendReconnectMessage(F("🌙 Работа ночью выключена!"), userID);
+          sendReconnectMessage(F("🌙 Работа ночью выключена!"), userID, true);
         }
         command = "/Configure";
         needUpdate = true;
@@ -1163,22 +1184,24 @@ void newMsg(fb::Update& u) {
         // 🔧 Меню калибровки
         else if (command == "/Calibrate") {
           fb::InlineKeyboard menu;
-          menu.addButton("🌱 Датчик №1", "/HumidityCalibrate_0").newRow()
-              .addButton("🌱 Датчик №2", "/HumidityCalibrate_1").newRow()
-              .addButton("🌱 Датчик №3", "/HumidityCalibrate_2").newRow()
-              .addButton("🌱 Датчик №4", "/HumidityCalibrate_3").newRow()
-              .addButton("🌱 Датчик №5", "/HumidityCalibrate_4").newRow()
-              .addButton("🌱 Датчик №6", "/HumidityCalibrate_5").newRow()
-              .addButton("🌱 Датчик №7", "/HumidityCalibrate_6").newRow()
-              .addButton("🌱 Датчик №8", "/HumidityCalibrate_7").newRow()
-              .addButton("🔙 Назад", "/Configure");
+          menu.addButton("🌱 Датчик №1", "/HumidityCalibrate_0", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №2", "/HumidityCalibrate_1", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №3", "/HumidityCalibrate_2", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №4", "/HumidityCalibrate_3", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №5", "/HumidityCalibrate_4", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №6", "/HumidityCalibrate_5", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №7", "/HumidityCalibrate_6", fb::KeyStyle::Primary).newRow()
+              .addButton("🌱 Датчик №8", "/HumidityCalibrate_7", fb::KeyStyle::Primary).newRow()
+              .addButton("🔙 Назад", "/Configure", fb::KeyStyle::Default);
 
-          fb::Message m;
-          m.text = "🔧 <b>Калибровка</b>";
-          m.chatID = userID;
-          m.setModeHTML();
-          m.setKeyboard(&menu);
-          bot.sendMessage(m);
+
+                    fb::TextEdit t;
+          t.mode = fb::Message::Mode::HTML;
+          t.text = "🔧 <b>Калибровка</b>";
+          t.chatID = u.query().message().chat().id();
+          t.messageID = u.query().message().id();         
+          t.setKeyboard(&menu);
+          bot.editText(t);
         }
         // 🔧 Ручная калибровка (меню)
         else if (command == "/CalibrateManual") {
@@ -1188,17 +1211,18 @@ void newMsg(fb::Update& u) {
           for (int i = 0; i < 8; i++) {
             btnText = "🌱 Датчик №" + String(i + 1) + " [" + String(hs.getLow(i)) + ";" + String(hs.getHigh(i)) + "] " + String(hs.Percent(i)) + "%";
             cback = "/HumidityMCalibrate_" + String(i);
-            menu.addButton(btnText, cback);
+            menu.addButton(btnText, cback, fb::KeyStyle::Primary);
             if (i < 7) menu.newRow();
           }
-          menu.newRow().addButton("🔙 Назад", "/Configure");
+          menu.newRow().addButton("🔙 Назад", "/Configure", fb::KeyStyle::Default);
 
-          fb::Message m;
-          m.text = "🔧 <b>Ручная Калибровка</b>";
-          m.chatID = userID;
-          m.setModeHTML();
-          m.setKeyboard(&menu);
-          bot.sendMessage(m);
+          fb::TextEdit t;
+          t.mode = fb::Message::Mode::HTML;
+          t.text = "🔧 <b>Ручная Калибровка</b>";
+          t.chatID = u.query().message().chat().id();
+          t.messageID = u.query().message().id();         
+          t.setKeyboard(&menu);
+          bot.editText(t);
         }
         // 🗑️ Удаление папки года
         else if (command == "/DelFolder") {
@@ -1252,22 +1276,29 @@ void newMsg(fb::Update& u) {
                           "🔧 Дельта калибровки (" + String(myConfig.deltaCalibration) + ")";
 
           fb::InlineKeyboard menu;
-          menu.addButton("🌙 Работа ночью", "/WorkAtNight").newRow()
-              .addButton("🌧️ Работа под дождём", "/WorkAtRain").newRow()
-              .addButton("💧 Дельта влажности", "/DeltaHumidity").newRow()
-              .addButton("🔧 Дельта калибровки", "/DeltaCalibration").newRow()
-              .addButton("🔧 Калибровка", "/Calibrate").newRow()
-              .addButton("🔧 Ручная калибровка", "/CalibrateManual").newRow()
-              .addButton("🔄 Сброс настроек", "/DropSettings").newRow()
-              .addButton("🗑️ Удаление файлов", "/DelFolder").newRow()
-              .addButton("🔙 Назад", "/start");
-
+          menu.addButton("🌙 Работа ночью", "/WorkAtNight", fb::KeyStyle::Primary).newRow()
+              .addButton("🌧️ Работа под дождём", "/WorkAtRain", fb::KeyStyle::Primary).newRow()
+              .addButton("💧 Дельта влажности", "/DeltaHumidity", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Дельта калибровки", "/DeltaCalibration", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Калибровка", "/Calibrate", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Ручная калибровка", "/CalibrateManual", fb::KeyStyle::Primary).newRow()
+              .addButton("🔄 Сброс настроек", "/DropSettings", fb::KeyStyle::Danger).newRow()
+              .addButton("🗑️ Удаление файлов", "/DelFolder", fb::KeyStyle::Danger).newRow()
+              .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
+/*
           fb::Message m;
           m.text = menuText;
           m.chatID = userID;
           m.setModeHTML();
           m.setKeyboard(&menu);
-          bot.sendMessage(m);
+          bot.sendMessage(m);*/
+          fb::TextEdit t;
+          t.mode = fb::Message::Mode::HTML;
+          t.text = menuText;
+          t.chatID = u.query().message().chat().id();
+          t.messageID = u.query().message().id();         
+          t.setKeyboard(&menu);
+          bot.editText(t);
         }
         // 🔄 Перезагрузка системы
         else if (command == "/Restart") {
@@ -1290,18 +1321,21 @@ void newMsg(fb::Update& u) {
         // 👥 Меню управления пользователями
         else if (command == "/Users") {
           fb::InlineKeyboard menu;
-          menu.addButton("📋 Список", "/UsersList").newRow()
-              .addButton("⬆️ Повышение", "/UsersUpEdit").newRow()
-              .addButton("⬇️ Понижение", "/UsersDownEdit").newRow()
-              .addButton("🗑️ Удаление", "/UsersDelete").newRow()
-              .addButton("🔙 Назад", "/start");
+          menu.addButton("📋 Список", "/UsersList", fb::KeyStyle::Primary).newRow()
+              .addButton("⬆️ Повышение", "/UsersUpEdit", fb::KeyStyle::Success).newRow()
+              .addButton("⬇️ Понижение", "/UsersDownEdit", fb::KeyStyle::Danger).newRow()
+              .addButton("🗑️ Удаление", "/UsersDelete", fb::KeyStyle::Danger).newRow()
+              .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
 
-          fb::Message m;
-          m.text = "👥 <b>Пользователи</b>";
-          m.chatID = userID;
-          m.setModeHTML();
-          m.setKeyboard(&menu);
-          bot.sendMessage(m);
+
+          fb::TextEdit t;
+          t.mode = fb::Message::Mode::HTML;
+          t.text = "👥 <b>Пользователи</b>";
+          t.chatID = u.query().message().chat().id();
+          t.messageID = u.query().message().id();         
+          t.setKeyboard(&menu);
+          bot.editText(t);
+
         }
         // 📋 Список пользователей
         else if (command == "/UsersList") {
@@ -1319,7 +1353,7 @@ void newMsg(fb::Update& u) {
           for (const String& key : keys) {
             User* user = users.get(key);
             if (user->role == 1) {
-              menu.addButton(user->userID, "/DownGradeUser_" + user->userID);
+              menu.addButton(user->userID, "/DownGradeUser_" + user->userID, fb::KeyStyle::Danger);
               hasUsers = true;
             }
           }
@@ -1327,7 +1361,7 @@ void newMsg(fb::Update& u) {
             sendReconnectMessage("ℹ️ Нет пользователей для понижения", userID);
             command = "/Users";
           } else {
-            menu.newRow().addButton("🔙 Назад", "/Users");
+            menu.newRow().addButton("🔙 Назад", "/Users", fb::KeyStyle::Default);
 
             fb::Message m;
             m.text = "⬇️ <b>Понижение</b>";
@@ -1346,7 +1380,7 @@ void newMsg(fb::Update& u) {
           for (const String& key : keys) {
             User* user = users.get(key);
             if (user->role > 1) {
-              menu.addButton(user->userID, "/GradeUser_" + user->userID);
+              menu.addButton(user->userID, "/GradeUser_" + user->userID, fb::KeyStyle::Success);
               hasUsers = true;
             }
           }
@@ -1354,7 +1388,7 @@ void newMsg(fb::Update& u) {
             sendReconnectMessage("ℹ️ Нет пользователей для повышения", userID);
             command = "/Users";
           } else {
-            menu.newRow().addButton("🔙 Назад", "/Users");
+            menu.newRow().addButton("🔙 Назад", "/Users", fb::KeyStyle::Default);
 
             fb::Message m;
             m.text = "⬆️ <b>Повышение</b>";
@@ -1373,7 +1407,7 @@ void newMsg(fb::Update& u) {
           for (const String& key : keys) {
             User* user = users.get(key);
             if (user->role > 0) {
-              menu.addButton(user->userID, "/RemoveUser_" + user->userID);
+              menu.addButton(user->userID, "/RemoveUser_" + user->userID, fb::KeyStyle::Danger);
               hasUsers = true;
             }
           }
@@ -1381,7 +1415,7 @@ void newMsg(fb::Update& u) {
             sendReconnectMessage("ℹ️ Нет пользователей для удаления", userID);
             command = "/Users";
           } else {
-            menu.newRow().addButton("🔙 Назад", "/Users");
+            menu.newRow().addButton("🔙 Назад", "/Users", fb::KeyStyle::Default);
 
             fb::Message m;
             m.text = "🗑️ <b>Удаление</b>";
@@ -1492,6 +1526,7 @@ void newMsg(fb::Update& u) {
         m.setKeyboard(&kb);
         bot.sendMessage(m);
 
+
         actionSet(userID, 1300 + ind);
       }
       // 🚰 Установка режима для ВСЕХ клапанов
@@ -1521,15 +1556,48 @@ void newMsg(fb::Update& u) {
         sendReconnectMessage("⏳ Ваша регистрация принята, ожидайте ответа от администратора", chatID);
       }
       // 🏠 Главное меню
+      else if (command == "/Start") {
+        if (check_user->role < 2) {
+          fb::InlineKeyboard menu;
+          menu.addButton("🔄 Перезагрузка", "/Restart", fb::KeyStyle::Danger).newRow()
+              .addButton("👥 Пользователи", "/Users", fb::KeyStyle::Primary).newRow()
+              .addButton("⚙️ Управление", "/Control", fb::KeyStyle::Primary).newRow()
+              .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+              .addButton("📈 Отчёты", "/Reports", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Настройка", "/Configure", fb::KeyStyle::Primary);
+
+          fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "🚀 <b>Запуск</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
+        } else {
+          fb::InlineKeyboard menu;
+          menu.addButton("⚙️ Управление", "/Control", fb::KeyStyle::Primary).newRow()
+              .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+              .addButton("📈 Отчёты", "/Reports", fb::KeyStyle::Primary);
+
+          fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "🚀 <b>Запуск</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
+
+        }
+      }
       else if (command == "/start") {
         if (check_user->role < 2) {
           fb::InlineKeyboard menu;
-          menu.addButton("🔄 Перезагрузка", "/Restart").newRow()
-              .addButton("👥 Пользователи", "/Users").newRow()
-              .addButton("⚙️ Управление", "/control").newRow()
-              .addButton("📊 Статус", "/status").newRow()
-              .addButton("📈 Отчёты", "/reports").newRow()
-              .addButton("🔧 Настройка", "/Configure");
+          menu.addButton("🔄 Перезагрузка", "/Restart", fb::KeyStyle::Danger).newRow()
+              .addButton("👥 Пользователи", "/Users", fb::KeyStyle::Primary).newRow()
+              .addButton("⚙️ Управление", "/Control", fb::KeyStyle::Primary).newRow()
+              .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+              .addButton("📈 Отчёты", "/Reports", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Настройка", "/Configure", fb::KeyStyle::Primary);
 
           fb::Message m;
           m.text = "🚀 <b>Запуск</b>";
@@ -1539,9 +1607,9 @@ void newMsg(fb::Update& u) {
           bot.sendMessage(m);
         } else {
           fb::InlineKeyboard menu;
-          menu.addButton("⚙️ Управление", "/control").newRow()
-              .addButton("📊 Статус", "/status").newRow()
-              .addButton("📈 Отчёты", "/reports");
+          menu.addButton("⚙️ Управление", "/Control", fb::KeyStyle::Primary).newRow()
+              .addButton("📊 Статус", "/status", fb::KeyStyle::Primary).newRow()
+              .addButton("📈 Отчёты", "/Reports", fb::KeyStyle::Primary);
 
           fb::Message m;
           m.text = "🚀 <b>Запуск</b>";
@@ -1549,6 +1617,7 @@ void newMsg(fb::Update& u) {
           m.setModeHTML();
           m.setKeyboard(&menu);
           bot.sendMessage(m);
+
         }
       }
       // 📝 Меню переименования датчиков
@@ -1557,17 +1626,18 @@ void newMsg(fb::Update& u) {
         for (int i = 0; i < 8; i++) {
           String btnText = "🌱 Датчик №" + String(i + 1) + " (" + String(myConfig.chanel[i].title) + ")";
           String cback = "/NamingsSet_" + String(i);
-          menu.addButton(btnText, cback);
+          menu.addButton(btnText, cback, fb::KeyStyle::Primary);
           if (i < 7) menu.newRow();
         }
-        menu.newRow().addButton("🔙 Назад", "/control");
+        menu.newRow().addButton("🔙 Назад", "/Control", fb::KeyStyle::Default);
 
-        fb::Message m;
-        m.text = "📝 <b>Именование</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+        fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "📝 <b>Именование</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
       }
       // 🎯 Меню установки порогов влажности
       else if (command == "/Borders") {
@@ -1575,17 +1645,19 @@ void newMsg(fb::Update& u) {
         for (int i = 0; i < 8; i++) {
           String btnText = "🚰 Клапан №" + String(i + 1) + " (" + String(myConfig.chanel[i].title) + ") <" + String(myConfig.chanel[i].border) + " %>";
           String cback = "/BordersSet_" + String(i);
-          menu.addButton(btnText, cback);
+          menu.addButton(btnText, cback, fb::KeyStyle::Primary);
           if (i < 7) menu.newRow();
         }
-        menu.newRow().addButton("🔙 Назад", "/control");
+        menu.newRow().addButton("🔙 Назад", "/Control", fb::KeyStyle::Default);
 
-        fb::Message m;
-        m.text = "🎯 <b>Пороги срабатывания</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+
+        fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "🎯 <b>Пороги срабатывания</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
       }
       // 🚰 Меню режимов работы клапанов
       else if (command == "/OperationMode") {
@@ -1599,29 +1671,30 @@ void newMsg(fb::Update& u) {
 
           String btnText = "🚰 Клапан №" + String(i + 1) + " (" + String(myConfig.chanel[i].title) + ") [" + modeSymbol + "]";
           String cback = "/OperationModeSet_" + String(i);
-          menu.addButton(btnText, cback);
+          menu.addButton(btnText, cback, fb::KeyStyle::Primary);
           if (i < 7) menu.newRow();
         }
         menu.newRow()
-            .addButton("🚰 Установить для всех", "/AllOperationModeSet").newRow()
-            .addButton("🔙 Назад", "/control");
+            .addButton("🚰 Установить для всех", "/AllOperationModeSet", fb::KeyStyle::Success).newRow()
+            .addButton("🔙 Назад", "/Control", fb::KeyStyle::Default);
 
-        fb::Message m;
-        m.text = "🚰 <b>Режим работы</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+       fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "🚰 <b>Режим работы</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
       }
       // 📊 Вывод текущего статуса системы
       else if (command == "/status") {
         hs.setAll();
-
-        String status = String("📅 Текущая дата и время: ") + getDateTime().toString(' ');
+        String status = String("ℹ️ <b>Общий статус</b>\n\n");
+        status = status + String("📅 <b>Текущая дата и время:</b> ") + getDateTime().toString(' ');
         status = status + String("\n\n") + String(nightNow ? "🌙 Сейчас ночь" : "☀️ Сейчас день");
         status = status + String(rainNow ? ", 🌧️ идёт дождь" : ", ☀️ дождя нет");
         status = status + String("\n");
-        status = status + String("\n📊 Информация по датчикам");
+        status = status + String("\n📊 <b>Информация по датчикам</b>");
         for (int i = 0; i < 8; i++) {
           status = status + String("\n");
           status = status + String("\n🌱 Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
@@ -1635,10 +1708,16 @@ void newMsg(fb::Update& u) {
                                                                                       : myConfig.chanel[i].mode == 2 ? "⛔ постоянно закрыт"
                                                                                                                      : "🏠 автоматический (парник)");
         }
+        // 💧 Добавляем информацию о расходе воды
+        status = status + String("\n");
+        status = status + String("\n💧 <b>Расход воды</b>");
+        status = status + String("\n📟 За текущую сессию: ") + String(flowGetSessionLiters(), 3) + String(" л");
+        status = status + String("\n📊 Общий расход: ") + String(flowGetTotalLiters(), 3) + String(" л");
+
         Serial.println(ESP.getFreeHeap());
         int mem = ESP.getFreeHeap() / 1024;
         status = status + String("\n");
-        status = status + String("\n💾 Оставшаяся память: ") + String(mem) + " Kb";
+        status = status + String("\n💾 <b>Оставшаяся память:</b> ") + String(mem) + " Kb";
         sendReconnectMessage(status, userID);
       }
       // 🔍 Поиск датчика
@@ -1655,23 +1734,75 @@ void newMsg(fb::Update& u) {
 
         actionSet(userID, 3000);
       }
-      // ⚙️ Меню управления
-      else if (command == "/control") {
-        Serial.println("Попытка вывести меню управление");
+      // 💧 Команда отображения расхода воды
+      else if (command == "/WaterFlow") {
+        String flowMsg = String("💧 <b>Расход воды</b>\n\n");
+        flowMsg = flowMsg + String("📟 За текущую сессию полива: ") + String(flowGetSessionLiters(), 3) + String(" л\n");
+        flowMsg = flowMsg + String("📊 Общий расход за все время: ") + String(flowGetTotalLiters(), 3) + String(" л\n");
+        flowMsg = flowMsg + String("🔄 Импульсов датчика: ") + String(flowPulseCount) + String(" шт.");
+        
+       
         fb::InlineKeyboard menu;
-        menu.addButton("🚰 Режим работы", "/OperationMode").newRow()
-            .addButton("📝 Названия", "/Namings").newRow()
-            .addButton("🎯 Пороги срабатывания", "/Borders").newRow()
-            .addButton("🗑️ Пролив дренажа", "/Spillage").newRow()
-            .addButton("🔍 Поиск датчика", "/Searching").newRow()
-            .addButton("🔙 Назад", "/start");
-
+        menu.addButton("🗑️ Стереть данные пролива", "/WaterSpillage", fb::KeyStyle::Danger);
+        
         fb::Message m;
-        m.text = "⚙️ <b>Управление</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+        m.text = flowMsg;
+          m.chatID = userID;
+          m.setModeHTML();
+          m.setKeyboard(&menu);
+          bot.sendMessage(m);
+      }
+      // 💧 Команда отображения расхода воды
+      else if (command == "/WaterSpillage") {
+          sendReconnectMessage(F("⚠️ Сбросить все данные о проливе в системе?"), userID);
+
+          fb::Keyboard kb;
+          kb.addButton("✅ ДА").addButton("❌ НЕТ");
+          fb::Message m;
+          m.text = "<Сброс>";
+          m.chatID = userID;
+          m.setKeyboard(&kb);
+          bot.sendMessage(m);
+
+          actionSet(userID, 4000);
+        
+      }
+      // ⚙️ Меню управления
+      else if (command == "/Control") {
+        fb::InlineKeyboard menu;
+        menu.addButton("🚰 Режим работы", "/OperationMode", fb::KeyStyle::Primary).newRow()
+            .addButton("📝 Названия", "/Namings", fb::KeyStyle::Primary).newRow()
+            .addButton("🎯 Пороги срабатывания", "/Borders", fb::KeyStyle::Primary).newRow()
+            .addButton("💧 Расход воды", "/WaterFlow", fb::KeyStyle::Primary).newRow()
+            .addButton("🗑️ Пролив дренажа", "/Spillage", fb::KeyStyle::Danger).newRow()
+            .addButton("🔍 Поиск датчика", "/Searching", fb::KeyStyle::Primary).newRow()
+            .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
+
+          fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "⚙️ <b>Управление</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
+      }
+      else if (command == "/control") {
+        fb::InlineKeyboard menu;
+        menu.addButton("🚰 Режим работы", "/OperationMode", fb::KeyStyle::Primary).newRow()
+            .addButton("📝 Названия", "/Namings", fb::KeyStyle::Primary).newRow()
+            .addButton("🎯 Пороги срабатывания", "/Borders", fb::KeyStyle::Primary).newRow()
+            .addButton("💧 Расход воды", "/WaterFlow", fb::KeyStyle::Primary).newRow()
+            .addButton("🗑️ Пролив дренажа", "/Spillage", fb::KeyStyle::Danger).newRow()
+            .addButton("🔍 Поиск датчика", "/Searching", fb::KeyStyle::Primary).newRow()
+            .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
+
+
+          fb::Message m;
+          m.text = "⚙️ <b>Управление</b>";
+          m.chatID = userID;
+          m.setModeHTML();
+          m.setKeyboard(&menu);
+          bot.sendMessage(m);
       }
       // 🔕 Пауза статусных сообщений
       else if (command == "/pause") {
@@ -1775,35 +1906,60 @@ void newMsg(fb::Update& u) {
       // 📈 Меню отчётов
       if (command == "/reports") {
         fb::InlineKeyboard menu;
-        menu.addButton("📊 Графики", "/Graphics").newRow()
-            .addButton("📁 Файл за вчера", "/FileYesterday").newRow()
-            .addButton("📁 Файл текущий", "/FileToday").newRow()
-            .addButton("📁 Файл...", "/FileTo").newRow()
-            .addButton("🔙 Назад", "/start");
+        menu.addButton("📊 Графики", "/Graphics", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл за вчера", "/FileYesterday", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл текущий", "/FileToday", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл...", "/FileTo", fb::KeyStyle::Primary).newRow()
+            .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
 
-        fb::Message m;
-        m.text = "📈 <b>Отчёты</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+
+              fb::Message m;
+              m.text = "📈 <b>Отчёты</b>";
+              m.chatID = userID;
+              m.setModeHTML();
+              m.setKeyboard(&menu);
+              bot.sendMessage(m);
+
+      }
+
+      // 📈 Меню отчётов
+      if (command == "/Reports") {
+        fb::InlineKeyboard menu;
+        menu.addButton("📊 Графики", "/Graphics", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл за вчера", "/FileYesterday", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл текущий", "/FileToday", fb::KeyStyle::Primary).newRow()
+            .addButton("📁 Файл...", "/FileTo", fb::KeyStyle::Primary).newRow()
+            .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
+
+
+
+            fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "📈 <b>Отчёты</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
+
       }
       // 📊 Меню графиков
       if (command == "/Graphics") {
         fb::InlineKeyboard menu;
-        menu.addButton("📊 График за вчера", "/GraphicsYesterday").newRow()
-            .addButton("📊 График за сегодня", "/GraphicsToday").newRow()
-            .addButton("📊 График за декаду", "/GraphicsDecade").newRow()
-            .addButton("📊 График за период", "/GraphicsPeriod").newRow()
-            .addButton("📊 График...", "/GraphicsTo").newRow()
-            .addButton("🔙 Назад", "/reports");
+        menu.addButton("📊 График за вчера", "/GraphicsYesterday", fb::KeyStyle::Primary).newRow()
+            .addButton("📊 График за сегодня", "/GraphicsToday", fb::KeyStyle::Primary).newRow()
+            .addButton("📊 График за декаду", "/GraphicsDecade", fb::KeyStyle::Primary).newRow()
+            .addButton("📊 График за период", "/GraphicsPeriod", fb::KeyStyle::Primary).newRow()
+            .addButton("📊 График...", "/GraphicsTo", fb::KeyStyle::Primary).newRow()
+            .addButton("🔙 Назад", "/Reports", fb::KeyStyle::Default);
 
-        fb::Message m;
-        m.text = "📊 <b>Графики</b>";
-        m.chatID = userID;
-        m.setModeHTML();
-        m.setKeyboard(&menu);
-        bot.sendMessage(m);
+
+            fb::TextEdit t;
+            t.mode = fb::Message::Mode::HTML;
+            t.text = "📊 <b>Графики</b>";
+            t.chatID = u.query().message().chat().id();
+            t.messageID = u.query().message().id();         
+            t.setKeyboard(&menu);
+            bot.editText(t);
       }
     }
     // ============================================================
