@@ -55,7 +55,7 @@ void spillage() {
   digitalWrite(PUMP, HIGH);
   delay(DRAIN_TIMEOUT);
   digitalWrite(DRAIN, LOW);
-  digitalWrite(PUMP, LOW);
+  stopPupmIfNeed();
   sendTelegramStatus("✅ Пролив дренажа завершён");
   Serial.println("✅ End filling drainage");
 }
@@ -105,6 +105,11 @@ void valve_close(int index) {
   pcf8574.digitalWrite(index, HIGH);  // 🔌 HIGH = закрыть
   isClose[index] = true;
 
+  if (pumpStart == 0) {
+    stopPupmIfNeed();
+  }
+
+
   // ⏱️ Проверяем, все ли клапаны закрыты
   bool allCls = true;
   for (int i = 0; i < 8; i++) {
@@ -124,6 +129,22 @@ void valve_close(int index) {
       flowAddToTotal();
     }
   }
+}
+
+
+void stopPupmIfNeed() {
+
+  if (countValveOpen() < 7)
+    digitalWrite(PUMP, LOW);
+}
+
+int countValveOpen() {
+  int cnt = 0;
+  for (int i = 0; i < 8; i++) {
+    if (isClose[i] == false)
+      cnt++;
+  }
+  return cnt;
 }
 
 // ============================================================

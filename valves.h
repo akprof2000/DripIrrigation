@@ -24,4 +24,6 @@ void valve_close(int index);
 // 🔄 Проверить необходимость сохранения времени закрытия
 bool valve_needUpdate();
 
+int countValveOpen();
+void stopPupmIfNeed();
 #endif

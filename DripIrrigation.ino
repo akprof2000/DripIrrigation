@@ -166,13 +166,14 @@ void loop() {
 
   unsigned long currentMillis = millis();
   if (currentMillis - prevCheck >= intervalCheck) {
-    flowGetSessionLitersTick();
+    
     prevCheck = currentMillis;
     Datime t = getDateTime();
     uint32_t curr = t.getUnix();
 
     // 📅 Проверяем, началась ли новая минута
     if (oldTime < (int64_t(curr / 60))) {
+      flowGetSessionLitersTick();
       // 📁 Проверяем, начался ли новый день — создаём новый файл CSV
       if (oldY < t.year || oldM < t.month || oldD < t.day) {
         fn = "/" + String(t.year) + "/" + IntWith2Zero(t.month) + "/" + IntWith2Zero(t.day) + ".csv";
@@ -322,7 +323,7 @@ void loop() {
     if (pumpStart != 0) {
       if (curr - pumpStart > PUMP_TIMEOUT) {
         pumpStart = 0;
-        digitalWrite(PUMP, LOW);
+        stopPupmIfNeed();
       }
     }
 

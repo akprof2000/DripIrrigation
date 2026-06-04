@@ -80,6 +80,7 @@ void flowResetSession() {
   myConfig.pulses = 0;
   myConfig.flowSessionLiters = 0.0;                 // 💧 Обнуляем расход сессии
   Serial.println("🔄 Счётчик расхода воды сброшен — начата новая сессия полива");
+  data.updateNow();
 }
 
 // ============================================================
@@ -101,6 +102,7 @@ float flowGetTotalLiters() {
 void flowGetSessionLitersTick()
 {
     myConfig.flowSessionLiters = flowGetSessionLiters();
+    data.update();
 }
 
 void clearDataFlow()
@@ -109,6 +111,7 @@ void clearDataFlow()
   myConfig.flowTotalLiters = 0;
   myConfig.pulses = 0;
   flowPulseCount = 0;
+  data.updateNow();
 }
 
 
