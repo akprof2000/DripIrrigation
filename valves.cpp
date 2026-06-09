@@ -134,7 +134,7 @@ void valve_close(int index) {
 
 void stopPupmIfNeed() {
 
-  if (countValveOpen() < 7)
+  if (countValveOpen() < 10)
     digitalWrite(PUMP, LOW);
 }
 
