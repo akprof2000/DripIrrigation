@@ -4,26 +4,32 @@
 #ifndef _VALVES_h
 #define _VALVES_h
 
-#include "arduino.h"
+#include <Arduino.h>
 
 // 🔌 Инициализация расширителя портов PCF8574
-void valves_init();
+void valvesInit();
 
 // 🚰 Проверить, открывался ли клапан (сбрасывает флаг)
-bool valve_opened();
+bool valveOpened();
 
-// 🗑️ Пролив дренажа (наполнение + слив)
+// 🗑️ Запуск пролива дренажа (неблокирующий — старт)
 void spillage();
 
+// ⏱️ Тик пролива дренажа: завершает пролив по таймеру. Вызывать в каждом loop()
+void spillageTick();
+
+// 🗑️ Идёт ли сейчас пролив дренажа (для контроля засора фильтра)
+bool valveIsDraining();
+
 // 🚰 Открыть клапан по индексу
-void valve_open(int index);
+void valveOpen(int index);
 
 // ⛔ Закрыть клапан по индексу
-void valve_close(int index);
+void valveClose(int index);
 
 // 🔄 Проверить необходимость сохранения времени закрытия
-bool valve_needUpdate();
+bool valveNeedUpdate();
 
 int countValveOpen();
-void stopPupmIfNeed();
+void stopPumpIfNeed();
 #endif

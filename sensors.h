@@ -4,7 +4,12 @@
 #ifndef _SENSORS_h
 #define _SENSORS_h
 
-#include "arduino.h"
+#include <Arduino.h>
+#include "log.h"
+
+// 🔢 Количество каналов влажности/клапанов — единая точка правды вместо литерала 8.
+// Определено здесь (самый нижний заголовок), поэтому видно во всех модулях.
+constexpr uint8_t NUM_CHANNELS = 8;
 
 // 💧 Класс управления 8-канальным мультиплексором датчиков влажности
 class HumiditySensors {
@@ -16,9 +21,9 @@ class HumiditySensors {
   // 📟 Пин АЦП (аналоговый вход)
   const byte Z = 33;
 
-  int _low[8];     // 🔧 Минимальные значения АЦП (вода)
-  int _high[8];    // 🔧 Максимальные значения АЦП (сухо)
-  int _curr[8];    // 📟 Текущие значения АЦП
+  int _low[NUM_CHANNELS];     // 🔧 Минимальные значения АЦП (вода)
+  int _high[NUM_CHANNELS];    // 🔧 Максимальные значения АЦП (сухо)
+  int _curr[NUM_CHANNELS];    // 📟 Текущие значения АЦП
   int _border = 0; // 🔧 Дельта калибровки
 
   // 📟 Чтение АЦП с указанного канала мультиплексора
@@ -31,7 +36,7 @@ public:
     pinMode(S[1], OUTPUT);
     pinMode(S[2], OUTPUT);
     pinMode(Z, INPUT);
-    Serial.println("💧 Init Humidity Sensors");
+    LOG_I("Датчики влажности инициализированы");
   }
 
   // 🔧 Установить границы калибровки для канала

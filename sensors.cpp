@@ -1,5 +1,6 @@
 // sensors.cpp 💧 Модуль датчиков влажности почвы (8-канальный мультиплексор)
 #include "sensors.h"
+#include "log.h"
 
 // ============================================================
 // 📟 Чтение АЦП с указанного канала мультиплексора
@@ -7,13 +8,16 @@
 int HumiditySensors::readSensor(const byte index) {
   // 🔌 Устанавливаем 3-битный адрес канала на пинах S0-S2
   for (byte j = 0; j < 3; j++) {
-    if (index & (1 << j))
-      digitalWrite(S[j], HIGH);
-    else
-      digitalWrite(S[j], LOW);
+    digitalWrite(S[j], (index & (1 << j)) ? HIGH : LOW);
   }
-  delay(100);  // ⏱️ Задержка переключения мультиплексора
-  return analogRead(Z);  // 📟 Чтение АЦП
+  delay(20);  // ⏱️ Установление мультиплексора и входной цепи (хватает и 20 мс)
+  // 📟 Оверсэмплинг: ADC ESP32 шумный, усредняем 16 отсчётов для стабильности
+  const uint8_t samples = 16;
+  uint32_t acc = 0;
+  for (uint8_t k = 0; k < samples; k++) {
+    acc += analogRead(Z);
+  }
+  return acc / samples;
 }
 
 // ============================================================
@@ -44,12 +48,9 @@ int HumiditySensors::setCurrent(int index) {
 // 📟 Опросить все 8 каналов и вывести в Serial
 // ============================================================
 void HumiditySensors::setAll() {
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < NUM_CHANNELS; i++) {
     int val = setCurrent(i);
-    Serial.print("💧 value sensor ");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(val);
+    LOG_D("Датчик %d: АЦП = %d", i, val);
   }
 }
 
@@ -59,5 +60,10 @@ void HumiditySensors::setAll() {
 int HumiditySensors::Percent(int index) {
   int val = getCurrent(index);
   // 📊 Линейная интерполяция с учётом дельты калибровки
-  return(map(val, _high[index] + _border, _low[index] - _border, 0, 100));
+  int from = _high[index] + _border;  // 🌵 сухо  → 0%
+  int to = _low[index] - _border;     // 💧 вода → 100%
+  // 🛡️ Защита от деления на ноль (канал ещё не откалиброван)
+  if (from == to) return 0;
+  // 🛡️ Ограничиваем результат диапазоном 0–100% (map не обрезает выход)
+  return constrain(map(val, from, to, 0, 100), 0, 100);
 }

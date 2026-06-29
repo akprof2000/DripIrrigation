@@ -1,5 +1,7 @@
 // objects.cpp 🌱💧 Определения глобальных объектов и переменных проекта
 #include "objects.h"
+#include "valves.h"  // 🚰 countValveOpen(), valveIsDraining() — для контроля засора фильтра
+#include "log.h"
 
 // ⏱️ Unix-время запуска насоса (для защиты от перегрева)
 int64_t pumpStart = 0;
@@ -35,7 +37,7 @@ bool rainNow = false;
 bool nightNow = false;
 
 // 🚰 Предыдущие состояния клапанов (для отслеживания изменений и отправки уведомлений)
-byte oldMode[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+byte oldMode[NUM_CHANNELS] = { 0 };  // 🔢 все каналы в состояние VState::Init
 
 // 📡 Указатель на функцию отправки статуса в Telegram
 void (*p_sendTelegramFunction)(String text);
@@ -68,7 +70,7 @@ void flowInit() {
   flowPulseCount = myConfig.pulses;
   // ⚡ Подключаем прерывание по спадающему фронту (FALLING) — датчик замыкает на GND
   attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR), onFlowPulse, FALLING);
-  Serial.println("💧 Датчик потока воды инициализирован на пине 27");
+  LOG_I("Датчик потока воды инициализирован (пин %d)", FLOW_SENSOR);
 }
 
 // ============================================================
@@ -79,7 +81,7 @@ void flowResetSession() {
   flowPulseCount = 0;  // 📝 Сохраняем стартовое значение
   myConfig.pulses = 0;
   myConfig.flowSessionLiters = 0.0;                 // 💧 Обнуляем расход сессии
-  Serial.println("🔄 Счётчик расхода воды сброшен — начата новая сессия полива");
+  LOG_I("Счётчик расхода сброшен — новая сессия полива");
   data.updateNow();
 }
 
@@ -101,8 +103,16 @@ float flowGetTotalLiters() {
 
 void flowGetSessionLitersTick()
 {
-    myConfig.flowSessionLiters = flowGetSessionLiters();
-    data.update();
+    myConfig.flowSessionLiters = flowGetSessionLiters();  // обновляет myConfig.pulses = flowPulseCount
+    // 💾 Пишем конфиг на SD только если реально текла вода (счётчик импульсов изменился).
+    // Это покрывает и полив через клапаны, и пролив дренажа (spillage гоняет воду
+    // без открытия канальных клапанов), но не плодит лишние перезаписи карты,
+    // когда воды нет (все клапаны закрыты, насос выключен).
+    static unsigned long lastSavedPulses = 0;
+    if (myConfig.pulses != lastSavedPulses) {
+      lastSavedPulses = myConfig.pulses;
+      data.update();
+    }
 }
 
 void clearDataFlow()
@@ -122,18 +132,160 @@ void clearDataFlow()
 void flowAddToTotal() {
   myConfig.flowSessionLiters = flowGetSessionLiters();  // 💧 Фиксируем литры за сессию
   myConfig.flowTotalLiters += myConfig.flowSessionLiters;        // ➕ Добавляем к общему расходу
-  Serial.print("💧 Расход воды за сессию: ");
-  Serial.print(myConfig.flowSessionLiters, 3);
-  Serial.println(" л");
-  Serial.print("📊 Общий расход воды: ");
-  Serial.print(myConfig.flowTotalLiters, 3);
-  Serial.println(" л");
+  LOG_I("Расход за сессию: %.3f л; всего: %.3f л",
+        myConfig.flowSessionLiters, myConfig.flowTotalLiters);
+}
+
+// ============================================================
+// 🧽 Контроль засора фильтра по скорости потока
+// ============================================================
+// Эталон скорости чистого фильтра хранится по числу открытых клапанов
+// (myConfig.cleanFlowRate[openCount-1]). Гибрид: эталон поднимается
+// авто-максимумом (чистый фильтр = самый быстрый поток) и сбрасывается
+// кнопкой «фильтр прочищен». Засор = скорость < clogThresholdPercent% от эталона.
+static uint8_t       fmCount = 0;             // число клапанов в текущем окне (0 = не мониторим)
+static bool          fmMeasuring = false;     // фаза измерения (после settle)
+static unsigned long fmPhaseStartMs = 0;      // старт фазы выхода на режим
+static unsigned long fmMeasureStartMs = 0;    // старт окна измерения
+static unsigned long fmMeasureStartPulses = 0;
+static uint8_t       fmBadWindows = 0;        // подряд «плохих» окон (дебаунс)
+static bool          fmAlertActive = false;   // активна ли тревога засора
+static unsigned long fmLastAlertMs = 0;       // для rate-limit тревоги
+static float         fmRate = 0.0;            // последняя измеренная скорость, л/мин
+static bool          fmDirty = false;         // эталон изменился — нужно сохранить
+
+float fmLastRate() { return fmRate; }
+bool  fmIsClogged() { return fmAlertActive; }
+
+float fmBaselineFor(uint8_t openCount) {
+  if (openCount < 1 || openCount > NUM_CHANNELS) return 0.0;
+  return myConfig.cleanFlowRate[openCount - 1];
+}
+
+bool flowMonitorNeedUpdate() {
+  bool d = fmDirty;
+  fmDirty = false;
+  return d;
+}
+
+// 🧽 «Фильтр прочищен»: сбрасываем эталоны (пере-калибровка) и снимаем тревогу
+void flowMonitorRecalibrate() {
+  for (uint8_t i = 0; i < NUM_CHANNELS; i++) myConfig.cleanFlowRate[i] = 0.0;
+  fmAlertActive = false;
+  fmBadWindows = 0;
+  fmDirty = true;
+  data.updateNow();
+  LOG_I("Эталон фильтра сброшен — калибровка на чистом фильтре");
+}
+
+// 📊 Обработка одного измерения скорости при cnt открытых клапанах
+static void fmProcessSample(uint8_t cnt, float rate) {
+  fmRate = rate;
+  float baseline = myConfig.cleanFlowRate[cnt - 1];
+  LOG_D("Поток: %.2f л/мин при %d кл. (эталон %.2f)", rate, cnt, baseline);
+
+  // 📈 Авто-обучение: чистый фильтр = самый быстрый поток → поднимаем эталон
+  if (rate > baseline) {
+    myConfig.cleanFlowRate[cnt - 1] = rate;
+    fmDirty = true;
+    fmBadWindows = 0;
+    LOG_D("Новый эталон потока (%d кл.): %.2f л/мин", cnt, rate);
+    return;
+  }
+  if (baseline <= 0.0) return;  // эталона ещё нет — нечего сравнивать
+
+  float ratioPct = rate / baseline * 100.0;
+  if (ratioPct < myConfig.clogThresholdPercent) {
+    if (fmBadWindows < 255) fmBadWindows++;
+    LOG_W("Низкий поток: %.2f л/мин (%d%% от эталона), окно %d/%d",
+          rate, (int)ratioPct, fmBadWindows, FM_BAD_WINDOWS);
+    if (fmBadWindows >= FM_BAD_WINDOWS) {
+      unsigned long now = millis();
+      if (!fmAlertActive || (now - fmLastAlertMs > FM_ALERT_REPEAT_MS)) {
+        fmAlertActive = true;
+        fmLastAlertMs = now;
+        LOG_W("ЗАСОР ФИЛЬТРА подтверждён: %.2f л/мин при норме %.2f (%d кл.)",
+              rate, baseline, cnt);
+        sendTelegramStatus("🧽 Похоже, засорился фильтр! Поток " + String(rate, 2)
+          + " л/мин при норме " + String(baseline, 2) + " л/мин ("
+          + String((int)ratioPct) + "% от эталона), открыто клапанов: "
+          + String(cnt) + ". Прочистите фильтр.");
+      }
+    }
+  } else {
+    fmBadWindows = 0;
+    if (fmAlertActive) {
+      fmAlertActive = false;
+      LOG_I("Поток фильтра восстановился: %.2f л/мин", rate);
+      sendTelegramStatus("✅ Поток воды восстановился — фильтр в норме.");
+    }
+  }
+}
+
+// ⏱️ Тик контроля фильтра — вызывать в каждом loop()
+void flowMonitorTick() {
+  if (!myConfig.flowMonitorEnabled) { fmCount = 0; fmMeasuring = false; return; }
+
+  uint8_t cnt = countValveOpen();
+  // ✅ Качественное окно: есть полив, не идёт пролив дренажа и заливка бака
+  bool qualified = (cnt > 0) && !valveIsDraining() && !fillActive;
+  if (!qualified) { fmCount = 0; fmMeasuring = false; return; }
+
+  unsigned long now = millis();
+
+  // 🔄 Сменилась конфигурация — перезапуск с фазы выхода на режим
+  if (cnt != fmCount) {
+    fmCount = cnt;
+    fmMeasuring = false;
+    fmPhaseStartMs = now;
+    return;
+  }
+
+  // ⏳ Фаза выхода на режим (даём потоку устаканиться, уходит воздух)
+  if (!fmMeasuring) {
+    if (now - fmPhaseStartMs >= FM_SETTLE_MS) {
+      fmMeasuring = true;
+      fmMeasureStartMs = now;
+      fmMeasureStartPulses = flowPulseCount;
+    }
+    return;
+  }
+
+  // 📟 Фаза измерения — ждём окно FM_WINDOW_MS
+  if (now - fmMeasureStartMs < FM_WINDOW_MS) return;
+
+  unsigned long dPulses = flowPulseCount - fmMeasureStartPulses;
+  unsigned long dt = now - fmMeasureStartMs;
+  // 🔁 Следующее окно стартует сразу — непрерывный мониторинг
+  fmMeasureStartMs = now;
+  fmMeasureStartPulses = flowPulseCount;
+
+  // 💧 Почти нет потока при открытых клапанах — возможно пустой бак/сухой ход,
+  // это не «засор», отдельный случай — пропускаем (без ложной тревоги)
+  if (dPulses < FM_MIN_PULSES) {
+    LOG_W("Почти нет потока (%lu имп.) при %d открытых клапанах — пустой бак/сухой ход?",
+          dPulses, cnt);
+    return;
+  }
+
+  float liters = dPulses / FLOW_PULSES_PER_LITER;
+  float minutes = dt / 60000.0;
+  if (minutes <= 0.0) return;
+  fmProcessSample(cnt, liters / minutes);
 }
 
 // 📟 Получить актуальную дату и время (синхронизация NTP + RTC)
+// Время между синхронизациями ведётся локально (millis + RTC), поэтому
+// принудительный сетевой запрос делаем не чаще раза в NTP_SYNC_INTERVAL,
+// а не при каждом вызове (раньше дёргали сеть на каждом открытии клапана).
 Datime getDateTime() {
-  NTP.updateNow();        // 🔄 Принудительное обновление времени по NTP
-  Datime now = NTP;       // 📟 Получение текущего времени
+  static uint32_t lastSync = 0;
+  uint32_t nowMs = millis();
+  if (lastSync == 0 || nowMs - lastSync >= NTP_SYNC_INTERVAL) {
+    lastSync = nowMs;
+    NTP.updateNow();      // 🔄 Принудительная синхронизация по NTP (раз в час)
+  }
+  Datime now = NTP;       // 📟 Локальное время (millis + RTC) — без сети
   return now;
 }
 

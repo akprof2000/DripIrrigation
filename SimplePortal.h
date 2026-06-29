@@ -38,9 +38,7 @@ void portalRun(uint32_t prd = 60000);
 byte portalStatus();
 
 // 📡 Обработчики HTTP
-void SP_handleConnect();
-void SP_handleAP();
-void SP_handleLocal();
-void SP_handleExit();
+void spHandleConnect();
+void spHandleExit();
 
 #endif
