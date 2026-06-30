@@ -518,13 +518,14 @@ void newMsg(fb::Update& u) {
           myConfig.clogThresholdPercent = 50;  // 🧽 порог контроля фильтра
           myConfig.flowMonitorEnabled = true;  // 🧽 контроль фильтра включён
           myConfig.tgTimeoutSec = TG_TIMEOUT_DEFAULT;  // 🔌 таймаут связи Telegram
+          myConfig.cleanFlowPerValve = 0.0;  // 🧽 сброс эталона фильтра (на клапан)
+          myConfig.cleanFlowDrain = 0.0;     // 🧽 сброс эталона фильтра (дренаж)
           hs.setBorder(myConfig.deltaCalibration);
           for (int i = 0; i < NUM_CHANNELS; i++) {
             myConfig.chanel[i].border = 60;
             myConfig.chanel[i].maxVal = 1024;
             myConfig.chanel[i].minVal = 1024;
             myConfig.chanel[i].mode = Mode::Auto;
-            myConfig.cleanFlowRate[i] = 0.0;  // 🧽 сброс эталона потока фильтра
             strcpy(myConfig.chanel[i].title, String("🌱 Растение").c_str());
           }
           LOG_W("Сброс настроек к значениям по умолчанию (выполнил %s)", username.c_str());
@@ -735,6 +736,7 @@ void newMsg(fb::Update& u) {
             act->action = Dlg::None;
             myConfig.boostPumpValves = num;
             needUpdate = true;
+            stopPumpIfNeed();  // 💪 применяем порог сразу (вкл/выкл без переоткрытия клапана)
             sendReconnectMessage(num >= 9 ? String("✅ Насос давления: выключен")
                                           : "✅ Насос давления: включать при ≥ " + String(num) + " клапанах", userID);
             command = "/Configure";

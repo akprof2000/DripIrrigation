@@ -139,11 +139,12 @@ void flowAddToTotal() {
 // ============================================================
 // 🧽 Контроль засора фильтра по скорости потока
 // ============================================================
-// Эталон скорости чистого фильтра хранится по числу открытых клапанов
-// (myConfig.cleanFlowRate[openCount-1]). Гибрид: эталон поднимается
-// авто-максимумом (чистый фильтр = самый быстрый поток) и сбрасывается
-// кнопкой «фильтр прочищен». Засор = скорость < clogThresholdPercent% от эталона.
+// Модель: ожидаемый_поток = эталон_на_клапан × число_открытых + (дренаж ? эталон_дренажа : 0).
+// Эталоны (cleanFlowPerValve — скорость одного клапана; cleanFlowDrain — добавка дренажа)
+// набираются авто-максимумом на чистом фильтре и сбрасываются кнопкой «фильтр прочищен».
+// Засор = измеренный поток < clogThresholdPercent% от ожидаемого.
 static uint8_t       fmCount = 0;             // число клапанов в текущем окне (0 = не мониторим)
+static bool          fmDraining = false;      // шёл ли пролив дренажа в текущем окне
 static bool          fmMeasuring = false;     // фаза измерения (после settle)
 static unsigned long fmPhaseStartMs = 0;      // старт фазы выхода на режим
 static unsigned long fmMeasureStartMs = 0;    // старт окна измерения
@@ -157,9 +158,9 @@ static bool          fmDirty = false;         // эталон изменился
 float fmLastRate() { return fmRate; }
 bool  fmIsClogged() { return fmAlertActive; }
 
+// 📊 Ожидаемый «чистый» поток для openCount открытых клапанов (без дренажа), л/мин
 float fmBaselineFor(uint8_t openCount) {
-  if (openCount < 1 || openCount > NUM_CHANNELS) return 0.0;
-  return myConfig.cleanFlowRate[openCount - 1];
+  return myConfig.cleanFlowPerValve * openCount;
 }
 
 bool flowMonitorNeedUpdate() {
@@ -170,7 +171,8 @@ bool flowMonitorNeedUpdate() {
 
 // 🧽 «Фильтр прочищен»: сбрасываем эталоны (пере-калибровка) и снимаем тревогу
 void flowMonitorRecalibrate() {
-  for (uint8_t i = 0; i < NUM_CHANNELS; i++) myConfig.cleanFlowRate[i] = 0.0;
+  myConfig.cleanFlowPerValve = 0.0;
+  myConfig.cleanFlowDrain = 0.0;
   fmAlertActive = false;
   fmBadWindows = 0;
   fmDirty = true;
@@ -178,38 +180,57 @@ void flowMonitorRecalibrate() {
   LOG_I("Эталон фильтра сброшен — калибровка на чистом фильтре");
 }
 
-// 📊 Обработка одного измерения скорости при cnt открытых клапанах
-static void fmProcessSample(uint8_t cnt, float rate) {
+// 📊 Обработка измерения: rate — суммарная скорость (л/мин), cnt — открытых клапанов,
+//    draining — шёл ли при этом пролив дренажа.
+static void fmProcessSample(uint8_t cnt, bool draining, float rate) {
   fmRate = rate;
-  float baseline = myConfig.cleanFlowRate[cnt - 1];
-  LOG_D("Поток: %.2f л/мин при %d кл. (эталон %.2f)", rate, cnt, baseline);
+  float perValve = myConfig.cleanFlowPerValve;
 
-  // 📈 Авто-обучение: чистый фильтр = самый быстрый поток → поднимаем эталон
-  if (rate > baseline) {
-    myConfig.cleanFlowRate[cnt - 1] = rate;
-    fmDirty = true;
-    fmBadWindows = 0;
-    LOG_D("Новый эталон потока (%d кл.): %.2f л/мин", cnt, rate);
-    return;
+  // 📈 Авто-обучение эталонов (чистый фильтр = самый быстрый поток)
+  if (!draining) {
+    float measuredPerValve = rate / cnt;  // скорость на один открытый клапан
+    if (measuredPerValve > perValve) {
+      myConfig.cleanFlowPerValve = measuredPerValve;
+      fmDirty = true;
+      fmBadWindows = 0;
+      LOG_D("Новый эталон на клапан: %.2f л/мин", measuredPerValve);
+      return;
+    }
+  } else if (perValve > 0.0) {  // дренаж: учим «добавку» сверх потока клапанов
+    float drainExtra = rate - perValve * cnt;
+    if (drainExtra < 0.0) drainExtra = 0.0;
+    if (drainExtra > myConfig.cleanFlowDrain) {
+      myConfig.cleanFlowDrain = drainExtra;
+      fmDirty = true;
+      fmBadWindows = 0;
+      LOG_D("Новый эталон дренажа: +%.2f л/мин", drainExtra);
+      return;
+    }
   }
-  if (baseline <= 0.0) return;  // эталона ещё нет — нечего сравнивать
 
-  float ratioPct = rate / baseline * 100.0;
+  // 🚦 Проверка засора — только когда эталоны для текущей конфигурации известны
+  if (perValve <= 0.0) return;                              // эталон на клапан ещё не набран
+  if (draining && myConfig.cleanFlowDrain <= 0.0) return;   // эталон дренажа ещё не набран
+
+  float expected = perValve * cnt + (draining ? myConfig.cleanFlowDrain : 0.0);
+  if (expected <= 0.0) return;
+  float ratioPct = rate / expected * 100.0;
+  LOG_D("Поток: %.2f / норма %.2f л/мин (%d%%), кл.=%d дренаж=%d",
+        rate, expected, (int)ratioPct, cnt, draining ? 1 : 0);
+
   if (ratioPct < myConfig.clogThresholdPercent) {
     if (fmBadWindows < 255) fmBadWindows++;
-    LOG_W("Низкий поток: %.2f л/мин (%d%% от эталона), окно %d/%d",
+    LOG_W("Низкий поток: %.2f л/мин (%d%% от нормы), окно %d/%d",
           rate, (int)ratioPct, fmBadWindows, FM_BAD_WINDOWS);
     if (fmBadWindows >= FM_BAD_WINDOWS) {
       unsigned long now = millis();
       if (!fmAlertActive || (now - fmLastAlertMs > FM_ALERT_REPEAT_MS)) {
         fmAlertActive = true;
         fmLastAlertMs = now;
-        LOG_W("ЗАСОР ФИЛЬТРА подтверждён: %.2f л/мин при норме %.2f (%d кл.)",
-              rate, baseline, cnt);
+        LOG_W("ЗАСОР ФИЛЬТРА подтверждён: %.2f л/мин при норме %.2f", rate, expected);
         sendTelegramStatus("🧽 Похоже, засорился фильтр! Поток " + String(rate, 2)
-          + " л/мин при норме " + String(baseline, 2) + " л/мин ("
-          + String((int)ratioPct) + "% от эталона), открыто клапанов: "
-          + String(cnt) + ". Прочистите фильтр.");
+          + " л/мин при норме " + String(expected, 2) + " л/мин ("
+          + String((int)ratioPct) + "% от нормы). Прочистите фильтр.");
       }
     }
   } else {
@@ -227,15 +248,22 @@ void flowMonitorTick() {
   if (!myConfig.flowMonitorEnabled) { fmCount = 0; fmMeasuring = false; return; }
 
   uint8_t cnt = countValveOpen();
-  // ✅ Качественное окно: есть полив, не идёт пролив дренажа и заливка бака
-  bool qualified = (cnt > 0) && !valveIsDraining() && !fillActive;
+  bool draining = valveIsDraining();
+  // ✅ Качественное окно: открыт хотя бы один клапан и не идёт заливка бака.
+  //    Пролив дренажа теперь учитывается (отдельным эталоном), а не исключается.
+  //    ⛔ Пока активен пусковой нагнетательный насос (pumpStart != 0, держится
+  //    PUMP_TIMEOUT после открытия клапана) — НЕ меряем: поток искусственно завышен.
+  //    Замер начнётся только после выключения насоса (или его перехода в штатный
+  //    режим по boostPumpValves), когда pumpStart обнулится в основном цикле.
+  bool qualified = (cnt > 0) && !fillActive && (pumpStart == 0);
   if (!qualified) { fmCount = 0; fmMeasuring = false; return; }
 
   unsigned long now = millis();
 
-  // 🔄 Сменилась конфигурация — перезапуск с фазы выхода на режим
-  if (cnt != fmCount) {
+  // 🔄 Сменилась конфигурация (число клапанов или режим дренажа) — рестарт окна
+  if (cnt != fmCount || draining != fmDraining) {
     fmCount = cnt;
+    fmDraining = draining;
     fmMeasuring = false;
     fmPhaseStartMs = now;
     return;
@@ -271,7 +299,7 @@ void flowMonitorTick() {
   float liters = dPulses / FLOW_PULSES_PER_LITER;
   float minutes = dt / 60000.0;
   if (minutes <= 0.0) return;
-  fmProcessSample(cnt, liters / minutes);
+  fmProcessSample(cnt, fmDraining, liters / minutes);
 }
 
 // 📟 Получить актуальную дату и время (синхронизация NTP + RTC)

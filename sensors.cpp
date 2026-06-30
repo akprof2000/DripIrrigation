@@ -10,14 +10,23 @@ int HumiditySensors::readSensor(const byte index) {
   for (byte j = 0; j < 3; j++) {
     digitalWrite(S[j], (index & (1 << j)) ? HIGH : LOW);
   }
-  delay(20);  // ⏱️ Установление мультиплексора и входной цепи (хватает и 20 мс)
-  // 📟 Оверсэмплинг: ADC ESP32 шумный, усредняем 16 отсчётов для стабильности
-  const uint8_t samples = 16;
-  uint32_t acc = 0;
-  for (uint8_t k = 0; k < samples; k++) {
-    acc += analogRead(Z);
+  delay(50);  // ⏱️ Установление аналогового сигнала после переключения мультиплексора
+  // 📟 Медиана из N отсчётов: устойчивее среднего к одиночным выбросам ADC ESP32.
+  //    9 отсчётов × ~0.2 мс — на скорость отклика не влияет (опрос раз в минуту).
+  const uint8_t N = 9;
+  int s[N];
+  for (uint8_t k = 0; k < N; k++) {
+    s[k] = analogRead(Z);
+    delayMicroseconds(200);
   }
-  return acc / samples;
+  // сортировка вставками (N мало) → берём средний элемент
+  for (uint8_t i = 1; i < N; i++) {
+    int v = s[i];
+    int8_t j = i - 1;
+    while (j >= 0 && s[j] > v) { s[j + 1] = s[j]; j--; }
+    s[j + 1] = v;
+  }
+  return s[N / 2];
 }
 
 // ============================================================

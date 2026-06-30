@@ -54,7 +54,7 @@ struct HumCalibration {
 
 // 🔐 Сигнатура и версия структуры Config (защита от чтения чужого/устаревшего файла)
 #define CONFIG_MAGIC   0xD12C0FFEu
-#define CONFIG_VERSION 2
+#define CONFIG_VERSION 3
 #define EEPROM_VER_ADDR 240   // 📍 адрес в EEPROM для версии настроек (uint16_t), для авто-сброса
 
 // ⚙️ Основная структура конфигурации системы полива
@@ -72,7 +72,8 @@ struct Config {
   float flowTotalLiters = 0.0;// 📊 Общий накопленный расход воды с момента включения (литры)
   unsigned long  pulses = 0; // импульсов за смену
   // 🧽 Контроль засора фильтра
-  float   cleanFlowRate[NUM_CHANNELS] = { 0 }; // эталон скорости (л/мин) по числу открытых клапанов; индекс = openCount-1; 0 = не откалибровано
+  float   cleanFlowPerValve = 0.0; // 🧽 эталон скорости одного открытого клапана, л/мин (0 = не откалибровано)
+  float   cleanFlowDrain = 0.0;    // 🧽 эталон добавки потока от пролива дренажа, л/мин
   uint8_t clogThresholdPercent = 50;           // 🚨 порог тревоги: % от эталона (50% = «в 2 раза медленнее»)
   bool    flowMonitorEnabled = true;           // 🧽 включён ли контроль засора фильтра
   uint16_t tgTimeoutSec = TG_TIMEOUT_DEFAULT;  // 🔌 таймаут потери связи с Telegram, секунды
