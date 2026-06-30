@@ -90,7 +90,8 @@ void valveOpen(int index) {
   if (isClose[index]) {
     LOG_D("Клапан %d открыт, насос ВКЛ", index + 1);
     digitalWrite(PUMP, HIGH);
-    pumpStart = getDateTime().getUnix();
+    pumpStart = millis();
+    if (pumpStart == 0) pumpStart = 1;  // 0 зарезервирован под «не в пусковом режиме»
 
     // 💧 Проверяем, был ли кто-то из клапанов уже открыт (для сброса счётчика расхода)
     bool anyOpen = false;

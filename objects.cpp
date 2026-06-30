@@ -3,8 +3,11 @@
 #include "valves.h"  // 🚰 countValveOpen(), valveIsDraining() — для контроля засора фильтра
 #include "log.h"
 
-// ⏱️ Unix-время запуска насоса (для защиты от перегрева)
-int64_t pumpStart = 0;
+// ⏱️ Момент запуска насоса в millis() (для защиты по таймауту и гейта замера потока).
+//    Намеренно millis(), а НЕ unix-время: защита насоса не должна зависеть от
+//    синхронизации NTP/RTC (иначе при несинхронных часах таймаут не сработает).
+//    0 = насос не в пусковом режиме.
+unsigned long pumpStart = 0;
 
 // ⚙️ Глобальная конфигурация системы полива (хранится на SD-карте)
 Config myConfig;
@@ -145,6 +148,7 @@ void flowAddToTotal() {
 // Засор = измеренный поток < clogThresholdPercent% от ожидаемого.
 static uint8_t       fmCount = 0;             // число клапанов в текущем окне (0 = не мониторим)
 static bool          fmDraining = false;      // шёл ли пролив дренажа в текущем окне
+static bool          fmBoostTainted = false;  // в окне работал пусковой насос → оценку фильтра пропускаем
 static bool          fmMeasuring = false;     // фаза измерения (после settle)
 static unsigned long fmPhaseStartMs = 0;      // старт фазы выхода на режим
 static unsigned long fmMeasureStartMs = 0;    // старт окна измерения
@@ -249,13 +253,12 @@ void flowMonitorTick() {
 
   uint8_t cnt = countValveOpen();
   bool draining = valveIsDraining();
-  // ✅ Качественное окно: открыт хотя бы один клапан и не идёт заливка бака.
-  //    Пролив дренажа теперь учитывается (отдельным эталоном), а не исключается.
-  //    ⛔ Пока активен пусковой нагнетательный насос (pumpStart != 0, держится
-  //    PUMP_TIMEOUT после открытия клапана) — НЕ меряем: поток искусственно завышен.
-  //    Замер начнётся только после выключения насоса (или его перехода в штатный
-  //    режим по boostPumpValves), когда pumpStart обнулится в основном цикле.
-  bool qualified = (cnt > 0) && !fillActive && (pumpStart == 0);
+  // 💪 Пусковой нагнетательный насос активен (держится PUMP_TIMEOUT после открытия
+  //    клапана). Поток в это время искусственно завышен.
+  bool boostActive = (pumpStart != 0);
+  // ✅ Качественное окно для ЗАМЕРА (отображения текущего потока): открыт хотя бы
+  //    один клапан и не идёт заливка бака. Пролив дренажа учитывается отдельным эталоном.
+  bool qualified = (cnt > 0) && !fillActive;
   if (!qualified) { fmCount = 0; fmMeasuring = false; return; }
 
   unsigned long now = millis();
@@ -266,18 +269,24 @@ void flowMonitorTick() {
     fmDraining = draining;
     fmMeasuring = false;
     fmPhaseStartMs = now;
+    fmBoostTainted = boostActive;
     return;
   }
 
   // ⏳ Фаза выхода на режим (даём потоку устаканиться, уходит воздух)
   if (!fmMeasuring) {
+    if (boostActive) fmBoostTainted = true;  // буст во время устаканивания «пачкает» окно
     if (now - fmPhaseStartMs >= FM_SETTLE_MS) {
       fmMeasuring = true;
       fmMeasureStartMs = now;
       fmMeasureStartPulses = flowPulseCount;
+      fmBoostTainted = boostActive;  // окно замера стартует «чисто», если буст уже выключен
     }
     return;
   }
+
+  // 💪 Буст в любой момент окна замера → оценку фильтра по этому окну пропустим
+  if (boostActive) fmBoostTainted = true;
 
   // 📟 Фаза измерения — ждём окно FM_WINDOW_MS
   if (now - fmMeasureStartMs < FM_WINDOW_MS) return;
@@ -287,19 +296,30 @@ void flowMonitorTick() {
   // 🔁 Следующее окно стартует сразу — непрерывный мониторинг
   fmMeasureStartMs = now;
   fmMeasureStartPulses = flowPulseCount;
+  bool tainted = fmBoostTainted;
+  fmBoostTainted = boostActive;  // затравка для следующего окна
+
+  // 📟 Текущая скорость потока — обновляем ВСЕГДА (для отображения в /status),
+  //    даже если окно «загрязнено» бустом или потока почти нет.
+  float minutes = dt / 60000.0;
+  fmRate = (minutes > 0.0) ? (dPulses / FLOW_PULSES_PER_LITER) / minutes : 0.0;
 
   // 💧 Почти нет потока при открытых клапанах — возможно пустой бак/сухой ход,
-  // это не «засор», отдельный случай — пропускаем (без ложной тревоги)
+  //    это не «засор» — оценку фильтра пропускаем (без ложной тревоги).
   if (dPulses < FM_MIN_PULSES) {
     LOG_W("Почти нет потока (%lu имп.) при %d открытых клапанах — пустой бак/сухой ход?",
           dPulses, cnt);
     return;
   }
 
-  float liters = dPulses / FLOW_PULSES_PER_LITER;
-  float minutes = dt / 60000.0;
+  // 💪 Окно с работавшим пусковым насосом — поток завышен, для оценки фильтра не годится
+  if (tainted) {
+    LOG_D("Окно с пусковым насосом — поток %.2f л/мин показан, оценка фильтра пропущена", fmRate);
+    return;
+  }
+
   if (minutes <= 0.0) return;
-  fmProcessSample(cnt, fmDraining, liters / minutes);
+  fmProcessSample(cnt, fmDraining, fmRate);
 }
 
 // 📟 Получить актуальную дату и время (синхронизация NTP + RTC)

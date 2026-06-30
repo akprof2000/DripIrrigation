@@ -91,7 +91,7 @@ extern HumiditySensors hs;    // 💧 Менеджер 8-канальных да
 extern bool dropped;          // 📡 Флаг потери WiFi соединения
 extern bool rainNow;          // 🌧️ Флаг обнаружения дождя
 extern bool nightNow;         // 🌙 Флаг ночного времени
-extern int64_t pumpStart;     // ⏱️ Unix-время запуска насоса
+extern unsigned long pumpStart;  // ⏱️ millis() запуска насоса (0 = не в пусковом режиме)
 
 extern byte oldMode[NUM_CHANNELS]; // 🚰 Предыдущие состояния клапанов (для отслеживания изменений)
 extern bool fillActive;       // 🚰 идёт неблокирующий импульс заливки бака (определён в .ino)

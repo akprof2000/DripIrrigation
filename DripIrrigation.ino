@@ -332,11 +332,12 @@ static void logToCsv(Datime t, uint32_t curr) {
 // ============================================================
 // ⏱️ Защита насоса: автоотключение по таймауту работы
 // ============================================================
-static void handlePumpTimeout(uint32_t curr) {
-  if (pumpStart != 0 && (curr - pumpStart > PUMP_TIMEOUT)) {
-    LOG_W("Насос: сработала защита по таймауту (%d с)", PUMP_TIMEOUT);
+static void handlePumpTimeout() {
+  // ⏱️ Считаем по millis() — защита не зависит от синхронизации NTP/RTC.
+  if (pumpStart != 0 && (millis() - pumpStart > (unsigned long)PUMP_TIMEOUT * 1000UL)) {
+    LOG_W("Насос: завершён пусковой режим по таймауту (%d с)", PUMP_TIMEOUT);
     pumpStart = 0;
-    stopPumpIfNeed();
+    stopPumpIfNeed();  // 💪 решает по boostPumpValves: оставить ВКЛ или выключить
   }
 }
 
@@ -359,6 +360,7 @@ void loop() {
   handleBlink();      // 💡 индикация работы
   handleTankFill();   // ⏱️ неблокирующий импульс заливки бака
   spillageTick();     // ⏱️ неблокирующий пролив дренажа
+  handlePumpTimeout(); // ⏱️ завершение пускового режима насоса (каждый loop, по millis)
   flowMonitorTick();  // 🧽 контроль засора фильтра по скорости потока
   ReCheck();          // 🤖 Telegram + проверка WiFi
 
@@ -383,7 +385,6 @@ void loop() {
     logToCsv(t, curr);
   }
 
-  handlePumpTimeout(curr);  // ⏱️ защита насоса (каждый интервал)
   saveConfigIfDirty();      // 💾 отложенное сохранение конфига
   esp_task_wdt_reset();     // 🐕 сброс watchdog
 }
