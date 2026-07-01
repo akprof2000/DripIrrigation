@@ -149,10 +149,16 @@ void flowAddToTotal() {
 static uint8_t       fmCount = 0;             // число клапанов в текущем окне (0 = не мониторим)
 static bool          fmDraining = false;      // шёл ли пролив дренажа в текущем окне
 static bool          fmBoostTainted = false;  // в окне работал пусковой насос → оценку фильтра пропускаем
-static bool          fmMeasuring = false;     // фаза измерения (после settle)
-static unsigned long fmPhaseStartMs = 0;      // старт фазы выхода на режим
+static bool          fmMeasuring = false;     // фаза измерения (после стабилизации потока)
+static unsigned long fmPhaseStartMs = 0;      // старт фазы выхода на режим (для потолка ожидания)
 static unsigned long fmMeasureStartMs = 0;    // старт окна измерения
 static unsigned long fmMeasureStartPulses = 0;
+// ⏳ Адаптивное ожидание стабилизации потока (наполнение пустой трубы после
+// открытия клапана даёт кратковременный завышенный поток, см. timing.h)
+static unsigned long fmSubStartMs = 0;        // старт текущего подынтервала
+static unsigned long fmSubStartPulses = 0;    // импульсы на старте подынтервала
+static float         fmPrevSubRate = -1.0;    // скорость предыдущего подынтервала (-1 = ещё не было)
+static uint8_t       fmStableCount = 0;       // подряд стабильных (не падающих) подынтервалов
 static uint8_t       fmBadWindows = 0;        // подряд «плохих» окон (дебаунс)
 static bool          fmAlertActive = false;   // активна ли тревога засора
 static unsigned long fmLastAlertMs = 0;       // для rate-limit тревоги
@@ -263,20 +269,60 @@ void flowMonitorTick() {
 
   unsigned long now = millis();
 
-  // 🔄 Сменилась конфигурация (число клапанов или режим дренажа) — рестарт окна
+  // 🔄 Сменилась конфигурация (число клапанов или режим дренажа) — рестарт окна.
+  //    Открытие/закрытие клапана заново наполняет трубу — сбрасываем и адаптивное
+  //    ожидание стабилизации потока (см. ниже).
   if (cnt != fmCount || draining != fmDraining) {
     fmCount = cnt;
     fmDraining = draining;
     fmMeasuring = false;
     fmPhaseStartMs = now;
     fmBoostTainted = boostActive;
+    fmSubStartMs = now;
+    fmSubStartPulses = flowPulseCount;
+    fmPrevSubRate = -1.0;
+    fmStableCount = 0;
     return;
   }
 
-  // ⏳ Фаза выхода на режим (даём потоку устаканиться, уходит воздух)
+  // ⏳ Фаза выхода на режим: при открытии клапана пустая труба наполняется —
+  // поток кратковременно завышен (гидроудар/заполнение воздуха водой), потом
+  // падает до реального. Вместо фиксированной паузы ждём, пока скорость
+  // перестанет заметно падать между соседними подынтервалами FM_SUBSAMPLE_MS
+  // (FM_STABLE_SAMPLES_NEEDED раз подряд), и только тогда стартуем окно замера —
+  // от «устаканившейся» точки, отбрасывая сам всплеск. FM_SETTLE_CAP_MS —
+  // потолок ожидания, чтобы не зависнуть, если стабилизация не наступает.
   if (!fmMeasuring) {
-    if (boostActive) fmBoostTainted = true;  // буст во время устаканивания «пачкает» окно
-    if (now - fmPhaseStartMs >= FM_SETTLE_MS) {
+    if (boostActive) fmBoostTainted = true;  // буст во время ожидания «пачкает» окно
+
+    if (now - fmPhaseStartMs >= FM_SETTLE_CAP_MS) {
+      LOG_W("Поток не стабилизировался за %lu мс — начинаем замер принудительно", (unsigned long)FM_SETTLE_CAP_MS);
+      fmMeasuring = true;
+      fmMeasureStartMs = now;
+      fmMeasureStartPulses = flowPulseCount;
+      fmBoostTainted = boostActive;
+      return;
+    }
+
+    if (now - fmSubStartMs < FM_SUBSAMPLE_MS) return;  // подынтервал ещё не закончился
+
+    unsigned long subPulses = flowPulseCount - fmSubStartPulses;
+    float subMinutes = (now - fmSubStartMs) / 60000.0;
+    float subRate = (subMinutes > 0.0) ? (subPulses / FLOW_PULSES_PER_LITER) / subMinutes : 0.0;
+    fmRate = subRate;  // 📟 /status показывает актуальную скорость даже во время ожидания стабилизации
+
+    if (fmPrevSubRate >= 0.0) {
+      bool stillFalling = subRate < fmPrevSubRate * (1.0 - FM_SETTLE_STABLE_PCT / 100.0);
+      fmStableCount = stillFalling ? 0 : (fmStableCount + 1);
+      LOG_D("Стабилизация потока: %.2f -> %.2f л/мин, стабильно %d/%d",
+            fmPrevSubRate, subRate, fmStableCount, FM_STABLE_SAMPLES_NEEDED);
+    }
+    fmPrevSubRate = subRate;
+    fmSubStartMs = now;
+    fmSubStartPulses = flowPulseCount;
+
+    if (fmStableCount >= FM_STABLE_SAMPLES_NEEDED) {
+      LOG_D("Поток стабилизировался (%.2f л/мин) — начинаем окно замера", subRate);
       fmMeasuring = true;
       fmMeasureStartMs = now;
       fmMeasureStartPulses = flowPulseCount;
