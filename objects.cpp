@@ -311,17 +311,25 @@ void flowMonitorTick() {
     float subRate = (subMinutes > 0.0) ? (subPulses / FLOW_PULSES_PER_LITER) / subMinutes : 0.0;
     fmRate = subRate;  // 📟 /status показывает актуальную скорость даже во время ожидания стабилизации
 
-    if (fmPrevSubRate >= 0.0) {
+    // 🛡️ На дальних ветках спад плавный (доли % за подынтервал) — детектор
+    // «перестал падать» может ложно сработать, пока труба ещё наполняется.
+    // Поэтому раньше FM_SETTLE_MIN_MS «стабильность» вообще не засчитываем —
+    // только копим тренд (fmPrevSubRate), чтобы сразу после минимума уже было
+    // с чем сравнить.
+    bool pastMinimum = (now - fmPhaseStartMs) >= FM_SETTLE_MIN_MS;
+    if (pastMinimum && fmPrevSubRate >= 0.0) {
       bool stillFalling = subRate < fmPrevSubRate * (1.0 - FM_SETTLE_STABLE_PCT / 100.0);
       fmStableCount = stillFalling ? 0 : (fmStableCount + 1);
       LOG_D("Стабилизация потока: %.2f -> %.2f л/мин, стабильно %d/%d",
             fmPrevSubRate, subRate, fmStableCount, FM_STABLE_SAMPLES_NEEDED);
+    } else {
+      fmStableCount = 0;  // до истечения минимума «стабильность» не копим
     }
     fmPrevSubRate = subRate;
     fmSubStartMs = now;
     fmSubStartPulses = flowPulseCount;
 
-    if (fmStableCount >= FM_STABLE_SAMPLES_NEEDED) {
+    if (pastMinimum && fmStableCount >= FM_STABLE_SAMPLES_NEEDED) {
       LOG_D("Поток стабилизировался (%.2f л/мин) — начинаем окно замера", subRate);
       fmMeasuring = true;
       fmMeasureStartMs = now;
