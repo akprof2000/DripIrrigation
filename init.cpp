@@ -89,11 +89,6 @@ void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
   LOG_I("WiFi подключён, IP: %s", WiFi.localIP().toString().c_str());
 }
 
-void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-  LOG_W("WiFi отключён (причина %d) — переподключение", info.wifi_sta_disconnected.reason);
-  WiFi.begin(SSID, pass);
-}
-
 // ============================================================
 // 🚀 Главная функция инициализации системы
 // ============================================================

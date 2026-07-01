@@ -69,6 +69,19 @@ PortalCfg portalCfg;
 
 const int MAX_UID = 30;
 
+// 🛡️ Экранирование HTML-спецсимволов — имя SSID приходит от соседних точек
+// доступа (источник вне нашего контроля) и подставляется в страницу и как текст,
+// и как атрибут value="". Без экранирования спецсимволы (", <, >, &) в имени
+// сети сломают вёрстку страницы настройки.
+static String htmlEscape(const String& s) {
+  String r = s;
+  r.replace("&", "&amp;");
+  r.replace("<", "&lt;");
+  r.replace(">", "&gt;");
+  r.replace("\"", "&quot;");
+  return r;
+}
+
 // 🔐 Генерация случайного кодового слова для регистрации
 const String generateUID() {
   const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -176,6 +189,7 @@ void portalRun(uint32_t prd) {
     LOG_I("WiFi: найдено сетей: %d", n);
     for (int i = 0; i < n; ++i) {
       String s_name = WiFi.SSID(i).c_str();
+      String s_esc = htmlEscape(s_name);  // 🛡️ для вставки в HTML (браузер раскодирует обратно при отправке формы)
       // 📶 индикатор уровня сигнала (4 деления) + 🔒 признак шифрования
       int rssi = WiFi.RSSI(i);
       bool enc = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
@@ -183,7 +197,7 @@ void portalRun(uint32_t prd) {
       String bars = "";
       for (int b = 0; b < 4; b++) bars += (b < q) ? "▮" : "▯";
       // value — точное имя сети (для подключения), текст — с иконками
-      data += "<option value=\"" + s_name + "\">" + (enc ? "🔒 " : "🔓 ") + s_name + "  " + bars + "</option>\n";
+      data += "<option value=\"" + s_esc + "\">" + (enc ? "🔒 " : "🔓 ") + s_esc + "  " + bars + "</option>\n";
       LOG_D("  %2d. %-20s %d dBm ch%d %s", i + 1, s_name.c_str(), rssi, (int)WiFi.channel(i), enc ? "secured" : "open");
       delay(10);
     }

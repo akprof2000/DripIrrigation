@@ -65,6 +65,19 @@ bool telegramNeedUpdate() {
   return nu;
 }
 
+// 🛡️ Индекс канала, разобранный из команды вида "/BordersSet_N" (пользовательский
+// текст или callback), может быть любым числом — кнопки в меню всегда шлют 0..7,
+// но ничто не мешает зарегистрированному пользователю набрать команду вручную с
+// произвольным N. Без проверки такой N уходит в Dlg::Base + ind и приводит к
+// выходу за границы myConfig.chanel[]/HumiditySensors (порча Config, крэш).
+static bool validChannelIndex(int ind, const String& userID) {
+  if (ind < 0 || ind >= NUM_CHANNELS) {
+    sendReconnectMessage(F("❌ Неверный номер канала"), userID);
+    return false;
+  }
+  return true;
+}
+
 // 📊 rm()/fileToGraf()/fileToGrafPeriod() вынесены в reports.cpp
 
 // 🔮 Предварительное объявление обработчика сообщений (FastBot2 callback)
@@ -423,11 +436,25 @@ void newMsg(fb::Update& u) {
       // 📝 Переименование датчика (1200–1207)
       else if (act->action >= Dlg::Rename && act->action <= Dlg::Rename + Dlg::Last) {
         int ind = act->action - Dlg::Rename;
-        strcpy(myConfig.chanel[ind].title, text.c_str());
+        // 🛡️ text — произвольный ввод из Telegram (до 4096 байт), а title — буфер
+        // фиксированного размера char[90]: strcpy без ограничения переполнил бы его
+        // и повредил соседние поля Config. Также убираем запятую/перевод строки
+        // (ломают формат CSV-логов, reports.cpp разбирает их по запятой) и
+        // < > & (title потом вставляется в HTML-режимные сообщения бота — сырые
+        // угловые скобки/амперсанд ломают разбор HTML на стороне Telegram).
+        String safe = text;
+        safe.replace(",", " ");
+        safe.replace("\n", " ");
+        safe.replace("\r", " ");
+        safe.replace("<", "‹");
+        safe.replace(">", "›");
+        safe.replace("&", "и");
+        strncpy(myConfig.chanel[ind].title, safe.c_str(), sizeof(myConfig.chanel[ind].title) - 1);
+        myConfig.chanel[ind].title[sizeof(myConfig.chanel[ind].title) - 1] = '\0';
         command = F("/Namings");
         act->action = Dlg::None;
         needUpdate = true;
-        sendReconnectMessage("✅ Датчик № " + String(ind + 1) + " переименован: " + text, userID);
+        sendReconnectMessage("✅ Датчик № " + String(ind + 1) + " переименован: " + safe, userID);
       }
       // 🚰 Установка режима работы клапана (1300–1307)
       else if (act->action >= Dlg::ModeSet && act->action <= Dlg::ModeSet + Dlg::Last) {
@@ -533,7 +560,7 @@ void newMsg(fb::Update& u) {
         } else {
           sendReconnectMessage(F("❌ Сброс отменён!"), userID, true);
         }
-        command = "/Configure";
+        command = "/configure";
         needUpdate = true;
       }
       // 🔄 Перезагрузка (1)
@@ -571,7 +598,7 @@ void newMsg(fb::Update& u) {
           myConfig.runOnNight = false;
           sendReconnectMessage(F("🌙 Работа ночью выключена!"), userID, true);
         }
-        command = "/Configure";
+        command = "/configure";
         needUpdate = true;
       }
       // 🌧️ Работа под дождём (1002)
@@ -584,7 +611,7 @@ void newMsg(fb::Update& u) {
           myConfig.runOnRain = false;
           sendReconnectMessage(F("🌧️ Работа под дождём выключена!"), userID);
         }
-        command = "/Configure";
+        command = "/configure";
         needUpdate = true;
       }
       // 📁 Отправка файла по дате (5000)
@@ -668,14 +695,14 @@ void newMsg(fb::Update& u) {
             LOG_D("Некорректный ввод пользователя");
             sendReconnectMessage(F("❌ Записей запрашиваемого года не найдено!"), userID);
             act->action = Dlg::None;
-            command = "/Configure";
+            command = "/configure";
           } else {
             File dir = SD.open(del);
             sendReconnectMessage(F("🗑️ Началось удаление файлов, ожидайте..."), userID);
             rm(dir, del + "/");
             dir.close();
             SD.rmdir(del);
-            command = "/Configure";
+            command = "/configure";
             act->action = Dlg::None;
           }
         } else {
@@ -694,7 +721,7 @@ void newMsg(fb::Update& u) {
             myConfig.deltaHum = num;
             needUpdate = true;
             sendReconnectMessage("✅ Дельта влажности: " + String(num) + " %", userID);
-            command = "/Configure";
+            command = "/configure";
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение (от 0 до 100) % !"), userID);
             return;
@@ -716,7 +743,7 @@ void newMsg(fb::Update& u) {
             needUpdate = true;
             hs.setBorder(myConfig.deltaCalibration);
             sendReconnectMessage("✅ Дельта калибровки: " + String(num), userID);
-            command = "/Configure";
+            command = "/configure";
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение (от 0 до 2048)!"), userID);
             return;
@@ -739,7 +766,7 @@ void newMsg(fb::Update& u) {
             stopPumpIfNeed();  // 💪 применяем порог сразу (вкл/выкл без переоткрытия клапана)
             sendReconnectMessage(num >= 9 ? String("✅ Насос давления: выключен")
                                           : "✅ Насос давления: включать при ≥ " + String(num) + " клапанах", userID);
-            command = "/Configure";
+            command = "/configure";
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение от 1 до 9!"), userID);
             return;
@@ -760,7 +787,7 @@ void newMsg(fb::Update& u) {
             myConfig.clogThresholdPercent = num;
             needUpdate = true;
             sendReconnectMessage("✅ Контроль фильтра: тревога при потоке ниже " + String(num) + " % от нормы", userID);
-            command = "/Configure";
+            command = "/configure";
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение от 10 до 90 %!"), userID);
             return;
@@ -781,7 +808,7 @@ void newMsg(fb::Update& u) {
             myConfig.tgTimeoutSec = num;
             needUpdate = true;
             sendReconnectMessage("✅ Таймаут связи Telegram: " + String(num) + " с", userID);
-            command = "/Configure";
+            command = "/configure";
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение от 120 до 3600 с!"), userID);
             return;
@@ -842,6 +869,7 @@ void newMsg(fb::Update& u) {
         else if (command.startsWith("/HumidityMCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
+          if (!validChannelIndex(ind, userID)) return;
           sendReconnectMessage("🔧 Введите минимальное и максимальное значение датчика № " + String(ind + 1) + " в формате: целое,целое.\nТекущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "]", userID);
           actionSet(userID, Dlg::CalibManual + ind);
         }
@@ -849,6 +877,7 @@ void newMsg(fb::Update& u) {
         else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
+          if (!validChannelIndex(ind, userID)) return;
           sendReconnectMessage("💧 Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\n🚀 Запустить калибровку датчика № " + String((ind + 1)) + "?", userID);
 
           fb::Keyboard kb;
@@ -1001,20 +1030,55 @@ void newMsg(fb::Update& u) {
               .addButton("🔄 Сброс настроек", "/DropSettings", fb::KeyStyle::Danger).newRow()
               .addButton("🗑️ Удаление файлов", "/DelFolder", fb::KeyStyle::Danger).newRow()
               .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
-/*
+          fb::TextEdit t;
+          t.mode = fb::Message::Mode::HTML;
+          t.text = menuText;
+          t.chatID = u.query().message().chat().id();
+          t.messageID = u.query().message().id();
+          t.setKeyboard(&menu);
+          bot.editText(t);
+        }
+        // 🔧 Меню настроек — вариант для НЕ-callback контекста (по аналогии с
+        // /start↔/Start, /control↔/Control): после текстового ответа Да/Нет или
+        // ввода числа update не является query, u.query().message() невалиден и
+        // bot.editText() тут не срабатывает — отправляем новое сообщение вместо
+        // редактирования старого. Раньше это место было закомментированным
+        // мёртвым кодом, из-за чего меню настроек не показывалось повторно после
+        // изменения любой настройки через диалог.
+        else if (command == "/configure") {
+          String boostText = myConfig.boostPumpValves >= 9
+                               ? String("выкл")
+                               : String("при ≥ ") + String(myConfig.boostPumpValves) + " кл.";
+          String menuText = "🔧 <b>Настройка</b>\n"
+                          "🌙 Работа ночью " + String(myConfig.runOnNight ? "[✅]" : "[❌]") + "\n"
+                          "🌧️ Работа под дождём " + String(myConfig.runOnRain ? "[✅]" : "[❌]") + "\n"
+                          "💧 Дельта влажности % (" + String(myConfig.deltaHum) + ")\n"
+                          "🔧 Дельта калибровки (" + String(myConfig.deltaCalibration) + ")\n"
+                          "💪 Насос давления (" + boostText + ")\n"
+                          "🧽 Контроль фильтра (тревога ниже " + String(myConfig.clogThresholdPercent) + "% нормы)\n"
+                          "🔌 Таймаут связи Telegram (" + String(myConfig.tgTimeoutSec) + " с)";
+
+          fb::InlineKeyboard menu;
+          menu.addButton("🌙 Работа ночью", "/WorkAtNight", fb::KeyStyle::Primary).newRow()
+              .addButton("🌧️ Работа под дождём", "/WorkAtRain", fb::KeyStyle::Primary).newRow()
+              .addButton("💧 Дельта влажности", "/DeltaHumidity", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Дельта калибровки", "/DeltaCalibration", fb::KeyStyle::Primary).newRow()
+              .addButton("💪 Насос давления", "/BoostPump", fb::KeyStyle::Primary).newRow()
+              .addButton("🧽 Порог фильтра", "/ClogThreshold", fb::KeyStyle::Primary).newRow()
+              .addButton("🧽 Фильтр прочищен", "/FilterClean", fb::KeyStyle::Success).newRow()
+              .addButton("🔌 Таймаут Telegram", "/TgTimeout", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Калибровка", "/Calibrate", fb::KeyStyle::Primary).newRow()
+              .addButton("🔧 Ручная калибровка", "/CalibrateManual", fb::KeyStyle::Primary).newRow()
+              .addButton("🔄 Сброс настроек", "/DropSettings", fb::KeyStyle::Danger).newRow()
+              .addButton("🗑️ Удаление файлов", "/DelFolder", fb::KeyStyle::Danger).newRow()
+              .addButton("🔙 Назад", "/Start", fb::KeyStyle::Default);
+
           fb::Message m;
           m.text = menuText;
           m.chatID = userID;
           m.setModeHTML();
           m.setKeyboard(&menu);
-          bot.sendMessage(m);*/
-          fb::TextEdit t;
-          t.mode = fb::Message::Mode::HTML;
-          t.text = menuText;
-          t.chatID = u.query().message().chat().id();
-          t.messageID = u.query().message().id();         
-          t.setKeyboard(&menu);
-          bot.editText(t);
+          bot.sendMessage(m);
         }
         // 🔄 Перезагрузка системы
         else if (command == "/Restart") {
@@ -1216,6 +1280,7 @@ void newMsg(fb::Update& u) {
       else if (command.startsWith("/BordersSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
+        if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(("🎯 Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), userID);
         actionSet(userID, Dlg::Border + ind);
       }
@@ -1223,6 +1288,7 @@ void newMsg(fb::Update& u) {
       else if (command.startsWith("/NamingsSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
+        if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(("📝 Введите название датчика № " + String((ind + 1)) + ":"), userID);
         actionSet(userID, Dlg::Rename + ind);
       }
@@ -1230,6 +1296,7 @@ void newMsg(fb::Update& u) {
       else if (command.startsWith("/OperationModeSet")) {
         String prob = getValue(command, '_', 1);
         int ind = prob.toInt();
+        if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(F("🚰 Выберите режим работы!"), userID);
 
         fb::Keyboard kb;

@@ -26,19 +26,17 @@ void setup() {
 #endif
   delay(1000);
 
-  // 🕐 Инициализация RTC (часы реального времени)
+  // 🔌 Инициализация шины I2C (нужна клапанам PCF8574 и RTC)
   Wire.begin();
   // 🌱 Инициализация всех модулей системы
   systemInit();  // 📡 WiFi, EEPROM, SD, датчики
   botInit();     // 🤖 Telegram бот
   valvesInit();  // 🚰 Клапаны через PCF8574
 
-// 🕐 Инициализация RTC (часы реального времени)
-  Wire.begin();
+  // 🕐 Инициализация RTC (часы реального времени)
   while (!rtc.begin()) {
     delay(1000);
-    Serial.println("❌ Couldn't find RTC");
-    Serial.flush();
+    LOG_E("RTC не найден");
   }
 
   NTP.begin(3);  // 🌍 Запуск NTP с часовым поясом UTC+3 (Москва)

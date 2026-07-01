@@ -83,6 +83,11 @@ void fileToGrafPeriod(int period, String msgID) {
           String data = getValue(buffer, ',', 0);
           String curr = getValue(buffer, ',', 2);
           int index = curr.toInt() - 1;
+          // 🛡️ Строка CSV может быть повреждена (обрыв записи при отключении
+          // питания, либо название канала когда-то содержало запятую и сдвинуло
+          // колонки) — index тогда не 0..NUM_CHANNELS-1. Без проверки это запись
+          // за границы массива (порча стека). Просто пропускаем такую строку.
+          if (index < 0 || index >= NUM_CHANNELS) continue;
           curr = getValue(buffer, ',', 4);
           value[index] += curr.toInt();
           count[index]++;
@@ -90,7 +95,9 @@ void fileToGrafPeriod(int period, String msgID) {
           if (ind > 72) break;
         }
         for (int i = 0; i < NUM_CHANNELS; i++) {
-          arr[i][p * del + d] = value[i] * 1.0 / count[i];
+          // 🛡️ count[i] может быть 0, если за этот отрезок дня не было записей
+          // для канала i — без проверки 0/0 даёт NaN, и график показывает мусор.
+          arr[i][p * del + d] = (count[i] > 0) ? (value[i] * 1.0 / count[i]) : 0.0;
           value[i] = 0;
           count[i] = 0;
         }
@@ -142,6 +149,9 @@ void fileToGraf(String fn, String msgID) {
     String data = getValue(buffer, ',', 0);
     String curr = getValue(buffer, ',', 2);
     int index = curr.toInt() - 1;
+    // 🛡️ См. пояснение в fileToGrafPeriod() — повреждённая строка CSV не должна
+    // приводить к записи за границы массива.
+    if (index < 0 || index >= NUM_CHANNELS) continue;
     curr = getValue(buffer, ',', 4);
     int64_t ut = data.toInt();
     int hour = (ut % 86400) / 3600;

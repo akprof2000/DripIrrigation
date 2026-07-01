@@ -1,6 +1,4 @@
 // telegram.h 🤖💬 Заголовочный файл модуля Telegram бота (FastBot2)
-#pragma GCC system_header
-
 #ifndef _TELEGRAM_h
 #define _TELEGRAM_h
 
