@@ -32,15 +32,16 @@
     <line x1="280" y1="824" x2="280" y2="852"/>
   </g>
   <!-- возврат к началу (пунктир) -->
-  <polyline points="280,898 280,940 72,940 72,160 178,160" stroke="#B0BEC5" stroke-width="2" fill="none" stroke-dasharray="7 5" marker-end="url(#arr)"/>
+  <polyline points="280,898 280,940 58,940 58,160 178,160" stroke="#B0BEC5" stroke-width="2" fill="none" stroke-dasharray="7 5" marker-end="url(#arr)"/>
 
   <!-- подписи ветвей -->
   <g font-size="12" font-weight="bold">
     <text x="290" y="500" fill="#2E7D32">да</text>
     <text x="425" y="410" fill="#C62828">нет</text>
-    <text x="120" y="628" fill="#1565C0">ниже порога −Δ</text>
-    <text x="352" y="628" fill="#C62828">выше порога +Δ</text>
-    <text x="290" y="730" fill="#78909C" font-weight="normal">в зоне Δ — без изменений</text>
+    <text x="124" y="632" text-anchor="end" fill="#1565C0">ниже −Δ</text>
+    <text x="436" y="632" fill="#C62828">выше +Δ</text>
+    <text x="292" y="752" fill="#78909C" font-weight="normal" font-size="11.5">в зоне Δ —</text>
+    <text x="292" y="768" fill="#78909C" font-weight="normal" font-size="11.5">без изменений</text>
   </g>
 
   <!-- 1. старт -->
@@ -77,8 +78,8 @@
   <text x="280" y="651" text-anchor="middle" font-size="12" fill="#F57F17">влажность отн. порога ± Δ</text>
 
   <!-- открыть / закрыть -->
-  <rect x="40" y="700" width="112" height="44" rx="8" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
-  <text x="96" y="727" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#2E7D32">Открыть клапан</text>
+  <rect x="70" y="700" width="112" height="44" rx="8" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
+  <text x="126" y="727" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#2E7D32">Открыть клапан</text>
   <rect x="408" y="700" width="112" height="44" rx="8" fill="#FFEBEE" stroke="#E57373" stroke-width="1.5"/>
   <text x="464" y="727" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#C62828">Закрыть клапан</text>
 
