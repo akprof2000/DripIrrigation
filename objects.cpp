@@ -204,37 +204,42 @@ static void fmProcessSample(uint8_t cnt, bool draining, float rate) {
 
   // 📈 Авто-обучение эталона «на клапан» (чистый фильтр = самый быстрый поток).
   // Разовый выброс (пузырь воздуха, наводка на датчике потока) не должен сразу
-  // становиться новым эталоном. Пока поток выше старого эталона (или хотя бы
-  // держится в пределах FM_SPIKE_TOLERANCE_L от минимума, уже увиденного в этом
-  // всплеске — колебания внутри всплеска не должны его обнулять), копим МИНИМУМ
-  // из всех таких окон. Только когда это продержалось FM_SPIKE_CONFIRM_MS без
-  // отката больше допуска — минимум за весь период фиксируется как новый эталон.
-  // Пример: эталон был 2, поднялся до 5, скакнул до 6, откатился до 4 (всё ещё
-  // в пределах допуска от минимума 5→4) — через 5 мин эталоном станет 4, а не 6.
+  // становиться новым эталоном: повышенное значение живёт как «кандидат»,
+  // за время всплеска копится МИНИМУМ из всех окон, и только продержавшись
+  // FM_SPIKE_CONFIRM_MS кандидат фиксируется эталоном. Колебания в пределах
+  // FM_SPIKE_TOLERANCE_L от минимума отсчёт не сбрасывают; более резкий откат
+  // перезапускает кандидата с текущего значения. Пример: эталон 2, поток
+  // 5 → 6 → 4 — через 5 минут эталоном станет 4 (минимум), а не 6.
+  // Возврат к старому эталону и ниже отменяет кандидата, поэтому кандидат
+  // всегда ВЫШЕ старого эталона: авто-обучение может только поднимать эталон
+  // (понизить — только вручную, кнопкой «фильтр прочищен»); иначе постепенное
+  // снижение потока (настоящий засор) шаг за шагом утянуло бы эталон вниз
+  // и замаскировало сам засор.
   if (!draining) {
     float measuredPerValve = rate / cnt;  // скорость на один открытый клапан
-    bool withinCandidateBand = (fmCandidatePerValve >= 0.0)
-                                 && (measuredPerValve >= fmCandidatePerValve - FM_SPIKE_TOLERANCE_L);
-    if (measuredPerValve > perValve || withinCandidateBand) {
-      if (fmCandidatePerValve < 0.0) {
-        fmCandidatePerValve = measuredPerValve;
+    if (measuredPerValve <= perValve) {
+      fmCandidatePerValve = -1.0;  // поток не выше эталона — всплеск не подтвердился
+      // и продолжаем к проверке засора ниже
+    } else {
+      bool rollback = (fmCandidatePerValve >= 0.0)
+                        && (measuredPerValve < fmCandidatePerValve - FM_SPIKE_TOLERANCE_L);
+      if (fmCandidatePerValve < 0.0 || rollback) {
+        fmCandidatePerValve = measuredPerValve;  // старт (или перезапуск) кандидата
         fmCandidateStartMs = now;
-        LOG_D("Кандидат на новый эталон: %.2f л/мин, подтверждение через %lu мс",
+        LOG_D("Кандидат на эталон: %.2f л/мин (подтверждение через %lu мс)",
               measuredPerValve, (unsigned long)FM_SPIKE_CONFIRM_MS);
       } else if (measuredPerValve < fmCandidatePerValve) {
-        fmCandidatePerValve = measuredPerValve;  // 📉 держим минимум, увиденный за время всплеска
+        fmCandidatePerValve = measuredPerValve;  // 📉 копим минимум за время всплеска
       }
       if (now - fmCandidateStartMs >= FM_SPIKE_CONFIRM_MS) {
         myConfig.cleanFlowPerValve = fmCandidatePerValve;
         fmDirty = true;
         fmBadWindows = 0;
-        LOG_D("Новый эталон на клапан подтверждён (минимум за %lu мс): %.2f л/мин",
-              (unsigned long)FM_SPIKE_CONFIRM_MS, myConfig.cleanFlowPerValve);
         fmCandidatePerValve = -1.0;
+        LOG_D("Эталон на клапан подтверждён: %.2f л/мин", myConfig.cleanFlowPerValve);
       }
-      return;
+      return;  // поток выше эталона — засора точно нет, проверка не нужна
     }
-    fmCandidatePerValve = -1.0;  // 📉 откат больше допуска — выброс не подтвердился
   } else if (perValve > 0.0) {  // дренаж: учим «добавку» сверх потока клапанов
     float drainExtra = rate - perValve * cnt;
     if (drainExtra < 0.0) drainExtra = 0.0;
@@ -262,7 +267,6 @@ static void fmProcessSample(uint8_t cnt, bool draining, float rate) {
     LOG_W("Низкий поток: %.2f л/мин (%d%% от нормы), окно %d/%d",
           rate, (int)ratioPct, fmBadWindows, FM_BAD_WINDOWS);
     if (fmBadWindows >= FM_BAD_WINDOWS) {
-      unsigned long now = millis();
       if (!fmAlertActive || (now - fmLastAlertMs > FM_ALERT_REPEAT_MS)) {
         fmAlertActive = true;
         fmLastAlertMs = now;
@@ -280,6 +284,20 @@ static void fmProcessSample(uint8_t cnt, bool draining, float rate) {
       sendTelegramStatus("✅ Поток воды восстановился — фильтр в норме.");
     }
   }
+}
+
+// 📟 Скорость потока (л/мин) по числу импульсов за интервал времени
+static float fmRateOf(unsigned long pulses, unsigned long ms) {
+  if (ms == 0) return 0.0;
+  return pulses / FLOW_PULSES_PER_LITER * 60000.0 / ms;
+}
+
+// 🚀 Старт окна замера с текущего момента
+static void fmStartMeasureWindow(unsigned long now, bool boostActive) {
+  fmMeasuring = true;
+  fmMeasureStartMs = now;
+  fmMeasureStartPulses = flowPulseCount;
+  fmBoostTainted = boostActive;  // окно стартует «чисто», если буст уже выключен
 }
 
 // ⏱️ Тик контроля фильтра — вызывать в каждом loop()
@@ -327,18 +345,13 @@ void flowMonitorTick() {
 
     if (now - fmPhaseStartMs >= FM_SETTLE_CAP_MS) {
       LOG_W("Поток не стабилизировался за %lu мс — начинаем замер принудительно", (unsigned long)FM_SETTLE_CAP_MS);
-      fmMeasuring = true;
-      fmMeasureStartMs = now;
-      fmMeasureStartPulses = flowPulseCount;
-      fmBoostTainted = boostActive;
+      fmStartMeasureWindow(now, boostActive);
       return;
     }
 
     if (now - fmSubStartMs < FM_SUBSAMPLE_MS) return;  // подынтервал ещё не закончился
 
-    unsigned long subPulses = flowPulseCount - fmSubStartPulses;
-    float subMinutes = (now - fmSubStartMs) / 60000.0;
-    float subRate = (subMinutes > 0.0) ? (subPulses / FLOW_PULSES_PER_LITER) / subMinutes : 0.0;
+    float subRate = fmRateOf(flowPulseCount - fmSubStartPulses, now - fmSubStartMs);
     fmRate = subRate;  // 📟 /status показывает актуальную скорость даже во время ожидания стабилизации
 
     // 🛡️ На дальних ветках спад плавный (доли % за подынтервал) — детектор
@@ -361,10 +374,7 @@ void flowMonitorTick() {
 
     if (pastMinimum && fmStableCount >= FM_STABLE_SAMPLES_NEEDED) {
       LOG_D("Поток стабилизировался (%.2f л/мин) — начинаем окно замера", subRate);
-      fmMeasuring = true;
-      fmMeasureStartMs = now;
-      fmMeasureStartPulses = flowPulseCount;
-      fmBoostTainted = boostActive;  // окно замера стартует «чисто», если буст уже выключен
+      fmStartMeasureWindow(now, boostActive);
     }
     return;
   }
@@ -385,8 +395,7 @@ void flowMonitorTick() {
 
   // 📟 Текущая скорость потока — обновляем ВСЕГДА (для отображения в /status),
   //    даже если окно «загрязнено» бустом или потока почти нет.
-  float minutes = dt / 60000.0;
-  fmRate = (minutes > 0.0) ? (dPulses / FLOW_PULSES_PER_LITER) / minutes : 0.0;
+  fmRate = fmRateOf(dPulses, dt);
 
   // 💧 Почти нет потока при открытых клапанах — возможно пустой бак/сухой ход,
   //    это не «засор» — оценку фильтра пропускаем (без ложной тревоги).
@@ -402,7 +411,6 @@ void flowMonitorTick() {
     return;
   }
 
-  if (minutes <= 0.0) return;
   fmProcessSample(cnt, fmDraining, fmRate);
 }
 
