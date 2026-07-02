@@ -1,0 +1,242 @@
+<svg viewBox="0 0 1500 1120" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <!-- ФОН -->
+  <rect x="0" y="0" width="1500" height="1120" fill="#FFFFFF"/>
+
+  <!-- ЗАГОЛОВОК -->
+  <text x="40" y="48" font-size="26" font-weight="bold" fill="#263238">Схема подключения — капельный полив на ESP32</text>
+  <text x="40" y="74" font-size="13" fill="#78909C">Номера GPIO соответствуют pins.h и sensors.h. Питание +3.3 В и GND подведены ко всем модулям — для читаемости не показаны.</text>
+
+  <!-- ======== ПРОВОДА (рисуются под блоками) ======== -->
+  <!-- Левая колонка: цифровые GPIO -->
+  <g stroke="#607D8B" stroke-width="2" fill="none">
+    <line x1="360" y1="210" x2="620" y2="210"/>
+    <line x1="360" y1="270" x2="620" y2="270"/>
+    <line x1="360" y1="330" x2="620" y2="330"/>
+    <line x1="360" y1="390" x2="620" y2="390"/>
+    <line x1="360" y1="450" x2="620" y2="450"/>
+    <line x1="360" y1="510" x2="620" y2="510"/>
+  </g>
+  <!-- Датчик потока: выделенная линия -->
+  <line x1="360" y1="570" x2="620" y2="570" stroke="#00838F" stroke-width="2.5"/>
+
+  <!-- SPI к SD-карте -->
+  <g stroke="#FB8C00" stroke-width="2" fill="none">
+    <line x1="900" y1="190" x2="1150" y2="190"/>
+    <line x1="900" y1="220" x2="1150" y2="220"/>
+    <line x1="900" y1="250" x2="1150" y2="250"/>
+    <line x1="900" y1="280" x2="1150" y2="280"/>
+  </g>
+
+  <!-- Мультиплексор: адресные линии + аналоговый сигнал -->
+  <g stroke="#7CB342" stroke-width="2" fill="none">
+    <line x1="900" y1="350" x2="1040" y2="350"/>
+    <line x1="900" y1="380" x2="1040" y2="380"/>
+    <line x1="900" y1="410" x2="1040" y2="410"/>
+  </g>
+  <line x1="900" y1="440" x2="1040" y2="440" stroke="#2E7D32" stroke-width="3"/>
+
+  <!-- Датчики влажности к мультиплексору -->
+  <g stroke="#43A047" stroke-width="1.6" fill="none">
+    <line x1="1230" y1="355" x2="1310" y2="355"/>
+    <line x1="1230" y1="385" x2="1310" y2="385"/>
+    <line x1="1230" y1="415" x2="1310" y2="415"/>
+    <line x1="1230" y1="445" x2="1310" y2="445"/>
+    <line x1="1230" y1="475" x2="1310" y2="475"/>
+    <line x1="1230" y1="505" x2="1310" y2="505"/>
+    <line x1="1230" y1="535" x2="1310" y2="535"/>
+    <line x1="1230" y1="565" x2="1310" y2="565"/>
+  </g>
+
+  <!-- Шина I2C -->
+  <g stroke="#1E88E5" stroke-width="2.5" fill="none">
+    <polyline points="700,710 700,760 940,760"/>
+    <polyline points="740,710 740,778 962,778"/>
+    <!-- отводы к DS3231 -->
+    <polyline points="700,760 640,760 640,810"/>
+    <polyline points="740,778 662,778 662,810"/>
+    <!-- отводы к PCF8574 -->
+    <polyline points="940,760 940,810"/>
+    <polyline points="962,778 962,810"/>
+  </g>
+
+  <!-- Клапаны к PCF8574 -->
+  <g stroke="#5C6BC0" stroke-width="1.6" fill="none">
+    <line x1="1070" y1="845" x2="1170" y2="845"/>
+    <line x1="1070" y1="875" x2="1170" y2="875"/>
+    <line x1="1070" y1="905" x2="1170" y2="905"/>
+    <line x1="1070" y1="935" x2="1170" y2="935"/>
+    <line x1="1070" y1="965" x2="1170" y2="965"/>
+    <line x1="1070" y1="995" x2="1170" y2="995"/>
+    <line x1="1070" y1="1025" x2="1170" y2="1025"/>
+    <line x1="1070" y1="1055" x2="1170" y2="1055"/>
+  </g>
+
+  <!-- ======== ПОДПИСИ ПИНОВ ESP32 ======== -->
+  <g font-size="12" font-weight="bold" fill="#455A64">
+    <text x="612" y="204" text-anchor="end">GPIO16</text>
+    <text x="612" y="264" text-anchor="end">GPIO4</text>
+    <text x="612" y="324" text-anchor="end">GPIO15</text>
+    <text x="612" y="384" text-anchor="end">GPIO17</text>
+    <text x="612" y="444" text-anchor="end">GPIO25</text>
+    <text x="612" y="504" text-anchor="end">GPIO26</text>
+    <text x="612" y="564" text-anchor="end" fill="#00838F">GPIO27</text>
+    <text x="908" y="184">GPIO5 · CS</text>
+    <text x="908" y="214">GPIO18 · SCK</text>
+    <text x="908" y="244">GPIO19 · MISO</text>
+    <text x="908" y="274">GPIO23 · MOSI</text>
+    <text x="908" y="344" fill="#558B2F">GPIO12 · S0</text>
+    <text x="908" y="374" fill="#558B2F">GPIO13 · S1</text>
+    <text x="908" y="404" fill="#558B2F">GPIO14 · S2</text>
+    <text x="908" y="434" fill="#2E7D32">GPIO33 · АЦП</text>
+    <text x="706" y="736" fill="#1565C0">SDA · GPIO21</text>
+    <text x="746" y="800" fill="#1565C0">SCL · GPIO22</text>
+  </g>
+
+  <!-- ======== ESP32 ======== -->
+  <rect x="620" y="140" width="280" height="570" rx="14" fill="#37474F" stroke="#263238" stroke-width="2"/>
+  <text x="760" y="185" text-anchor="middle" font-size="26" font-weight="bold" fill="#FFFFFF">ESP32</text>
+  <text x="760" y="207" text-anchor="middle" font-size="12" fill="#B0BEC5">Wi-Fi · DevKit · 3.3 В</text>
+  <text x="760" y="680" text-anchor="middle" font-size="11" fill="#90A4AE">GPIO2 — встроенный светодиод (индикация работы)</text>
+  <!-- точки пинов -->
+  <g fill="#ECEFF1">
+    <circle cx="620" cy="210" r="4"/><circle cx="620" cy="270" r="4"/><circle cx="620" cy="330" r="4"/>
+    <circle cx="620" cy="390" r="4"/><circle cx="620" cy="450" r="4"/><circle cx="620" cy="510" r="4"/>
+    <circle cx="620" cy="570" r="4"/>
+    <circle cx="900" cy="190" r="4"/><circle cx="900" cy="220" r="4"/><circle cx="900" cy="250" r="4"/><circle cx="900" cy="280" r="4"/>
+    <circle cx="900" cy="350" r="4"/><circle cx="900" cy="380" r="4"/><circle cx="900" cy="410" r="4"/><circle cx="900" cy="440" r="4"/>
+    <circle cx="700" cy="710" r="4"/><circle cx="740" cy="710" r="4"/>
+  </g>
+
+  <!-- ======== ЛЕВАЯ КОЛОНКА ======== -->
+  <!-- Кнопка -->
+  <rect x="80" y="184" width="280" height="52" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="94" y="206" font-size="14" font-weight="bold" fill="#37474F">Кнопка сброса настроек</text>
+  <text x="94" y="224" font-size="11" fill="#78909C">подтянута к земле</text>
+
+  <!-- Датчик освещённости -->
+  <rect x="80" y="244" width="280" height="52" rx="8" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
+  <text x="94" y="266" font-size="14" font-weight="bold" fill="#2E7D32">Датчик освещённости</text>
+  <text x="94" y="284" font-size="11" fill="#689F38">дискретный сигнал: день / ночь</text>
+
+  <!-- Датчик дождя -->
+  <rect x="80" y="304" width="280" height="52" rx="8" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
+  <text x="94" y="326" font-size="14" font-weight="bold" fill="#2E7D32">Датчик дождя</text>
+  <text x="94" y="344" font-size="11" fill="#689F38">дискретный сигнал: дождь / сухо</text>
+
+  <!-- Реле налива -->
+  <rect x="80" y="364" width="280" height="52" rx="8" fill="#FFF8E1" stroke="#FFB300" stroke-width="1.5"/>
+  <text x="94" y="386" font-size="14" font-weight="bold" fill="#F57F17">Реле · налив ёмкости</text>
+  <text x="94" y="404" font-size="11" fill="#F9A825">клапан заполнения бака</text>
+
+  <!-- Реле дренажа -->
+  <rect x="80" y="424" width="280" height="52" rx="8" fill="#FFF8E1" stroke="#FFB300" stroke-width="1.5"/>
+  <text x="94" y="446" font-size="14" font-weight="bold" fill="#F57F17">Реле · пролив дренажа</text>
+  <text x="94" y="464" font-size="11" fill="#F9A825">сброс ржавчины из магистрали</text>
+
+  <!-- Реле насоса -->
+  <rect x="80" y="484" width="280" height="52" rx="8" fill="#FFF8E1" stroke="#FFB300" stroke-width="1.5"/>
+  <text x="94" y="506" font-size="14" font-weight="bold" fill="#F57F17">Реле · нагнетательный насос</text>
+  <text x="94" y="524" font-size="11" fill="#F9A825">повышение давления в системе</text>
+
+  <!-- Датчик потока (выделен) -->
+  <rect x="80" y="544" width="280" height="52" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2.5"/>
+  <text x="94" y="566" font-size="14" font-weight="bold" fill="#006064">Датчик потока YF-S201</text>
+  <text x="94" y="584" font-size="11" fill="#00838F">импульсный, ~450 имп/л · расход + контроль фильтра</text>
+
+  <!-- ======== SD-КАРТА ======== -->
+  <rect x="1150" y="150" width="270" height="170" rx="10" fill="#F3E5F5" stroke="#8E24AA" stroke-width="1.5"/>
+  <text x="1285" y="176" text-anchor="middle" font-size="15" font-weight="bold" fill="#6A1B9A">SD-карта (модуль 3.3 В)</text>
+  <g font-size="12" fill="#7B1FA2">
+    <text x="1164" y="194">CS</text>
+    <text x="1164" y="224">SCK</text>
+    <text x="1164" y="254">MISO</text>
+    <text x="1164" y="284">MOSI</text>
+  </g>
+  <text x="1285" y="308" text-anchor="middle" font-size="11" fill="#9C27B0">конфигурация · журналы CSV · отчёты</text>
+
+  <!-- ======== 74HC4051 ======== -->
+  <rect x="1040" y="330" width="190" height="260" rx="10" fill="#F1F8E9" stroke="#7CB342" stroke-width="1.5"/>
+  <text x="1135" y="320" text-anchor="middle" font-size="15" font-weight="bold" fill="#558B2F">74HC4051</text>
+  <g font-size="11" fill="#558B2F">
+    <text x="1050" y="354">S0</text>
+    <text x="1050" y="384">S1</text>
+    <text x="1050" y="414">S2</text>
+    <text x="1050" y="444" font-weight="bold">Z</text>
+    <text x="1220" y="359" text-anchor="end">Y0</text>
+    <text x="1220" y="389" text-anchor="end">Y1</text>
+    <text x="1220" y="419" text-anchor="end">Y2</text>
+    <text x="1220" y="449" text-anchor="end">Y3</text>
+    <text x="1220" y="479" text-anchor="end">Y4</text>
+    <text x="1220" y="509" text-anchor="end">Y5</text>
+    <text x="1220" y="539" text-anchor="end">Y6</text>
+    <text x="1220" y="569" text-anchor="end">Y7</text>
+  </g>
+  <text x="1135" y="500" text-anchor="middle" font-size="10.5" fill="#7CB342" transform="rotate(-90 1093 480)"></text>
+
+  <!-- ======== ДАТЧИКИ ВЛАЖНОСТИ ======== -->
+  <text x="1385" y="322" text-anchor="middle" font-size="14" font-weight="bold" fill="#2E7D32">Датчики влажности ×8</text>
+  <rect x="1310" y="335" width="150" height="260" rx="10" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
+  <g font-size="12" fill="#388E3C">
+    <text x="1330" y="359">Датчик 1</text>
+    <text x="1330" y="389">Датчик 2</text>
+    <text x="1330" y="419">Датчик 3</text>
+    <text x="1330" y="449">Датчик 4</text>
+    <text x="1330" y="479">Датчик 5</text>
+    <text x="1330" y="509">Датчик 6</text>
+    <text x="1330" y="539">Датчик 7</text>
+    <text x="1330" y="569">Датчик 8</text>
+  </g>
+  <text x="1385" y="612" text-anchor="middle" font-size="10.5" fill="#66BB6A">ёмкостные, аналоговый выход</text>
+
+  <!-- ======== DS3231 ======== -->
+  <rect x="540" y="810" width="230" height="100" rx="10" fill="#E3F2FD" stroke="#1E88E5" stroke-width="1.5"/>
+  <text x="655" y="846" text-anchor="middle" font-size="15" font-weight="bold" fill="#1565C0">DS3231</text>
+  <text x="655" y="868" text-anchor="middle" font-size="11.5" fill="#1976D2">часы реального времени · I2C</text>
+  <text x="655" y="886" text-anchor="middle" font-size="11" fill="#42A5F5">синхронизация с NTP</text>
+
+  <!-- ======== PCF8574 ======== -->
+  <rect x="870" y="810" width="200" height="280" rx="10" fill="#E8EAF6" stroke="#5C6BC0" stroke-width="1.5"/>
+  <text x="970" y="836" text-anchor="middle" font-size="15" font-weight="bold" fill="#3949AB">PCF8574 · 0x20</text>
+  <text x="970" y="854" text-anchor="middle" font-size="11" fill="#5C6BC0">расширитель портов I2C</text>
+  <g font-size="11" fill="#3949AB">
+    <text x="1060" y="849" text-anchor="end">P0</text>
+    <text x="1060" y="879" text-anchor="end">P1</text>
+    <text x="1060" y="909" text-anchor="end">P2</text>
+    <text x="1060" y="939" text-anchor="end">P3</text>
+    <text x="1060" y="969" text-anchor="end">P4</text>
+    <text x="1060" y="999" text-anchor="end">P5</text>
+    <text x="1060" y="1029" text-anchor="end">P6</text>
+    <text x="1060" y="1059" text-anchor="end">P7</text>
+  </g>
+
+  <!-- ======== КЛАПАНЫ ======== -->
+  <text x="1255" y="822" text-anchor="middle" font-size="14" font-weight="bold" fill="#3949AB">Клапаны полива ×8</text>
+  <rect x="1170" y="828" width="170" height="252" rx="10" fill="#E8EAF6" stroke="#5C6BC0" stroke-width="1.5"/>
+  <g font-size="12" fill="#3949AB">
+    <text x="1190" y="849">Клапан 1</text>
+    <text x="1190" y="879">Клапан 2</text>
+    <text x="1190" y="909">Клапан 3</text>
+    <text x="1190" y="939">Клапан 4</text>
+    <text x="1190" y="969">Клапан 5</text>
+    <text x="1190" y="999">Клапан 6</text>
+    <text x="1190" y="1029">Клапан 7</text>
+    <text x="1190" y="1059">Клапан 8</text>
+  </g>
+  <text x="1255" y="1098" text-anchor="middle" font-size="10.5" fill="#5C6BC0">через 8-канальный релейный модуль</text>
+
+  <!-- ======== ЛЕГЕНДА ======== -->
+  <rect x="80" y="810" width="380" height="200" rx="10" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1.5"/>
+  <text x="100" y="840" font-size="14" font-weight="bold" fill="#455A64">Обозначения линий</text>
+  <line x1="100" y1="862" x2="150" y2="862" stroke="#607D8B" stroke-width="2"/>
+  <text x="162" y="866" font-size="12" fill="#546E7A">цифровой GPIO (вход / выход)</text>
+  <line x1="100" y1="888" x2="150" y2="888" stroke="#1E88E5" stroke-width="2.5"/>
+  <text x="162" y="892" font-size="12" fill="#546E7A">шина I2C (SDA GPIO21 · SCL GPIO22)</text>
+  <line x1="100" y1="914" x2="150" y2="914" stroke="#FB8C00" stroke-width="2"/>
+  <text x="162" y="918" font-size="12" fill="#546E7A">шина SPI (SD-карта)</text>
+  <line x1="100" y1="940" x2="150" y2="940" stroke="#7CB342" stroke-width="2"/>
+  <text x="162" y="944" font-size="12" fill="#546E7A">адрес канала мультиплексора</text>
+  <line x1="100" y1="966" x2="150" y2="966" stroke="#2E7D32" stroke-width="3"/>
+  <text x="162" y="970" font-size="12" fill="#546E7A">аналоговый сигнал (влажность → АЦП)</text>
+  <line x1="100" y1="992" x2="150" y2="992" stroke="#00838F" stroke-width="2.5"/>
+  <text x="162" y="996" font-size="12" fill="#546E7A">импульсы датчика потока (прерывание)</text>
+</svg>
