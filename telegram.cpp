@@ -1360,6 +1360,24 @@ void newMsg(fb::Update& u) {
         status = status + String("\n🎯 Тревога при потоке ниже ") + String(myConfig.clogThresholdPercent) + String(" % от нормы");
         status = status + String("\n") + String(fmIsClogged() ? "⚠️ Похоже, фильтр засорён — прочистите!" : "✅ Фильтр в норме");
 
+        // 💪 Насос повышения давления: фактическое состояние + причина + настройка
+        status = status + String("\n");
+        status = status + String("\n💪 <b>Насос давления</b>");
+        String pumpNow;
+        if (!pumpIsOn()) {
+          pumpNow = F("⛔ выключен");
+        } else if (valveIsDraining()) {
+          pumpNow = F("⚡ работает — пролив дренажа");
+        } else if (pumpStart != 0) {
+          pumpNow = F("⚡ работает — пусковой режим (30 с)");
+        } else {
+          pumpNow = F("⚡ работает — по порогу открытых клапанов");
+        }
+        status = status + String("\n📟 Сейчас: ") + pumpNow;
+        status = status + String("\n🎯 Настройка: ") + (myConfig.boostPumpValves >= 9
+                              ? String("только пусковые 30 с")
+                              : String("держать при ≥ ") + String(myConfig.boostPumpValves) + " откр. кл.");
+
         LOG_D("Свободная память: %u байт", ESP.getFreeHeap());
         int mem = ESP.getFreeHeap() / 1024;
         status = status + String("\n");

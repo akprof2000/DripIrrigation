@@ -1,0 +1,61 @@
+<svg viewBox="0 0 900 440" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="440" fill="#FFFFFF"/>
+  <text x="30" y="34" font-size="19" font-weight="bold" fill="#263238">Автополив с гистерезисом</text>
+
+  <!-- зона гистерезиса -->
+  <rect x="70" y="140" width="790" height="80" fill="#FFF8E1"/>
+  <text x="150" y="212" font-size="12" font-weight="bold" fill="#F9A825">зона гистерезиса (±Δ)</text>
+
+  <!-- пороговые линии -->
+  <line x1="70" y1="140" x2="860" y2="140" stroke="#42A5F5" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="70" y1="180" x2="860" y2="180" stroke="#90A4AE" stroke-width="1.5"/>
+  <line x1="70" y1="220" x2="860" y2="220" stroke="#E57373" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="75" y="133" font-size="12" font-weight="bold" fill="#1E88E5">порог + Δ</text>
+  <text x="75" y="173" font-size="12" font-weight="bold" fill="#78909C">порог</text>
+  <text x="75" y="238" font-size="12" font-weight="bold" fill="#C62828">порог − Δ</text>
+
+  <!-- оси -->
+  <line x1="70" y1="40" x2="70" y2="320" stroke="#B0BEC5" stroke-width="1.5"/>
+  <line x1="70" y1="320" x2="860" y2="320" stroke="#B0BEC5" stroke-width="1.5"/>
+  <text x="16" y="200" font-size="12" fill="#78909C" transform="rotate(-90 16 200)">влажность, %</text>
+  <text x="860" y="336" text-anchor="end" font-size="12" fill="#78909C">время →</text>
+
+  <!-- маркеры событий -->
+  <g stroke="#9E9E9E" stroke-width="1" stroke-dasharray="4 4">
+    <line x1="330" y1="220" x2="330" y2="345"/>
+    <line x1="560" y1="140" x2="560" y2="345"/>
+    <line x1="790" y1="220" x2="790" y2="345"/>
+  </g>
+
+  <!-- кривая влажности -->
+  <polyline points="70,90 150,115 230,150 300,195 330,220 360,242 380,248 410,235 440,215 480,190 520,165 560,140 590,125 620,120 650,128 690,150 730,180 770,205 790,220 830,232 860,238"
+            fill="none" stroke="#2E7D32" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- точки событий -->
+  <circle cx="330" cy="220" r="6" fill="#43A047" stroke="#FFFFFF" stroke-width="2"/>
+  <circle cx="560" cy="140" r="6" fill="#E53935" stroke="#FFFFFF" stroke-width="2"/>
+  <circle cx="790" cy="220" r="6" fill="#43A047" stroke="#FFFFFF" stroke-width="2"/>
+
+  <!-- полоса состояния клапана -->
+  <text x="64" y="362" text-anchor="end" font-size="12" font-weight="bold" fill="#455A64">клапан</text>
+  <rect x="70" y="345" width="260" height="26" fill="#ECEFF1" stroke="#CFD8DC"/>
+  <rect x="330" y="345" width="230" height="26" fill="#A5D6A7" stroke="#81C784"/>
+  <rect x="560" y="345" width="230" height="26" fill="#ECEFF1" stroke="#CFD8DC"/>
+  <rect x="790" y="345" width="70" height="26" fill="#A5D6A7" stroke="#81C784"/>
+  <g font-size="12" font-weight="bold">
+    <text x="200" y="362" text-anchor="middle" fill="#90A4AE">закрыт</text>
+    <text x="445" y="362" text-anchor="middle" fill="#2E7D32">открыт</text>
+    <text x="675" y="362" text-anchor="middle" fill="#90A4AE">закрыт</text>
+    <text x="825" y="362" text-anchor="middle" fill="#2E7D32">откр.</text>
+  </g>
+
+  <!-- подписи событий -->
+  <g font-size="11.5" fill="#546E7A">
+    <text x="330" y="392" text-anchor="middle">влажность ниже «порог − Δ»</text>
+    <text x="330" y="408" text-anchor="middle" font-weight="bold" fill="#2E7D32">→ полив включается</text>
+    <text x="560" y="392" text-anchor="middle">влажность выше «порог + Δ»</text>
+    <text x="560" y="408" text-anchor="middle" font-weight="bold" fill="#C62828">→ полив выключается</text>
+    <text x="790" y="392" text-anchor="middle">снова сухо</text>
+    <text x="790" y="408" text-anchor="middle" font-weight="bold" fill="#2E7D32">→ полив включается</text>
+  </g>
+</svg>

@@ -1,0 +1,50 @@
+<svg viewBox="0 0 900 440" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="440" fill="#FFFFFF"/>
+  <text x="30" y="34" font-size="19" font-weight="bold" fill="#263238">Контроль засора фильтра — скорость потока после открытия клапана</text>
+
+  <!-- фазы -->
+  <rect x="120" y="50" width="280" height="270" fill="#ECEFF1" opacity="0.55"/>
+  <rect x="400" y="50" width="120" height="270" fill="#C8E6C9" opacity="0.55"/>
+  <g font-size="11.5" font-weight="bold" fill="#546E7A">
+    <text x="260" y="68" text-anchor="middle">заполнение труб · ожидание стабилизации</text>
+    <text x="460" y="68" text-anchor="middle" fill="#2E7D32">окно замера</text>
+    <text x="690" y="68" text-anchor="middle">непрерывный контроль</text>
+  </g>
+
+  <!-- оси -->
+  <line x1="70" y1="50" x2="70" y2="320" stroke="#B0BEC5" stroke-width="1.5"/>
+  <line x1="70" y1="320" x2="860" y2="320" stroke="#B0BEC5" stroke-width="1.5"/>
+  <text x="40" y="200" font-size="12" fill="#78909C" transform="rotate(-90 40 200)">поток, л/мин</text>
+  <text x="860" y="336" text-anchor="end" font-size="12" fill="#78909C">время →</text>
+  <text x="62" y="324" text-anchor="end" font-size="11" fill="#90A4AE">0</text>
+
+  <!-- эталон и порог -->
+  <line x1="400" y1="200" x2="860" y2="200" stroke="#43A047" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <text x="855" y="192" text-anchor="end" font-size="12" font-weight="bold" fill="#2E7D32">эталон «чистого» фильтра</text>
+  <line x1="400" y1="260" x2="860" y2="260" stroke="#E53935" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <text x="408" y="278" font-size="12" font-weight="bold" fill="#C62828">порог тревоги (50 % от эталона)</text>
+
+  <!-- кривая потока -->
+  <polyline points="70,318 120,318 128,90 160,105 200,130 250,158 300,178 350,192 400,200 460,201 520,200 580,203 620,212 660,226 700,244 740,260 780,275 820,286 855,293"
+            fill="none" stroke="#00838F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- событие открытия -->
+  <line x1="120" y1="90" x2="120" y2="320" stroke="#9E9E9E" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="126" y="348" font-size="11.5" fill="#546E7A">клапан открылся — всплеск потока</text>
+  <text x="126" y="364" font-size="11.5" fill="#546E7A">(заполнение пустых труб)</text>
+
+  <!-- точка фиксации эталона -->
+  <circle cx="460" cy="201" r="6" fill="#43A047" stroke="#FFFFFF" stroke-width="2"/>
+  <text x="460" y="158" text-anchor="middle" font-size="11.5" fill="#2E7D32" font-weight="bold">поток устаканился —</text>
+  <text x="460" y="174" text-anchor="middle" font-size="11.5" fill="#2E7D32" font-weight="bold">эталон записан</text>
+
+  <!-- точка тревоги -->
+  <circle cx="740" cy="260" r="7" fill="#E53935" stroke="#FFFFFF" stroke-width="2"/>
+  <line x1="740" y1="260" x2="740" y2="320" stroke="#E53935" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="740" y="348" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#C62828">поток упал ниже порога —</text>
+  <text x="740" y="364" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#C62828">тревога «прочистите фильтр» в Telegram</text>
+
+  <!-- сноска -->
+  <text x="70" y="404" font-size="11.5" fill="#78909C">Фильтр постепенно засоряется — поток медленно снижается. После чистки нажмите «Фильтр прочищен», и эталон замерится заново.</text>
+  <text x="70" y="422" font-size="11.5" fill="#78909C">Замеры во время пусковой работы насоса и заливки бака не учитываются — они искажают поток.</text>
+</svg>

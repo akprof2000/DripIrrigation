@@ -181,6 +181,11 @@ void stopPumpIfNeed() {
   }
 }
 
+// 💪 Фактическое состояние насоса — читаем уровень пина реле
+bool pumpIsOn() {
+  return digitalRead(PUMP) == HIGH;
+}
+
 int countValveOpen() {
   int cnt = 0;
   for (int i = 0; i < NUM_CHANNELS; i++) {

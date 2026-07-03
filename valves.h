@@ -32,4 +32,7 @@ bool valveNeedUpdate();
 
 int countValveOpen();
 void stopPumpIfNeed();
+
+// 💪 Включён ли сейчас нагнетательный насос (фактическое состояние пина реле)
+bool pumpIsOn();
 #endif
