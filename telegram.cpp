@@ -78,6 +78,19 @@ static bool validChannelIndex(int ind, const String& userID) {
   return true;
 }
 
+// 🔘 Проверка нажатия reply-кнопки по её ТЕКСТОВОЙ части (без ведущего эмодзи).
+// Метка reply-кнопки возвращается Telegram как текст сообщения, но эмодзи с
+// вариационным селектором (например ➡️ = U+27A1 + U+FE0F) в round-trip может
+// потерять селектор — тогда точное сравнение `text == "➡️ ДАЛЕЕ"` не срабатывает.
+// Отбрасываем всё до первого пробела (эмодзи-префикс) и сравниваем остаток —
+// это устойчиво и к «съехавшему» эмодзи, и к ловушкам подстроки (ДА ⊂ ДАЛЕЕ).
+static bool btnIs(const String& text, const char* word) {
+  int sp = text.indexOf(' ');
+  String core = (sp >= 0) ? text.substring(sp + 1) : text;
+  core.trim();
+  return core == word;
+}
+
 // ============================================================
 // 🎹 Показ меню с учётом контекста (callback-кнопка или текст)
 // ============================================================
@@ -208,6 +221,7 @@ void newMsg(fb::Update& u) {
   String username = msg.from().username().toString();  // 🏷️ Имя пользователя
   String text = msg.text().toString();           // 💬 Текст сообщения
 
+
   // 🔘 Проверяем, является ли это callback query (нажатие inline-кнопки)
   String data = "";
   if (u.isQuery()) {
@@ -273,7 +287,7 @@ void newMsg(fb::Update& u) {
       // 🔧 Калибровка: этап 3 — завершение (1130–1137)
       else if (act->action >= Dlg::CalibFinish && act->action <= Dlg::CalibFinish + Dlg::Last) {
         int ind = act->action - Dlg::CalibFinish;
-        if (text == "✅ ЗАВЕРШИТЬ") {
+        if (btnIs(text, "ЗАВЕРШИТЬ")) {
           if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
             sendReconnectMessage("❌ Ошибка калибровки датчик № " + String((ind + 1)) + " — слишком малое значение!\nОтменяем...", userID);
             hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
@@ -296,7 +310,7 @@ void newMsg(fb::Update& u) {
       // 🔧 Калибровка: этап 2 — сухое значение (1120–1127)
       else if (act->action >= Dlg::CalibDry && act->action <= Dlg::CalibDry + Dlg::Last) {
         int ind = act->action - Dlg::CalibDry;
-        if (text == "➡️ ДАЛЕЕ") {
+        if (btnIs(text, "ДАЛЕЕ")) {
           hs.setAll();
           int val = hs.setHigh(ind);
           LOG_D("Сухое значение, датчик %d: %d", ind, val);
@@ -322,7 +336,7 @@ void newMsg(fb::Update& u) {
       // 🔧 Калибровка: этап 1 — влажное значение (1110–1117)
       else if (act->action >= Dlg::CalibWet && act->action <= Dlg::CalibWet + Dlg::Last) {
         int ind = act->action - Dlg::CalibWet;
-        if (text == "➡️ ДАЛЕЕ") {
+        if (btnIs(text, "ДАЛЕЕ")) {
           hs.setAll();
           int val = hs.setLow(ind);
           LOG_D("Влажное значение, датчик %d: %d", ind, val);
@@ -347,7 +361,7 @@ void newMsg(fb::Update& u) {
       }
       // 🔧 Калибровка: этап 0 — старт (1100–1107)
       else if (act->action >= Dlg::CalibStart && act->action <= Dlg::CalibStart + Dlg::Last) {
-        if (text == "🚀 СТАРТ") {
+        if (btnIs(text, "СТАРТ")) {
           int ind = act->action - Dlg::CalibStart;
           sendReconnectMessage("💧 Положите датчик № " + String((ind + 1)) + " в воду и нажмите далее!", userID);
 
@@ -369,7 +383,7 @@ void newMsg(fb::Update& u) {
       }
       // 🔍 Поиск датчика: этап 0 — старт (3000)
       else if (act->action == Dlg::SearchStart) {
-        if (text == "🚀 СТАРТ") {
+        if (btnIs(text, "СТАРТ")) {
           sendReconnectMessage("💧 Положите датчик в воду и нажмите далее!", userID);
 
           fb::Keyboard kb;
@@ -389,8 +403,8 @@ void newMsg(fb::Update& u) {
         }
       }
       // 🔍 Поиск датчика: этап 1 — влажное значение (3010)
-      else if (act->action == Dlg::SearchWet) {
-        if (text == "➡️ ДАЛЕЕ") {
+      else if (act->action == Dlg::SearchWet) {       
+        if (btnIs(text, "ДАЛЕЕ")) {
           hs.setAll();
           for (int i = 0; i < NUM_CHANNELS; i++) {
             search[i] = hs.getCurrent(i);
@@ -415,7 +429,7 @@ void newMsg(fb::Update& u) {
       }
       // 🔍 Поиск датчика: этап 2 — определение (3020)
       else if (act->action == Dlg::SearchDetect) {
-        if (text == "➡️ ДАЛЕЕ") {
+        if (btnIs(text, "ДАЛЕЕ")) {
           hs.setAll();
           int ind = -1;
           for (int i = 0; i < NUM_CHANNELS; i++) {
@@ -479,18 +493,18 @@ void newMsg(fb::Update& u) {
       // 🚰 Установка режима работы клапана (1300–1307)
       else if (act->action >= Dlg::ModeSet && act->action <= Dlg::ModeSet + Dlg::Last) {
         int ind = act->action - Dlg::ModeSet;
-        if (text == "✅ ВКЛ.") {
+        if (btnIs(text, "ВКЛ.")) {
           sendReconnectMessage(F("✅ Клапан включён!"), userID, true);
           myConfig.chanel[ind].mode = Mode::AlwaysOn;
           valveOpen(ind);
-        } else if (text == "⛔ ВЫКЛ.") {
+        } else if (btnIs(text, "ВЫКЛ.")) {
           sendReconnectMessage(F("⛔ Клапан выключен!"), userID, true);
           myConfig.chanel[ind].mode = Mode::AlwaysOff;
           valveClose(ind);
-        } else if (text == "🤖 АВТО") {
+        } else if (btnIs(text, "АВТО")) {
           sendReconnectMessage(F("🤖 Клапан в автоматическом режиме!"), userID, true);
           myConfig.chanel[ind].mode = Mode::Auto;
-        } else if (text == "🏠 А.П.") {
+        } else if (btnIs(text, "А.П.")) {
           sendReconnectMessage(F("🏠 Клапан в автоматическом режиме для парника!"), userID, true);
           myConfig.chanel[ind].mode = Mode::Greenhouse;
         }
@@ -501,16 +515,16 @@ void newMsg(fb::Update& u) {
       // 🚰 Установка режима для ВСЕХ клапанов (1399)
       else if (act->action == Dlg::ModeSetAll) {
         uint8_t md = Mode::Auto;
-        if (text == "✅ ВКЛ.") {
+        if (btnIs(text, "ВКЛ.")) {
           sendReconnectMessage(F("✅ Клапаны включены!"), userID, true);
           md = Mode::AlwaysOn;
-        } else if (text == "⛔ ВЫКЛ.") {
+        } else if (btnIs(text, "ВЫКЛ.")) {
           sendReconnectMessage(F("⛔ Клапаны выключены!"), userID, true);
           md = Mode::AlwaysOff;
-        } else if (text == "🤖 АВТО") {
+        } else if (btnIs(text, "АВТО")) {
           sendReconnectMessage(F("🤖 Клапаны в автоматическом режиме!"), userID, true);
           md = Mode::Auto;
-        } else if (text == "🏠 А.П.") {
+        } else if (btnIs(text, "А.П.")) {
           sendReconnectMessage(F("🏠 Клапаны в автоматическом режиме для парника!"), userID, true);
           md = Mode::Greenhouse;
         }
@@ -556,7 +570,7 @@ void newMsg(fb::Update& u) {
       // 🔄 Сброс настроек (2000)
       else if (act->action == Dlg::Reset) {
         act->action = Dlg::None;
-        if (text == "✅ ДА") {
+        if (btnIs(text, "ДА")) {
           myConfig.deltaCalibration = 15;
           myConfig.deltaHum = 5;
           myConfig.runOnNight = false;
@@ -586,7 +600,7 @@ void newMsg(fb::Update& u) {
       // 🔄 Перезагрузка (1)
       else if (act->action == Dlg::Restart) {
         act->action = Dlg::None;
-        if (text == "✅ ДА") {
+        if (btnIs(text, "ДА")) {
           LOG_W("Запрошена перезагрузка устройства (%s)", username.c_str());
           res = 1;
           sendReconnectMessage(F("🔄 Перезагрузка начата!"), userID, true);
@@ -599,7 +613,7 @@ void newMsg(fb::Update& u) {
       // Стереь все данные по проливу
       else if (act->action == Dlg::ClearFlow) {
         act->action = Dlg::None;
-        if (text == "✅ ДА") {
+        if (btnIs(text, "ДА")) {
           clearDataFlow();
           sendReconnectMessage(F("🔄 Данные стерты!"), userID, true);
           return;
@@ -611,7 +625,7 @@ void newMsg(fb::Update& u) {
       // 🌙 Работа ночью (1001)
       else if (act->action == Dlg::WorkNight) {
         act->action = Dlg::None;
-        if (text == "✅ ДА") {
+        if (btnIs(text, "ДА")) {
           myConfig.runOnNight = true;
           sendReconnectMessage(F("🌙 Работа ночью включена!"), userID, true);
         } else {
@@ -624,7 +638,7 @@ void newMsg(fb::Update& u) {
       // 🌧️ Работа под дождём (1002)
       else if (act->action == Dlg::WorkRain) {
         act->action = Dlg::None;
-        if (text == "✅ ДА") {
+        if (btnIs(text, "ДА")) {
           myConfig.runOnRain = true;
           sendReconnectMessage(F("🌧️ Работа под дождём включена!"), userID);
         } else {
