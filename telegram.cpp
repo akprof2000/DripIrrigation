@@ -91,6 +91,12 @@ static bool btnIs(const String& text, const char* word) {
   return core == word;
 }
 
+// 🌱 Подпись канала «N (Название культуры)» — чтобы в диалогах калибровки было
+// видно, какой именно датчик настраивается. Индекс уже проверен вызывающим.
+static String chanLabel(int ind) {
+  return String(ind + 1) + " (" + String(myConfig.chanel[ind].title) + ")";
+}
+
 // ============================================================
 // 🎹 Показ меню с учётом контекста (callback-кнопка или текст)
 // ============================================================
@@ -289,11 +295,13 @@ void newMsg(fb::Update& u) {
         int ind = act->action - Dlg::CalibFinish;
         if (btnIs(text, "ЗАВЕРШИТЬ")) {
           if (abs(hs.getHigh(ind) - hs.getLow(ind)) < 100) {
-            sendReconnectMessage("❌ Ошибка калибровки датчик № " + String((ind + 1)) + " — слишком малое значение!\nОтменяем...", userID);
+            // kbRem=true — убираем reply-клавиатуру «ЗАВЕРШИТЬ/ОТМЕНА», иначе она
+            // остаётся внизу экрана после выхода из калибровки
+            sendReconnectMessage("❌ Ошибка калибровки датчик № " + chanLabel(ind) + " — слишком малое значение!\nОтменяем...", userID, true);
             hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
             command = F("/Calibrate");
           } else {
-            sendReconnectMessage("✅ Калибровка завершена! Датчик № " + String((ind + 1)) + " полностью функционален!", userID);
+            sendReconnectMessage("✅ Калибровка завершена! Датчик № " + chanLabel(ind) + " полностью функционален!", userID, true);
             myConfig.chanel[ind].maxVal = hs.getHigh(ind);
             myConfig.chanel[ind].minVal = hs.getLow(ind);
             needUpdate = true;
@@ -301,7 +309,7 @@ void newMsg(fb::Update& u) {
           act->action = Dlg::None;
           command = F("/Calibrate");
         } else {
-          sendReconnectMessage(F("❌ Калибровка отменена!"), userID);
+          sendReconnectMessage(F("❌ Калибровка отменена!"), userID, true);
           hs.setLowHighValue(ind, myConfig.chanel[ind].minVal, myConfig.chanel[ind].maxVal);
           command = F("/Calibrate");
           act->action = Dlg::None;
@@ -314,7 +322,7 @@ void newMsg(fb::Update& u) {
           hs.setAll();
           int val = hs.setHigh(ind);
           LOG_D("Сухое значение, датчик %d: %d", ind, val);
-          sendReconnectMessage("🌵 Установите датчик № " + String((ind + 1)) + " в почву и нажмите завершить!", userID);
+          sendReconnectMessage("🌵 Установите датчик № " + chanLabel(ind) + " в почву и нажмите завершить!", userID);
 
           fb::Keyboard kb;
           kb.addButton("✅ ЗАВЕРШИТЬ").addButton("❌ ОТМЕНА");
@@ -341,7 +349,7 @@ void newMsg(fb::Update& u) {
           int val = hs.setLow(ind);
           LOG_D("Влажное значение, датчик %d: %d", ind, val);
           act->action = Dlg::CalibDry + ind;
-          sendReconnectMessage("🌵 Достаньте датчик № " + String((ind + 1)) + " из воды, протрите и нажмите далее!", userID);
+          sendReconnectMessage("🌵 Достаньте датчик № " + chanLabel(ind) + " из воды, протрите и нажмите далее!", userID);
 
           fb::Keyboard kb;
           kb.addButton("➡️ ДАЛЕЕ").addButton("❌ ОТМЕНА");
@@ -363,7 +371,7 @@ void newMsg(fb::Update& u) {
       else if (act->action >= Dlg::CalibStart && act->action <= Dlg::CalibStart + Dlg::Last) {
         if (btnIs(text, "СТАРТ")) {
           int ind = act->action - Dlg::CalibStart;
-          sendReconnectMessage("💧 Положите датчик № " + String((ind + 1)) + " в воду и нажмите далее!", userID);
+          sendReconnectMessage("💧 Положите датчик № " + chanLabel(ind) + " в воду и нажмите далее!", userID);
 
           fb::Keyboard kb;
           kb.addButton("➡️ ДАЛЕЕ").addButton("❌ ОТМЕНА");
@@ -557,7 +565,7 @@ void newMsg(fb::Update& u) {
             myConfig.chanel[ind].maxVal = hs.getHigh(ind);
             myConfig.chanel[ind].minVal = hs.getLow(ind);
             needUpdate = true;
-            sendReconnectMessage("✅ Калибровка датчика № " + String(ind + 1) + " сохранена (мин " + String(minv) + ", макс " + String(maxv) + ")", userID);
+            sendReconnectMessage("✅ Калибровка датчика № " + chanLabel(ind) + " сохранена (мин " + String(minv) + ", макс " + String(maxv) + ")", userID);
           } else {
             sendReconnectMessage(F("❌ Ожидалось значение (от 0 до 4096)!"), userID);
             return;
@@ -904,7 +912,7 @@ void newMsg(fb::Update& u) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
           if (!validChannelIndex(ind, userID)) return;
-          sendReconnectMessage("🔧 Введите минимальное и максимальное значение датчика № " + String(ind + 1) + " в формате: целое,целое.\nТекущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "]", userID);
+          sendReconnectMessage("🔧 Введите минимальное и максимальное значение датчика № " + chanLabel(ind) + " в формате: целое,целое.\nТекущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "]", userID);
           actionSet(userID, Dlg::CalibManual + ind);
         }
         // 🔧 Автоматическая калибровка конкретного датчика
@@ -912,7 +920,7 @@ void newMsg(fb::Update& u) {
           String prob = getValue(command, '_', 1);
           int ind = prob.toInt();
           if (!validChannelIndex(ind, userID)) return;
-          sendReconnectMessage("💧 Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\n🚀 Запустить калибровку датчика № " + String((ind + 1)) + "?", userID);
+          sendReconnectMessage("💧 Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\n🚀 Запустить калибровку датчика № " + chanLabel(ind) + "?", userID);
 
           fb::Keyboard kb;
           kb.addButton("🚀 СТАРТ").addButton("❌ ОТМЕНА");
@@ -928,7 +936,7 @@ void newMsg(fb::Update& u) {
         else if (command == "/Calibrate") {
           fb::InlineKeyboard menu;
           for (int i = 0; i < NUM_CHANNELS; i++) {
-            menu.addButton("🌱 Датчик №" + String(i + 1), "/HumidityCalibrate_" + String(i), fb::KeyStyle::Primary).newRow();
+            menu.addButton("🌱 Датчик №" + chanLabel(i), "/HumidityCalibrate_" + String(i), fb::KeyStyle::Primary).newRow();
           }
           menu.addButton("🔙 Назад", "/Configure", fb::KeyStyle::Default);
           showMenu(u, userID, "🔧 <b>Калибровка</b>", menu);
@@ -938,7 +946,7 @@ void newMsg(fb::Update& u) {
           hs.setAll();
           fb::InlineKeyboard menu;
           for (int i = 0; i < NUM_CHANNELS; i++) {
-            String btnText = "🌱 Датчик №" + String(i + 1) + " [" + String(hs.getLow(i)) + ";" + String(hs.getHigh(i)) + "] " + String(hs.Percent(i)) + "%";
+            String btnText = "🌱 №" + chanLabel(i) + " [" + String(hs.getLow(i)) + ";" + String(hs.getHigh(i)) + "] " + String(hs.Percent(i)) + "%";
             menu.addButton(btnText, "/HumidityMCalibrate_" + String(i), fb::KeyStyle::Primary).newRow();
           }
           menu.addButton("🔙 Назад", "/Configure", fb::KeyStyle::Default);
