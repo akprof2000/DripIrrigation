@@ -25,6 +25,7 @@ namespace Dlg {
   constexpr int BoostPump     = 1006;  // ввод порога насоса давления
   constexpr int ClogThreshold = 1007;  // ввод порога контроля фильтра
   constexpr int TgTimeout     = 1008;  // ввод таймаута связи с Telegram
+  constexpr int AutoCalNoDly  = 1009;  // вкл/выкл авто-калибровку без задержки
 
   // Калибровка датчика (база + индекс канала)
   constexpr int CalibStart    = 1100;  // старт
@@ -604,6 +605,7 @@ void newMsg(fb::Update& u) {
           myConfig.clogThresholdPercent = 50;  // 🧽 порог контроля фильтра
           myConfig.flowMonitorEnabled = true;  // 🧽 контроль фильтра включён
           myConfig.tgTimeoutSec = TG_TIMEOUT_DEFAULT;  // 🔌 таймаут связи Telegram
+          myConfig.autoCalNoDelay = false;   // 🔧 авто-калибровка с подтверждением (безопасный режим)
           myConfig.cleanFlowPerValve = 0.0;  // 🧽 сброс эталона фильтра (на клапан)
           myConfig.cleanFlowDrain = 0.0;     // 🧽 сброс эталона фильтра (дренаж)
           hs.setBorder(myConfig.deltaCalibration);
@@ -651,6 +653,19 @@ void newMsg(fb::Update& u) {
           sendReconnectMessage(F("❌ Отмена!"), userID, true);
           return;
         }
+      }
+      // ⚡ Авто-калибровка без задержки (1009)
+      else if (act->action == Dlg::AutoCalNoDly) {
+        act->action = Dlg::None;
+        if (btnIs(text, "ДА")) {
+          myConfig.autoCalNoDelay = true;
+          sendReconnectMessage(F("⚡ Авто-калибровка без задержки включена — граница сдвигается сразу по первому замеру за ней (выбросы АЦП не фильтруются)."), userID, true);
+        } else {
+          myConfig.autoCalNoDelay = false;
+          sendReconnectMessage("🛡️ Авто-калибровка с подтверждением — граница сдвигается, только если превышение держится " + String(HUM_AUTOCAL_CONFIRM) + " замера подряд (" + String(HUM_AUTOCAL_CONFIRM) + " мин).", userID, true);
+        }
+        command = "/configure";
+        needUpdate = true;
       }
       // 🌙 Работа ночью (1001)
       else if (act->action == Dlg::WorkNight) {
@@ -1043,6 +1058,24 @@ void newMsg(fb::Update& u) {
 
           actionSet(userID, Dlg::WorkNight);
         }
+        // ⚡ Авто-калибровка границ без задержки
+        else if (command == "/AutoCalNoDelay") {
+          sendReconnectMessage("⚡ Авто-калибровка границ датчиков влажности.\n\n"
+                               "Если показание вышло за границу калибровки, граница раздвигается.\n"
+                               "• ДА — двигать сразу, по первому же замеру (быстро, но разовый выброс АЦП испортит калибровку)\n"
+                               "• НЕТ — двигать только если превышение держится " + String(HUM_AUTOCAL_CONFIRM) + " замера подряд (" + String(HUM_AUTOCAL_CONFIRM) + " мин) — выбросы отфильтровываются\n\n"
+                               "Включить режим без задержки?", userID);
+
+          fb::Keyboard kb;
+          kb.addButton("✅ ДА").addButton("❌ НЕТ");
+          fb::Message m;
+          m.text = "<Без задержки>";
+          m.chatID = userID;
+          m.setKeyboard(&kb);
+          bot.sendMessage(m);
+
+          actionSet(userID, Dlg::AutoCalNoDly);
+        }
         // ⚙️ Главное меню настроек. Ловим оба написания: "/Configure" приходит
         // с inline-кнопок, "/configure" — редирект после текстовых диалогов.
         else if (command == "/Configure" || command == "/configure") {
@@ -1054,6 +1087,7 @@ void newMsg(fb::Update& u) {
                           "🌧️ Работа под дождём " + String(myConfig.runOnRain ? "[✅]" : "[❌]") + "\n"
                           "💧 Дельта влажности % (" + String(myConfig.deltaHum) + ")\n"
                           "🔧 Дельта калибровки (" + String(myConfig.deltaCalibration) + ")\n"
+                          "⚡ Авто-калибровка без задержки " + String(myConfig.autoCalNoDelay ? "[✅]" : "[❌]") + "\n"
                           "💪 Насос давления (" + boostText + ")\n"
                           "🧽 Контроль фильтра (тревога ниже " + String(myConfig.clogThresholdPercent) + "% нормы)\n"
                           "🔌 Таймаут связи Telegram (" + String(myConfig.tgTimeoutSec) + " с)";
@@ -1063,6 +1097,7 @@ void newMsg(fb::Update& u) {
               .addButton("🌧️ Работа под дождём", "/WorkAtRain", fb::KeyStyle::Primary).newRow()
               .addButton("💧 Дельта влажности", "/DeltaHumidity", fb::KeyStyle::Primary).newRow()
               .addButton("🔧 Дельта калибровки", "/DeltaCalibration", fb::KeyStyle::Primary).newRow()
+              .addButton("⚡ Авто-калибровка без задержки", "/AutoCalNoDelay", fb::KeyStyle::Primary).newRow()
               .addButton("💪 Насос давления", "/BoostPump", fb::KeyStyle::Primary).newRow()
               .addButton("🧽 Порог фильтра", "/ClogThreshold", fb::KeyStyle::Primary).newRow()
               .addButton("🧽 Фильтр прочищен", "/FilterClean", fb::KeyStyle::Success).newRow()

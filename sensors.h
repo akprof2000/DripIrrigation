@@ -64,16 +64,20 @@ public:
   // Границы только расширяются, сужения нет.
   //
   // 🛡️ Защита от разовых выбросов: граница двигается не сразу, а только когда
-  // превышение держится HUM_AUTOCAL_CONFIRM замеров подряд (замер раз в минуту).
+  // превышение держится confirmNeeded замеров подряд (замер раз в минуту).
   // Один сбойный отсчёт обнуляет счётчик и ничего не портит. Внутри окна
   // подтверждения берём САМОЕ МЯГКОЕ значение (ближайшее к старой границе), а не
   // самое экстремальное — иначе выброс внутри окна всё равно утянул бы границу.
+  //
+  // confirmNeeded = 1 — режим «без задержки»: граница двигается по первому же
+  // отсчёту за границей (быстро, но выбросы не фильтруются).
   //
   // Значения зажаты в 0..4095: в Config границы хранятся как uint16_t, и
   // отрицательное значение обернулось бы в огромное.
   //
   // Возвращает true, если границы изменились (нужно сохранить конфиг).
-  bool autoExtend(int index) {
+  bool autoExtend(int index, uint8_t confirmNeeded) {
+    if (confirmNeeded < 1) confirmNeeded = 1;
     bool changed = false;
     int val = _curr[index];
 
@@ -82,7 +86,7 @@ public:
       // кандидат = максимум из превышений (наименее влажный отсчёт окна)
       if (_loCnt[index] == 0 || val > _loCand[index]) _loCand[index] = val;
       if (_loCnt[index] < 255) _loCnt[index]++;
-      if (_loCnt[index] >= HUM_AUTOCAL_CONFIRM) {
+      if (_loCnt[index] >= confirmNeeded) {
         int nl = _loCand[index] - _border;
         _low[index] = (nl < 0) ? 0 : nl;
         _loCnt[index] = 0;
@@ -97,7 +101,7 @@ public:
       // кандидат = минимум из превышений (наименее сухой отсчёт окна)
       if (_hiCnt[index] == 0 || val < _hiCand[index]) _hiCand[index] = val;
       if (_hiCnt[index] < 255) _hiCnt[index]++;
-      if (_hiCnt[index] >= HUM_AUTOCAL_CONFIRM) {
+      if (_hiCnt[index] >= confirmNeeded) {
         int nh = _hiCand[index] + _border;
         _high[index] = (nh > 4095) ? 4095 : nh;
         _hiCnt[index] = 0;

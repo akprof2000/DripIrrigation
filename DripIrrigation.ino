@@ -357,8 +357,12 @@ static bool calibBoundsDirty = false;
 static void autoCalibrateBounds() {
   if (calibrationInProgress()) return;
 
+  // ⚡ «Без задержки» — двигаем границу по первому же отсчёту за ней;
+  //    иначе ждём подтверждения HUM_AUTOCAL_CONFIRM замеров подряд.
+  uint8_t confirm = myConfig.autoCalNoDelay ? 1 : HUM_AUTOCAL_CONFIRM;
+
   for (int i = 0; i < NUM_CHANNELS; i++) {
-    if (hs.autoExtend(i)) {
+    if (hs.autoExtend(i, confirm)) {
       myConfig.chanel[i].minVal = hs.getLow(i);
       myConfig.chanel[i].maxVal = hs.getHigh(i);
       calibBoundsDirty = true;
