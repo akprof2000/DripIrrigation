@@ -340,13 +340,41 @@ static void handlePumpTimeout() {
 }
 
 // ============================================================
+// 🔧 Авто-калибровка границ датчиков влажности
+// ============================================================
+// Если фактическое показание вышло за границу, заданную при калибровке
+// (почва оказалась влажнее «воды» или суше «сухого»), граница отодвигается до
+// нового значения с запасом в дельту калибровки. Границы только расширяются.
+//
+// ⛔ Работает ТОЛЬКО в режиме измерения: пока идёт диалог калибровки или поиска
+// датчика, датчик держат в воде / на воздухе — такие показания нельзя принимать
+// за рабочие, иначе авто-калибровка «выучит» калибровочные экстремумы.
+static bool calibBoundsDirty = false;
+
+static void autoCalibrateBounds() {
+  if (calibrationInProgress()) return;
+
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    if (hs.autoExtend(i)) {
+      myConfig.chanel[i].minVal = hs.getLow(i);
+      myConfig.chanel[i].maxVal = hs.getHigh(i);
+      calibBoundsDirty = true;
+      LOG_I("Канал %d: границы расширены до [%d; %d] (АЦП %d)",
+            i + 1, hs.getLow(i), hs.getHigh(i), hs.getCurrent(i));
+    }
+  }
+}
+
+// ============================================================
 // 💾 Сохранение конфигурации, если есть незаписанные изменения
 // ============================================================
 static void saveConfigIfDirty() {
   bool duv = valveNeedUpdate();
   bool dut = telegramNeedUpdate();
   bool duf = flowMonitorNeedUpdate();  // 🧽 обновился эталон фильтра
-  if (duv || dut || duf) {
+  bool duc = calibBoundsDirty;         // 🔧 авто-расширены границы калибровки
+  calibBoundsDirty = false;
+  if (duv || dut || duf || duc) {
     data.update();
   }
 }
@@ -376,7 +404,8 @@ void loop() {
     oldTime = int64_t(curr / 60);
 
     LOG_D("Проверка состояния");
-    hs.setAll();  // 💧 Опрос всех датчиков влажности
+    hs.setAll();          // 💧 Опрос всех датчиков влажности
+    autoCalibrateBounds(); // 🔧 расширить границы, если показания вышли за диапазон
 
     Weather w = checkWeather();
     controlValves(w);
