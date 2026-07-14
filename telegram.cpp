@@ -613,6 +613,11 @@ void newMsg(fb::Update& u) {
             myConfig.chanel[i].minVal = 1024;
             myConfig.chanel[i].mode = Mode::Auto;
             strcpy(myConfig.chanel[i].title, String("🌱 Растение").c_str());
+            // 🔧 Синхронизируем датчики с конфигом: раньше сбрасывался только
+            // myConfig, а объект hs держал в RAM СТАРЫЕ границы — проценты
+            // считались по ним до перезагрузки, а авто-калибровка могла записать
+            // эти старые границы обратно в конфиг, отменив сброс.
+            hs.setLowHighValue(i, myConfig.chanel[i].minVal, myConfig.chanel[i].maxVal);
           }
           LOG_W("Сброс настроек к значениям по умолчанию (выполнил %s)", username.c_str());
           sendReconnectMessage(F("✅ Сброс выполнен!"), userID, true);
