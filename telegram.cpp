@@ -9,6 +9,7 @@
 #include "log.h"
 #include <EEPROM.h>
 #include "valves.h"
+#include "version.h"       // 🏷️ FW_VERSION — версия прошивки в стартовом сообщении
 
 // ============================================================
 // 🎬 Коды состояний диалога (FSM). Диапазоны = база + индекс канала (0..Dlg::Last).
@@ -210,10 +211,11 @@ void loadUsers() {
   loadUsersData();  // 📥 данные грузим из EEPROM (модуль users)
   LOG_D("Рассылка стартового меню: %d польз.", userCount);
 
-  // 🎹 Каждому загруженному пользователю — приветствие и меню по роли
+  // 🎹 Каждому загруженному пользователю — приветствие с версией прошивки и меню.
+  //    Версия в старте позволяет убедиться, что OTA действительно применилась.
   for (uint8_t i = 0; i < userCount; i++) {
     User* u = &users[i];
-    sendReconnectMessage("🚀 Система запущена!", u->userID);
+    sendReconnectMessage("🚀 Система запущена! Прошивка v" FW_VERSION, u->userID);
 
     fb::InlineKeyboard menu;
     buildMainMenu(menu, u->role < 2);
@@ -1402,7 +1404,7 @@ void newMsg(fb::Update& u) {
       // 📊 Вывод текущего статуса системы
       else if (command == "/status") {
         hs.setAll();
-        String status = String("ℹ️ <b>Общий статус</b>\n\n");
+        String status = String("ℹ️ <b>Общий статус</b>  <i>v" FW_VERSION "</i>\n\n");
         status = status + String("📅 <b>Текущая дата и время:</b> ") + getDateTime().toString(' ');
         status = status + String("\n\n") + String(nightNow ? "🌙 Сейчас ночь" : "☀️ Сейчас день");
         status = status + String(rainNow ? ", 🌧️ идёт дождь" : ", ☀️ дождя нет");
