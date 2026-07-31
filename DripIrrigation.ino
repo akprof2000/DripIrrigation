@@ -396,6 +396,7 @@ void loop() {
   handlePumpTimeout(); // ⏱️ завершение пускового режима насоса (каждый loop, по millis)
   flowMonitorTick();  // 🧽 контроль засора фильтра по скорости потока
   ReCheck();          // 🤖 Telegram + проверка WiFi
+  telegramGzOtaTick(); // 🗜️ отложенная распаковка+прошивка .gz (после tick)
 
   unsigned long now = millis();
   if (now - prevCheck < intervalCheck) return;  // ⏱️ ещё не пора — выходим

@@ -10,6 +10,9 @@
 #include <EEPROM.h>
 #include "valves.h"
 #include "version.h"       // 🏷️ FW_VERSION — версия прошивки в стартовом сообщении
+#include <Update.h>        // 📤 OTA-запись во flash (для распаковки .gz на лету)
+#include <esp_task_wdt.h>  // 🐕 сброс watchdog во время долгой распаковки
+#include "uzlib.h"         // 🗜️ потоковая распаковка gzip (vendored, zlib-лицензия)
 
 // ============================================================
 // 🎬 Коды состояний диалога (FSM). Диапазоны = база + индекс канала (0..Dlg::Last).
@@ -154,6 +157,93 @@ static void buildMainMenu(fb::InlineKeyboard& menu, bool admin) {
       .addButton("📈 Отчёты", "/Reports", fb::KeyStyle::Primary);
   if (admin) {
     menu.newRow().addButton("🔧 Настройка", "/Configure", fb::KeyStyle::Primary);
+  }
+}
+
+// ============================================================
+// 🗜️📤 OTA из сжатого .gz (распаковка gzip на лету во flash)
+// ============================================================
+// FastBot2 на ESP32 пишет файл во flash как есть, без распаковки — поэтому .gz
+// сам по себе прошить нельзя. Здесь мы скачиваем .gz, потоково распаковываем
+// (uzlib) и пишем в Update. Скачивание тяжёлое и делает вложенный HTTP-запрос,
+// поэтому его НЕЛЬЗЯ запускать прямо в колбэке newMsg (он вызывается из
+// bot.tick()) — колбэк лишь запоминает file_id, а работу делает telegramGzOtaTick()
+// из loop(), как и штатный OTA библиотеки откладывается на следующий tick.
+static bool   g_gzOtaPending = false;  // запланирована распаковка+прошивка .gz
+static String g_gzOtaId;               // file_id принятого архива
+static String g_gzOtaUser;             // кому слать уведомления
+
+// 🔌 Источник сжатых данных для uzlib — читаем из HTTP-потока Telegram.
+static fb::Fetcher* g_gzSrc = nullptr;
+static uint8_t      g_gzInBuf[512];
+
+// uzlib в pull-модели дёргает этот колбэк за следующей порцией входа.
+// Возвращает первый байт и обновляет source/limit на остаток буфера (буферизация).
+static int gzReadCb(struct uzlib_uncomp* d) {
+  if (!g_gzSrc) return -1;
+  int n = g_gzSrc->readBytes((char*)g_gzInBuf, sizeof(g_gzInBuf));
+  if (n <= 0) return -1;  // EOF или обрыв
+  d->source = g_gzInBuf + 1;
+  d->source_limit = g_gzInBuf + n;
+  return g_gzInBuf[0];
+}
+
+// 🗜️ Скачать .gz по g_gzOtaId, распаковать и прошить. true — успех.
+// Безопасно: Update пишет в НЕАКТИВНЫЙ раздел и переключает загрузку только
+// при валидном образе — бажная распаковка приведёт к отказу OTA, а не к кирпичу.
+static bool gzOtaFlash() {
+  fb::Fetcher fetch = bot.downloadFile(g_gzOtaId.c_str());
+  if (!fetch) { LOG_E("OTA .gz: не удалось скачать файл"); return false; }
+  fetch.setTimeout(20000);  // терпимее к паузам мобильного канала
+
+  uint8_t* dict = (uint8_t*)malloc(32768);  // окно LZ (полный deflate)
+  if (!dict) { LOG_E("OTA .gz: нет памяти под словарь"); return false; }
+  uint8_t out[2048];
+
+  struct uzlib_uncomp d;
+  memset(&d, 0, sizeof(d));
+  uzlib_uncompress_init(&d, dict, 32768);
+  d.source = NULL;
+  d.source_limit = NULL;
+  d.source_read_cb = gzReadCb;
+  g_gzSrc = &fetch;
+
+  bool ok = false;
+  int res = -1;
+  if (uzlib_gzip_parse_header(&d) == TINF_OK && Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
+    do {
+      d.dest = d.dest_start = out;
+      d.dest_limit = out + sizeof(out);
+      res = uzlib_uncompress_chksum(&d);       // распаковка + проверка CRC в конце
+      if (res != TINF_OK && res != TINF_DONE) break;
+      size_t got = d.dest - out;
+      if (got && Update.write(out, got) != got) { res = TINF_DATA_ERROR; break; }
+      esp_task_wdt_reset();                     // 🐕 не даём watchdog сработать
+      yield();
+    } while (res == TINF_OK);
+    ok = (res == TINF_DONE) && Update.end(true);
+    if (!ok) Update.abort();
+  } else {
+    LOG_E("OTA .gz: неверный gzip-заголовок или Update.begin");
+  }
+
+  LOG_W("OTA .gz: распаковка res=%d, итог=%s", res, ok ? "OK" : "FAIL");
+  g_gzSrc = nullptr;
+  free(dict);
+  return ok;
+}
+
+// ⏱️ Тик обработки отложенного .gz-OTA — вызывать в loop() (вне колбэка tick).
+void telegramGzOtaTick() {
+  if (!g_gzOtaPending) return;
+  g_gzOtaPending = false;
+  sendReconnectMessage(F("🗜️ Распаковываю и обновляю прошивку, подождите..."), g_gzOtaUser);
+  if (gzOtaFlash()) {
+    sendReconnectMessage(F("✅ Обновление применено, перезагрузка..."), g_gzOtaUser);
+    delay(500);
+    ESP.restart();
+  } else {
+    sendReconnectMessage(F("❌ Не удалось применить .gz. Пришлите обычный DripIrrigation.ino.bin"), g_gzOtaUser);
   }
 }
 
@@ -909,10 +999,19 @@ void newMsg(fb::Update& u) {
     if (msg.hasDocument() && check_user->role < 1) {
       fb::DocumentRead doc = msg.document();
       String fileName = doc.name().toString();
-      if (fileName == "DripIrrigation.ino.bin" || fileName == "DripIrrigation.ino.bin.gz") {
-        // 📥 Загружаем и обновляем прошивку
-        LOG_W("OTA: обновление прошивки от %s (%s)", username.c_str(), fileName.c_str());
+      if (fileName == "DripIrrigation.ino.bin") {
+        // 📥 Обычный бинарник — штатный OTA библиотеки (пишет во flash как есть)
+        LOG_W("OTA .bin от %s", username.c_str());
         bot.updateFlash(u.message().document(), u.message().chat().id());
+        return;
+      } else if (fileName == "DripIrrigation.ino.bin.gz") {
+        // 🗜️ Сжатый бинарник — запоминаем file_id, распаковку+прошивку сделает
+        // telegramGzOtaTick() из loop() (нельзя качать внутри колбэка tick).
+        LOG_W("OTA .gz от %s — запланирована распаковка", username.c_str());
+        doc.id().toString(g_gzOtaId);
+        g_gzOtaUser = userID;
+        g_gzOtaPending = true;
+        sendReconnectMessage(F("📥 Архив принят, начинаю обновление..."), userID);
         return;
       } else {
         sendReconnectMessage("⛔ Только владелец системы может отправлять обновления устройства", chatID);
