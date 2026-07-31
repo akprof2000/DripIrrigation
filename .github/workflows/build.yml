@@ -1,0 +1,84 @@
+name: build
+
+# 🏗️ Сборка прошивки в GitHub:
+#   • при каждом пуше в master и в pull request — проверка, что проект собирается
+#     (артефакт .bin можно скачать со страницы запуска);
+#   • при пуше тега vX.Y.Z — собранный .bin и .bin.gz автоматически прикрепляются
+#     к GitHub-релизу (файл DripIrrigation.ino.bin можно сразу слать боту для OTA).
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:  # ручной запуск из вкладки Actions
+
+permissions:
+  contents: write     # нужно для заливки бинарника в релиз
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core (pinned)
+        run: |
+          arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          # 📌 Ядро запиннуто: от него зависят схема разделов и совместимость OTA
+          arduino-cli core install esp32:esp32@3.3.10
+
+      - name: Install libraries
+        run: |
+          # Зависимости (GTL, GSON, GyverHTTP, StringUtils, Stamp, GyverGFX,
+          # SimpleVector) подтягиваются автоматически как зависимости FastBot2.
+          arduino-cli lib install \
+            "FastBot2" \
+            "GyverNTP" \
+            "GyverDS3231" \
+            "FileData" \
+            "CharDisplay" \
+            "PCF8574 library"
+
+      - name: Provide secrets.h (заглушка для сборки)
+        # 🔐 Реальный secrets.h не коммитится; для КОМПИЛЯЦИИ достаточно шаблона —
+        # рабочий токен в собранный бинарник не попадает, его вводит устройство.
+        run: cp secrets.example.h secrets.h
+
+      - name: Compile
+        run: |
+          arduino-cli compile --clean \
+            --fqbn esp32:esp32:esp32 \
+            --output-dir build \
+            "$GITHUB_WORKSPACE"
+          echo "--- собранные файлы ---"
+          ls -la build
+
+      - name: Prepare OTA artifacts
+        run: |
+          # Имя ДОЛЖНО быть DripIrrigation.ino.bin — по нему бот принимает OTA.
+          gzip -k -f build/DripIrrigation.ino.bin
+          ls -la build/DripIrrigation.ino.bin build/DripIrrigation.ino.bin.gz
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DripIrrigation-firmware
+          path: |
+            build/DripIrrigation.ino.bin
+            build/DripIrrigation.ino.bin.gz
+          if-no-files-found: error
+
+      - name: Attach binaries to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/DripIrrigation.ino.bin
+            build/DripIrrigation.ino.bin.gz
+          fail_on_unmatched_files: true
