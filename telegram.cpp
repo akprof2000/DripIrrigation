@@ -173,31 +173,53 @@ static bool   g_gzOtaPending = false;  // запланирована распа�
 static String g_gzOtaId;               // file_id принятого архива
 static String g_gzOtaUser;             // кому слать уведомления
 
-// 🔌 Источник сжатых данных для uzlib — читаем из HTTP-потока Telegram.
-static fb::Fetcher* g_gzSrc = nullptr;
-static uint8_t      g_gzInBuf[512];
+#define GZ_TMP_PATH "/update.gz"  // куда кладём архив на время обновления
+
+// 🔌 Источник сжатых данных для uzlib — читаем с SD-карты.
+//    Распаковка идёт НЕ из сети, а из файла: сетевой поток отдаёт байты рывками,
+//    и распаковщик ломается на паузах канала. Сначала архив целиком скачивается
+//    на карту штатным буферизованным writeTo() библиотеки, и только потом
+//    распаковывается — чтение с SD стабильно и не зависит от связи.
+static File    g_gzFile;
+static uint8_t g_gzInBuf[512];
 
 // uzlib в pull-модели дёргает этот колбэк за следующей порцией входа.
-// Возвращает первый байт и обновляет source/limit на остаток буфера (буферизация).
+// Возвращает первый байт и отдаёт остаток буфера через source/source_limit.
 static int gzReadCb(struct uzlib_uncomp* d) {
-  if (!g_gzSrc) return -1;
-  int n = g_gzSrc->readBytes((char*)g_gzInBuf, sizeof(g_gzInBuf));
-  if (n <= 0) return -1;  // EOF или обрыв
+  int n = g_gzFile.read(g_gzInBuf, sizeof(g_gzInBuf));
+  if (n <= 0) return -1;  // конец файла
   d->source = g_gzInBuf + 1;
   d->source_limit = g_gzInBuf + n;
   return g_gzInBuf[0];
 }
 
-// 🗜️ Скачать .gz по g_gzOtaId, распаковать и прошить. true — успех.
-// Безопасно: Update пишет в НЕАКТИВНЫЙ раздел и переключает загрузку только
-// при валидном образе — бажная распаковка приведёт к отказу OTA, а не к кирпичу.
-static bool gzOtaFlash() {
+// 📥 Этап 1: скачать архив с серверов Telegram на SD. Возвращает размер (0 — сбой).
+static size_t gzOtaDownload() {
   fb::Fetcher fetch = bot.downloadFile(g_gzOtaId.c_str());
-  if (!fetch) { LOG_E("OTA .gz: не удалось скачать файл"); return false; }
-  fetch.setTimeout(20000);  // терпимее к паузам мобильного канала
+  if (!fetch) { LOG_E("OTA .gz: сервер не отдал файл"); return 0; }
+  fetch.setTimeout(20000);          // терпимее к паузам мобильного канала
+  fetch.setBlockSize(1024);         // блок чтения крупнее дефолтных 128 Б
+
+  SD.remove(GZ_TMP_PATH);
+  File f = SD.open(GZ_TMP_PATH, FILE_WRITE);
+  if (!f) { LOG_E("OTA .gz: не создать %s на SD", GZ_TMP_PATH); return 0; }
+
+  size_t written = fetch.writeTo(f);  // штатный путь библиотеки с ожиданием данных
+  f.close();
+  esp_task_wdt_reset();
+  LOG_W("OTA .gz: скачано %u байт", (unsigned)written);
+  return written;
+}
+
+// 🗜️ Этап 2: распаковать архив с SD прямо во flash. true — образ принят.
+// Безопасно: Update пишет в НЕАКТИВНЫЙ раздел и переключает загрузку только
+// при валидном образе — сбой распаковки даёт отказ OTA, а не «кирпич».
+static bool gzOtaFlash(String& diag) {
+  g_gzFile = SD.open(GZ_TMP_PATH, FILE_READ);
+  if (!g_gzFile) { diag = F("не открыть архив на SD"); return false; }
 
   uint8_t* dict = (uint8_t*)malloc(32768);  // окно LZ (полный deflate)
-  if (!dict) { LOG_E("OTA .gz: нет памяти под словарь"); return false; }
+  if (!dict) { g_gzFile.close(); diag = F("нет памяти под словарь"); return false; }
   uint8_t out[2048];
 
   struct uzlib_uncomp d;
@@ -206,29 +228,44 @@ static bool gzOtaFlash() {
   d.source = NULL;
   d.source_limit = NULL;
   d.source_read_cb = gzReadCb;
-  g_gzSrc = &fetch;
 
   bool ok = false;
   int res = -1;
-  if (uzlib_gzip_parse_header(&d) == TINF_OK && Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
+  size_t total = 0;
+  int hdr = uzlib_gzip_parse_header(&d);
+
+  if (hdr != TINF_OK) {
+    diag = String(F("плохой gzip-заголовок (")) + hdr + ")";
+  } else if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
+    diag = String(F("Update.begin: ")) + Update.errorString();
+  } else {
     do {
       d.dest = d.dest_start = out;
       d.dest_limit = out + sizeof(out);
-      res = uzlib_uncompress_chksum(&d);       // распаковка + проверка CRC в конце
+      res = uzlib_uncompress_chksum(&d);       // распаковка + сверка CRC32 в конце
       if (res != TINF_OK && res != TINF_DONE) break;
       size_t got = d.dest - out;
-      if (got && Update.write(out, got) != got) { res = TINF_DATA_ERROR; break; }
+      if (got) {
+        if (Update.write(out, got) != got) { diag = String(F("Update.write: ")) + Update.errorString(); res = -100; break; }
+        total += got;
+      }
       esp_task_wdt_reset();                     // 🐕 не даём watchdog сработать
       yield();
     } while (res == TINF_OK);
-    ok = (res == TINF_DONE) && Update.end(true);
+
+    if (res == TINF_DONE) {
+      ok = Update.end(true);
+      if (!ok) diag = String(F("Update.end: ")) + Update.errorString();
+    } else if (!diag.length()) {
+      // -3 данные, -4 CRC не сошлась, -5 словарь
+      diag = String(F("распаковка прервана, код ")) + res;
+    }
     if (!ok) Update.abort();
-  } else {
-    LOG_E("OTA .gz: неверный gzip-заголовок или Update.begin");
   }
 
-  LOG_W("OTA .gz: распаковка res=%d, итог=%s", res, ok ? "OK" : "FAIL");
-  g_gzSrc = nullptr;
+  diag += String(F(", распаковано ")) + total + F(" Б");
+  LOG_W("OTA .gz: res=%d, распаковано %u, итог=%s", res, (unsigned)total, ok ? "OK" : "FAIL");
+  g_gzFile.close();
   free(dict);
   return ok;
 }
@@ -237,13 +274,28 @@ static bool gzOtaFlash() {
 void telegramGzOtaTick() {
   if (!g_gzOtaPending) return;
   g_gzOtaPending = false;
-  sendReconnectMessage(F("🗜️ Распаковываю и обновляю прошивку, подождите..."), g_gzOtaUser);
-  if (gzOtaFlash()) {
+
+  sendReconnectMessage(F("📥 Скачиваю архив на SD-карту..."), g_gzOtaUser);
+  size_t dl = gzOtaDownload();
+  if (!dl) {
+    SD.remove(GZ_TMP_PATH);
+    sendReconnectMessage(F("❌ Не удалось скачать архив. Пришлите обычный DripIrrigation.ino.bin"), g_gzOtaUser);
+    return;
+  }
+
+  sendReconnectMessage("🗜️ Скачано " + String(dl) + " Б, распаковываю и прошиваю...", g_gzOtaUser);
+  String diag;
+  bool ok = gzOtaFlash(diag);
+  SD.remove(GZ_TMP_PATH);  // архив больше не нужен в любом случае
+
+  if (ok) {
     sendReconnectMessage(F("✅ Обновление применено, перезагрузка..."), g_gzOtaUser);
     delay(500);
     ESP.restart();
   } else {
-    sendReconnectMessage(F("❌ Не удалось применить .gz. Пришлите обычный DripIrrigation.ino.bin"), g_gzOtaUser);
+    // 🔍 Диагностика в чат: логи в рабочей прошивке отключены, иначе причину не узнать
+    sendReconnectMessage("❌ Не удалось применить .gz: " + diag +
+                         "\nПришлите обычный DripIrrigation.ino.bin", g_gzOtaUser);
   }
 }
 
