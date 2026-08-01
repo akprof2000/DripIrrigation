@@ -119,6 +119,24 @@ static String chanLabel(int ind) {
   return String(ind + 1) + " (" + String(myConfig.chanel[ind].title) + ")";
 }
 
+// 📤 Тип присланного файла прошивки
+enum class OtaKind : uint8_t { None, Bin, Gz };
+
+// 📤 Распознать файл прошивки по имени.
+// Точное сравнение имён неудобно: Windows при повторном скачивании добавляет
+// « (2)» ПЕРЕД расширением, и получается «DripIrrigation.ino.bin (2).gz» или
+// «DripIrrigation.ino (2).bin». Поэтому смотрим на префикс (чтобы не прошить
+// случайный документ) и на расширение (оно и задаёт способ обновления).
+// Регистр игнорируем — некоторые клиенты меняют его при пересылке.
+static OtaKind otaKindOf(const String& fileName) {
+  String n = fileName;
+  n.toLowerCase();
+  if (!n.startsWith("dripirrigation")) return OtaKind::None;
+  if (n.endsWith(".gz")) return OtaKind::Gz;    // сжатый образ — распакуем сами
+  if (n.endsWith(".bin")) return OtaKind::Bin;  // обычный образ
+  return OtaKind::None;
+}
+
 // ============================================================
 // 🎹 Показ меню с учётом контекста (callback-кнопка или текст)
 // ============================================================
@@ -174,6 +192,7 @@ static String g_gzOtaId;               // file_id принятого архив�
 static String g_gzOtaUser;             // кому слать уведомления
 
 #define GZ_TMP_PATH "/update.gz"  // куда кладём архив на время обновления
+#define GZ_OTA_ATTEMPTS 3         // попыток скачать архив (сеть/память могут подвести)
 
 // 🔌 Источник сжатых данных для uzlib — читаем с SD-карты.
 //    Распаковка идёт НЕ из сети, а из файла: сетевой поток отдаёт байты рывками,
@@ -194,21 +213,35 @@ static int gzReadCb(struct uzlib_uncomp* d) {
 }
 
 // 📥 Этап 1: скачать архив с серверов Telegram на SD. Возвращает размер (0 — сбой).
+// Скачивание — самое хрупкое место: на TLS-хендшейк нужен крупный непрерывный
+// кусок памяти, а после долгой работы куча фрагментирована, и попытка может
+// сорваться (у библиотеки это видно как «OTA Fetch Error»). Поэтому пробуем
+// несколько раз с паузой — за это время память обычно освобождается.
 static size_t gzOtaDownload() {
-  fb::Fetcher fetch = bot.downloadFile(g_gzOtaId.c_str());
-  if (!fetch) { LOG_E("OTA .gz: сервер не отдал файл"); return 0; }
-  fetch.setTimeout(20000);          // терпимее к паузам мобильного канала
-  fetch.setBlockSize(1024);         // блок чтения крупнее дефолтных 128 Б
+  for (uint8_t attempt = 1; attempt <= GZ_OTA_ATTEMPTS; attempt++) {
+    fb::Fetcher fetch = bot.downloadFile(g_gzOtaId.c_str());
+    if (!fetch) {
+      LOG_W("OTA .gz: попытка %d — сервер не отдал файл (свободно %u Б)",
+            attempt, (unsigned)ESP.getFreeHeap());
+      delay(2000);
+      esp_task_wdt_reset();
+      continue;
+    }
+    fetch.setTimeout(20000);          // терпимее к паузам мобильного канала
+    fetch.setBlockSize(1024);         // блок чтения крупнее дефолтных 128 Б
 
-  SD.remove(GZ_TMP_PATH);
-  File f = SD.open(GZ_TMP_PATH, FILE_WRITE);
-  if (!f) { LOG_E("OTA .gz: не создать %s на SD", GZ_TMP_PATH); return 0; }
+    SD.remove(GZ_TMP_PATH);
+    File f = SD.open(GZ_TMP_PATH, FILE_WRITE);
+    if (!f) { LOG_E("OTA .gz: не создать %s на SD", GZ_TMP_PATH); return 0; }
 
-  size_t written = fetch.writeTo(f);  // штатный путь библиотеки с ожиданием данных
-  f.close();
-  esp_task_wdt_reset();
-  LOG_W("OTA .gz: скачано %u байт", (unsigned)written);
-  return written;
+    size_t written = fetch.writeTo(f);  // штатный путь библиотеки с ожиданием данных
+    f.close();
+    esp_task_wdt_reset();
+    LOG_W("OTA .gz: попытка %d — скачано %u байт", attempt, (unsigned)written);
+    if (written) return written;
+    delay(2000);                        // связь моргнула — пробуем ещё раз
+  }
+  return 0;
 }
 
 // 🗜️ Этап 2: распаковать архив с SD прямо во flash. true — образ принят.
@@ -279,7 +312,9 @@ void telegramGzOtaTick() {
   size_t dl = gzOtaDownload();
   if (!dl) {
     SD.remove(GZ_TMP_PATH);
-    sendReconnectMessage(F("❌ Не удалось скачать архив. Пришлите обычный DripIrrigation.ino.bin"), g_gzOtaUser);
+    sendReconnectMessage(F("❌ Не удалось скачать архив (связь или нехватка памяти).\n"
+                           "Попробуйте ещё раз, а если повторится — перезагрузите систему "
+                           "и повторите отправку."), g_gzOtaUser);
     return;
   }
 
@@ -1051,22 +1086,29 @@ void newMsg(fb::Update& u) {
     if (msg.hasDocument() && check_user->role < 1) {
       fb::DocumentRead doc = msg.document();
       String fileName = doc.name().toString();
-      if (fileName == "DripIrrigation.ino.bin") {
+      OtaKind kind = otaKindOf(fileName);
+      if (kind == OtaKind::Bin) {
         // 📥 Обычный бинарник — штатный OTA библиотеки (пишет во flash как есть)
-        LOG_W("OTA .bin от %s", username.c_str());
+        LOG_W("OTA .bin от %s (%s)", username.c_str(), fileName.c_str());
         bot.updateFlash(u.message().document(), u.message().chat().id());
         return;
-      } else if (fileName == "DripIrrigation.ino.bin.gz") {
+      } else if (kind == OtaKind::Gz) {
         // 🗜️ Сжатый бинарник — запоминаем file_id, распаковку+прошивку сделает
         // telegramGzOtaTick() из loop() (нельзя качать внутри колбэка tick).
-        LOG_W("OTA .gz от %s — запланирована распаковка", username.c_str());
+        LOG_W("OTA .gz от %s (%s) — запланирована распаковка", username.c_str(), fileName.c_str());
         doc.id().toString(g_gzOtaId);
         g_gzOtaUser = userID;
         g_gzOtaPending = true;
         sendReconnectMessage(F("📥 Архив принят, начинаю обновление..."), userID);
         return;
       } else {
-        sendReconnectMessage("⛔ Только владелец системы может отправлять обновления устройства", chatID);
+        // 🛡️ Имя файла — внешние данные, чистим спецсимволы HTML перед вставкой
+        String safeName = fileName;
+        safeName.replace("<", "‹");
+        safeName.replace(">", "›");
+        safeName.replace("&", "и");
+        sendReconnectMessage("❓ Это не похоже на прошивку: " + safeName +
+                             "\nЖду файл DripIrrigation.ino.bin или DripIrrigation.ino.bin.gz", chatID);
       }
     } else if (msg.hasDocument()) {
       sendReconnectMessage("⛔ Только владелец системы может отправлять обновления устройства", chatID);
