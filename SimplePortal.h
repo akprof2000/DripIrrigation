@@ -22,9 +22,14 @@ struct PortalCfg {
   char SSID[32] = "";           // 📡 Имя WiFi сети
   char pass[32] = "";           // 🔐 Пароль WiFi
   char tstr[32] = "";           // 🔐 Кодовое слово Telegram
+  char token[64] = "";          // 🤖 Токен бота (пусто = оставить прежний)
   wifi_mode_t mode = WIFI_AP;   // 📡 Режим: 1=WIFI_STA, 2=WIFI_AP
 };
 extern PortalCfg portalCfg;
+
+// 🤖 Известен ли системе токен бота — влияет на подсказки в форме:
+//    если известен, поле «Токен» можно оставить пустым (значение сохранится).
+extern bool portalTokenKnown;
 
 // 🚀 Запустить портал
 void portalStart();

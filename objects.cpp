@@ -18,6 +18,24 @@ FileData data(&SD, "/configuration.dat", 'B', &myConfig, sizeof(myConfig));
 // 🔐 Кодовое слово для первичной регистрации администратора (генерируется в портале)
 char tstr[32] = "";
 
+// 🤖 Действующий токен бота: берётся из EEPROM, а если там пусто — из secrets.h
+//    (см. systemInit). Позволяет публиковать универсальные бинарники без секретов.
+char botToken[BOT_TOKEN_LEN] = "";
+
+// ✅ Проверка «похоже на токен Telegram»: <цифры>:<буквы/цифры/-/_>.
+//    Отсекает и пустой EEPROM (нули/мусор), и заглушку PUT-YOUR-BOT-TOKEN-HERE.
+bool botTokenValid(const char* t) {
+  if (!t) return false;
+  size_t len = strnlen(t, BOT_TOKEN_LEN);
+  if (len < 20 || len >= BOT_TOKEN_LEN) return false;
+  const char* colon = strchr(t, ':');
+  if (!colon || colon == t) return false;
+  for (const char* p = t; p < colon; p++) {      // до двоеточия — только цифры (id бота)
+    if (*p < '0' || *p > '9') return false;
+  }
+  return (len - (colon - t) - 1) >= 10;          // после двоеточия — секретная часть
+}
+
 // 🔄 Флаг запроса на перезагрузку ESP (устанавливается через Telegram)
 bool res = false;
 

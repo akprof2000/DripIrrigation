@@ -48,6 +48,9 @@ select:focus,input:focus{border-color:var(--blue)}
 <input type="password" name="pass" id="pass" placeholder="Пароль сети" autocomplete="off">
 <button type="button" class="eye" onclick="tog()">👁</button>
 </div>
+<label>🤖 Токен Telegram-бота</label>
+<input type="text" name="token" placeholder="{tokenPlaceholder}" autocomplete="off">
+<div class="hint">Получите у @BotFather. {tokenHint}</div>
 <button class="btn btn-primary" type="submit">🔗 Подключить</button>
 </form>
 <div class="divider"></div>
@@ -66,6 +69,7 @@ function cp(b){var t=document.getElementById('uid').innerText;if(navigator.clipb
 static bool _SP_started = false;
 static byte _SP_status = 0;
 PortalCfg portalCfg;
+bool portalTokenKnown = false;
 
 const int MAX_UID = 30;
 
@@ -108,6 +112,13 @@ void spHandleConnect() {
   portalCfg.pass[sizeof(portalCfg.pass) - 1] = '\0';
   strncpy(portalCfg.tstr, t_str.c_str(), sizeof(portalCfg.tstr) - 1);
   portalCfg.tstr[sizeof(portalCfg.tstr) - 1] = '\0';
+
+  // 🤖 Токен бота: пустое поле = «оставить прежний», чтобы при повторной
+  //    настройке WiFi не пришлось вводить токен заново
+  String tok = _SP_server.arg("token");
+  tok.trim();
+  strncpy(portalCfg.token, tok.c_str(), sizeof(portalCfg.token) - 1);
+  portalCfg.token[sizeof(portalCfg.token) - 1] = '\0';
 
   portalCfg.mode = WIFI_STA;
   _SP_status = 1;
@@ -208,6 +219,12 @@ void portalRun(uint32_t prd) {
   t_str = generateUID();
   SP_connect_page.replace("{BoxItems}", data);
   SP_connect_page.replace("{textTelegramConnect}", t_str);
+  // 🤖 Подсказки по токену: если он уже сохранён, поле можно не заполнять
+  SP_connect_page.replace("{tokenPlaceholder}",
+                          portalTokenKnown ? "оставьте пустым — не менять" : "123456789:AAE...");
+  SP_connect_page.replace("{tokenHint}",
+                          portalTokenKnown ? "Токен уже сохранён — заполните, только если хотите его сменить."
+                                           : "Без токена бот не заработает.");
 
   portalStart();
   while (!portalTick()) {

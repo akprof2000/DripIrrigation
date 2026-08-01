@@ -182,6 +182,20 @@ void systemInit() {
 
   LOG_D("init_config = %d", init_config);
 
+  // 🤖 Токен бота: сперва из EEPROM, иначе — скомпилированный в secrets.h.
+  //    Такой порядок делает прошивку универсальной (готовый бинарник можно
+  //    публиковать без секретов) и при этом не ломает сборки со своим secrets.h.
+  EEPROM.get(EEPROM_TOKEN_ADDR, botToken);
+  botToken[BOT_TOKEN_LEN - 1] = '\0';
+  if (botTokenValid(botToken)) {
+    LOG_I("Токен бота загружен из EEPROM");
+  } else {
+    strncpy(botToken, BOT_TOKEN, BOT_TOKEN_LEN - 1);
+    botToken[BOT_TOKEN_LEN - 1] = '\0';
+    if (botTokenValid(botToken)) LOG_I("Токен бота взят из secrets.h");
+  }
+  portalTokenKnown = botTokenValid(botToken);  // 💬 подсказки в форме портала
+
   // 🆕 Первичная настройка через WiFi портал
   if (init_config == 0) {
     digitalWrite(LED_BUILTIN, HIGH);
@@ -202,6 +216,13 @@ void systemInit() {
       EEPROM.put(1 + 33 + 33, tstr);
       EEPROM.put(1 + 33 + 33 + 33, mode);
       EEPROM.put(250, 0);
+      // 🤖 Токен: пустое поле означает «оставить прежний»
+      if (botTokenValid(portalCfg.token)) {
+        strncpy(botToken, portalCfg.token, BOT_TOKEN_LEN - 1);
+        botToken[BOT_TOKEN_LEN - 1] = '\0';
+        EEPROM.put(EEPROM_TOKEN_ADDR, botToken);
+        LOG_I("Токен бота сохранён в EEPROM");
+      }
       EEPROM.commit();
       // 💾 Сохраняем логин-пароль
       digitalWrite(LED_BUILTIN, LOW);
@@ -214,6 +235,43 @@ void systemInit() {
   EEPROM.get(1 + 33, pass);
   EEPROM.get(1 + 33 + 33, tstr);
   EEPROM.get(1 + 33 + 33 + 33, mode);
+
+  // 🤖 Токена нет ни в EEPROM, ни в secrets.h (типичный случай — прошивка,
+  //    собранная в CI без секретов). Поднимаем портал ТОЛЬКО чтобы принять токен:
+  //    настройки WiFi, список пользователей и калибровки остаются нетронутыми,
+  //    и после ввода система продолжает загрузку с того же места.
+  if (!botTokenValid(botToken)) {
+    LOG_W("Токен бота не задан — портал для ввода токена (настройки сохраняются)");
+    digitalWrite(LED_BUILTIN, HIGH);
+    portalRun(180000);  // ⏱️ 3 минуты на ввод
+
+    if (portalStatus() == SP_SUBMIT) {
+      if (botTokenValid(portalCfg.token)) {
+        strncpy(botToken, portalCfg.token, BOT_TOKEN_LEN - 1);
+        botToken[BOT_TOKEN_LEN - 1] = '\0';
+        EEPROM.put(EEPROM_TOKEN_ADDR, botToken);
+        LOG_I("Токен бота принят и сохранён");
+      }
+      // 📡 Сеть меняем, только если её реально ввели — иначе работаем на прежней
+      if (strlen(portalCfg.SSID)) {
+        strcpy(SSID, portalCfg.SSID);
+        strcpy(pass, portalCfg.pass);
+        mode = portalCfg.mode;
+        EEPROM.put(1, SSID);
+        EEPROM.put(1 + 33, pass);
+        EEPROM.put(1 + 33 + 33 + 33, mode);
+        LOG_I("Заодно обновлены настройки WiFi: %s", SSID);
+      }
+      // 🔐 Кодовое слово обновляем (оно показано на странице). Список
+      //    пользователей НЕ трогаем — уже зарегистрированные останутся.
+      strcpy(tstr, portalCfg.tstr);
+      EEPROM.put(1 + 33 + 33, tstr);
+      EEPROM.commit();
+    } else {
+      LOG_W("Токен так и не введён — бот не запустится, полив продолжит работать");
+    }
+    digitalWrite(LED_BUILTIN, LOW);
+  }
 
   LOG_I("Подключение к WiFi: %s", SSID);
 

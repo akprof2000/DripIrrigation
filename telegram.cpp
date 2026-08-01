@@ -344,8 +344,13 @@ void loadUsers();
 // 🚀 Инициализация Telegram бота (FastBot2)
 // ============================================================
 void botInit() {
-  // 🔐 Устанавливаем токен бота
-  bot.setToken(BOT_TOKEN);
+  // 🔐 Токен берём из botToken — он уже разрешён в systemInit
+  //    (EEPROM → secrets.h → ввод через портал)
+  if (!botTokenValid(botToken)) {
+    LOG_E("Токен бота не задан — бот не запущен (полив работает автономно)");
+    return;
+  }
+  bot.setToken(botToken);
 
   // ⏭️ Пропускаем накопившиеся сообщения
   bot.skipUpdates();
