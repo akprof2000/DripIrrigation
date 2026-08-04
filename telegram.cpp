@@ -326,6 +326,11 @@ void telegramGzOtaTick() {
 
   if (ok) {
     sendReconnectMessage(F("✅ Обновление применено, перезагрузка..."), g_gzOtaUser);
+    // 📮 Обязательно ДО рестарта: иначе Telegram отдаст сообщение с архивом
+    //    снова, и устройство будет обновляться по кругу. Сохраняем позицию
+    //    очереди в EEPROM и подтверждаем её серверу запросом getUpdates.
+    telegramSaveUpdateOffset();
+    bot.tickManual();
     delay(500);
     ESP.restart();
   } else {
@@ -353,8 +358,22 @@ void botInit() {
   }
   bot.setToken(botToken);
 
-  // ⏭️ Пропускаем накопившиеся сообщения
-  bot.skipUpdates();
+  // ⏭️ Пропускаем накопившиеся сообщения.
+  //    Важно: skipUpdates(-1) очередь НЕ чистит — по API Telegram отрицательный
+  //    offset возвращает ПОСЛЕДНИЙ апдейт. После перезагрузки это ровно то
+  //    сообщение, что перезагрузку и вызвало (файл прошивки) — и обновление
+  //    зацикливалось. Поэтому продолжаем с сохранённой позиции очереди.
+  uint32_t savedOffset = 0;
+  EEPROM.begin(4096);
+  EEPROM.get(EEPROM_UPD_ID_ADDR, savedOffset);
+  EEPROM.end();
+
+  if (savedOffset && savedOffset != 0xFFFFFFFFul) {
+    bot.skipUpdates((int32_t)savedOffset);
+    LOG_I("Очередь Telegram: продолжаем с update_id %u", savedOffset);
+  } else {
+    bot.skipUpdates();  // 🆕 первый запуск — стандартное поведение
+  }
 
   // 📎 Подключаем обработчик входящих обновлений (FastBot2 стиль)
   bot.attachUpdate(newMsg);
@@ -390,6 +409,25 @@ void actionSet(String userID, int action) {
 // ============================================================
 // 📥 Загрузка списка пользователей из EEPROM при старте
 // ============================================================
+// 📮 Последний обработанный update_id (обновляется в newMsg)
+static uint32_t g_lastUpdateId = 0;
+
+// 📮 Сохранить позицию очереди Telegram перед перезагрузкой.
+//    Telegram считает апдейт доставленным только после запроса со следующим
+//    offset. При перезагрузке сразу после команды (особенно OTA) подтверждения
+//    не происходит, и сообщение приходит снова — обновление зацикливается.
+//    Сохранённая позиция восстанавливается в botInit.
+void telegramSaveUpdateOffset() {
+  if (!g_lastUpdateId) return;
+
+  uint32_t next = g_lastUpdateId + 1;
+  EEPROM.begin(4096);
+  EEPROM.put(EEPROM_UPD_ID_ADDR, next);
+  EEPROM.commit();
+  EEPROM.end();
+  LOG_I("Очередь Telegram: сохранена позиция %u", next);
+}
+
 // 🆘 Аварийное меню: единственное действие — перезагрузка. Показывается вместо
 //    обычного интерфейса, пока какая-то плата не отвечает.
 static void showFaultMenu(fb::Update& u, const String& userID) {
@@ -456,6 +494,10 @@ int search[NUM_CHANNELS] = { 0 };
 // 🤖 ГЛАВНЫЙ ОБРАБОТЧИК СООБЩЕНИЙ TELEGRAM (FastBot2)
 // ============================================================
 void newMsg(fb::Update& u) {
+  // 📮 Запоминаем позицию в очереди: пригодится, если обработка команды
+  //    закончится перезагрузкой (OTA, «Перезагрузка») — см. telegramSaveUpdateOffset
+  g_lastUpdateId = u.id();
+
   // 📥 Получаем объект сообщения из обновления
   fb::MessageRead msg = u.message();
 
@@ -1129,14 +1171,18 @@ void newMsg(fb::Update& u) {
       String fileName = doc.name().toString();
       OtaKind kind = otaKindOf(fileName);
       if (kind == OtaKind::Bin) {
-        // 📥 Обычный бинарник — штатный OTA библиотеки (пишет во flash как есть)
+        // 📥 Обычный бинарник — штатный OTA библиотеки (пишет во flash как есть).
+        //    Позицию очереди фиксируем ЗАРАНЕЕ: прошивку применяет и перезагружает
+        //    сама библиотека, и без этого после старта прилетит тот же файл.
         LOG_W("OTA .bin от %s (%s)", username.c_str(), fileName.c_str());
+        telegramSaveUpdateOffset();
         bot.updateFlash(u.message().document(), u.message().chat().id());
         return;
       } else if (kind == OtaKind::Gz) {
         // 🗜️ Сжатый бинарник — запоминаем file_id, распаковку+прошивку сделает
         // telegramGzOtaTick() из loop() (нельзя качать внутри колбэка tick).
         LOG_W("OTA .gz от %s (%s) — запланирована распаковка", username.c_str(), fileName.c_str());
+        telegramSaveUpdateOffset();  // 📮 чтобы архив не пришёл повторно после рестарта
         doc.id().toString(g_gzOtaId);
         g_gzOtaUser = userID;
         g_gzOtaPending = true;
