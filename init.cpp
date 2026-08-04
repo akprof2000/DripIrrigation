@@ -7,7 +7,14 @@
 #include "objects.h"
 #include "telegram.h"
 #include "log.h"
+#include "faults.h"
 #include <SD.h>
+
+// 💾 Монтирование SD: сколько раз пробуем и с какой паузой. Ограниченное
+//    число попыток вместо бесконечного ожидания — загрузка обязана дойти
+//    до бота, иначе об аварии некому сообщить.
+#define SD_INIT_ATTEMPTS  3
+#define SD_INIT_RETRY_MS  300
 
 // 📡 WiFi настройки
 char SSID[32] = "";
@@ -309,48 +316,67 @@ void systemInit() {
 
 
 
-  // 💾 Инициализация SD-карты
-  while (!SD.begin(5)) {
-    delay(1000);
-    LOG_E("SD: монтирование не удалось — повтор");
+  // 💾 Инициализация SD-карты — неблокирующая.
+  //    Раньше здесь был бесконечный `while (!SD.begin(5))`: без карты прошивка
+  //    зависала навсегда ещё до старта бота, и увидеть причину можно было только
+  //    по кабелю. Теперь делаем ограниченное число попыток и идём дальше —
+  //    неисправность попадёт в чат, а бот перейдёт в аварийный режим.
+  bool sdOk = false;
+  for (int attempt = 1; attempt <= SD_INIT_ATTEMPTS; attempt++) {
+    if (SD.begin(5)) {
+      sdOk = true;
+      break;
+    }
+    LOG_E("SD: монтирование не удалось (попытка %d из %d)", attempt, SD_INIT_ATTEMPTS);
+    delay(SD_INIT_RETRY_MS);
   }
 
-  uint8_t cardType = SD.cardType();
+  uint8_t cardType = sdOk ? SD.cardType() : CARD_NONE;
+  cd_card = sdOk && cardType != CARD_NONE;
 
-  if (cardType == CARD_NONE) {
-    LOG_E("SD-карта не подключена");
-    return;
+  if (!sdOk) {
+    hwSetFault(HW_SD, "не удалось смонтировать");
+  } else if (cardType == CARD_NONE) {
+    hwSetFault(HW_SD, "карта не вставлена");
+  } else {
+    const char* ct = (cardType == CARD_MMC)  ? "MMC"
+                   : (cardType == CARD_SD)   ? "SDSC"
+                   : (cardType == CARD_SDHC) ? "SDHC"
+                                             : "UNKNOWN";
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    LOG_I("SD-карта: %s, %llu МБ", ct, cardSize);
   }
-
-  const char* ct = (cardType == CARD_MMC)  ? "MMC"
-                 : (cardType == CARD_SD)   ? "SDSC"
-                 : (cardType == CARD_SDHC) ? "SDHC"
-                                           : "UNKNOWN";
-  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-  LOG_I("SD-карта: %s, %llu МБ", ct, cardSize);
 
   // 📖 Читаем конфигурацию с SD-карты.
   // addWithoutWipe: если структура Config выросла (добавлено поле в конец), старые
   // поля дочитываются по прежним смещениям, а новые получают значение по умолчанию —
   // настройки переживают обновление прошивки без сброса.
-  data.addWithoutWipe(true);
-  FDstat_t stat = data.read();
+  //
+  // Без карты читать нечего: остаёмся на значениях по умолчанию. Раньше в этом
+  // месте стоял `return`, и молча пропускались flowInit() и раскладка калибровок
+  // по каналам — то есть система доходила до loop() полунастроенной.
+  if (cd_card) {
+    data.addWithoutWipe(true);
+    FDstat_t stat = data.read();
 
-  switch (stat) {
-    case FD_FS_ERR:   LOG_E("Конфиг: ошибка файловой системы"); break;
-    case FD_FILE_ERR: LOG_E("Конфиг: ошибка файла"); break;
-    case FD_WRITE:    LOG_D("Конфиг: записан"); break;
-    case FD_ADD:      LOG_D("Конфиг: создан файл по умолчанию"); break;
-    case FD_READ:     LOG_D("Конфиг: прочитан с SD"); break;
-    default: break;
-  }
+    switch (stat) {
+      case FD_FS_ERR:   LOG_E("Конфиг: ошибка файловой системы"); break;
+      case FD_FILE_ERR: LOG_E("Конфиг: ошибка файла"); break;
+      case FD_WRITE:    LOG_D("Конфиг: записан"); break;
+      case FD_ADD:      LOG_D("Конфиг: создан файл по умолчанию"); break;
+      case FD_READ:     LOG_D("Конфиг: прочитан с SD"); break;
+      default: break;
+    }
 
-  // 🔐 Проверка сигнатуры/версии: если файл чужой/устаревший — сбрасываем в дефолты,
-  // а не работаем на «мусоре». FileData уже защищает по размеру, это — доп. страховка.
-  if (myConfig.magic != CONFIG_MAGIC || myConfig.version != CONFIG_VERSION) {
-    LOG_W("Config magic/version не совпал — сброс настроек в значения по умолчанию");
-    myConfig = Config();      // свежие дефолты (magic/version проставляются конструктором)
-    data.updateNow();
+    // 🔐 Проверка сигнатуры/версии: если файл чужой/устаревший — сбрасываем в дефолты,
+    // а не работаем на «мусоре». FileData уже защищает по размеру, это — доп. страховка.
+    if (myConfig.magic != CONFIG_MAGIC || myConfig.version != CONFIG_VERSION) {
+      LOG_W("Config magic/version не совпал — сброс настроек в значения по умолчанию");
+      myConfig = Config();      // свежие дефолты (magic/version проставляются конструктором)
+      data.updateNow();
+    }
+  } else {
+    LOG_W("Конфиг не прочитан (нет SD) — значения по умолчанию");
   }
 
     // 💧 Инициализация датчика потока воды (пин 27)

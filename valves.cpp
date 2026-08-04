@@ -4,6 +4,11 @@
 #include <PCF8574.h>
 #include "objects.h"
 #include "log.h"
+#include "faults.h"  // 🩺 регистрация аварии, если плата не отвечает
+
+// 🔁 Попытки поднять плату клапанов при старте (неблокирующе)
+#define PCF_INIT_ATTEMPTS 3
+#define PCF_INIT_RETRY_MS 300
 
 // 🔌 Экземпляр расширителя портов PCF8574 (адрес 0x20)
 PCF8574 pcf8574(0x20);
@@ -39,10 +44,20 @@ void valvesInit() {
   pcf8574.pinMode(P6, OUTPUT);
   pcf8574.pinMode(P7, OUTPUT);
 
-  if (pcf8574.begin() == 1) {
+  // 🔌 Неблокирующая инициализация: несколько попыток и идём дальше. Без платы
+  //    клапанами управлять нечем, поэтому отмечаем аварию — бот сообщит о ней
+  //    в чат и свернётся до кнопки перезагрузки.
+  bool ok = false;
+  for (int attempt = 1; attempt <= PCF_INIT_ATTEMPTS; attempt++) {
+    if (pcf8574.begin() == 1) { ok = true; break; }
+    LOG_E("PCF8574 не отвечает (попытка %d из %d)", attempt, PCF_INIT_ATTEMPTS);
+    delay(PCF_INIT_RETRY_MS);
+  }
+
+  if (ok) {
     LOG_I("Клапаны (PCF8574) инициализированы");
   } else {
-    LOG_E("PCF8574 не отвечает — клапаны недоступны");
+    hwSetFault(HW_VALVES, "не отвечает на шине I2C");
   }
 }
 

@@ -20,7 +20,7 @@
 //    NONE: логи полностью вырезаны компилятором (нет Serial-вывода, меньше флеш).
 //    Для отладки на стенде поставь LOG_LEVEL_DEBUG/INFO и пересобери.
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_NONE  
+#define LOG_LEVEL LOG_LEVEL_ERROR
 #endif
 
 // 📤 Печать одной строки лога: [чч:мм:сс] <тег> сообщение

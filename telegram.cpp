@@ -10,6 +10,7 @@
 #include <EEPROM.h>
 #include "valves.h"
 #include "version.h"       // 🏷️ FW_VERSION — версия прошивки в стартовом сообщении
+#include "faults.h"        // 🩺 аварийный режим при неисправном оборудовании
 #include <Update.h>        // 📤 OTA-запись во flash (для распаковки .gz на лету)
 #include <esp_task_wdt.h>  // 🐕 сброс watchdog во время долгой распаковки
 #include "uzlib.h"         // 🗜️ потоковая распаковка gzip (vendored, zlib-лицензия)
@@ -389,9 +390,44 @@ void actionSet(String userID, int action) {
 // ============================================================
 // 📥 Загрузка списка пользователей из EEPROM при старте
 // ============================================================
+// 🆘 Аварийное меню: единственное действие — перезагрузка. Показывается вместо
+//    обычного интерфейса, пока какая-то плата не отвечает.
+static void showFaultMenu(fb::Update& u, const String& userID) {
+  fb::InlineKeyboard menu;
+  menu.addButton("🔄 Перезагрузка", "/Restart", fb::KeyStyle::Danger);
+  showMenu(u, userID, hwFaultReport(), menu);
+}
+
+// 📨 Разослать отчёт об авариях всем пользователям (один раз на поломку)
+void hwReportToChat() {
+  if (!hwHasFault() || hwReportSent()) return;
+
+  String report = hwFaultReport();
+  for (uint8_t i = 0; i < userCount; i++) {
+    fb::InlineKeyboard menu;
+    menu.addButton("🔄 Перезагрузка", "/Restart", fb::KeyStyle::Danger);
+
+    fb::Message msg;
+    msg.text = report;
+    msg.chatID = users[i].userID;
+    msg.setModeHTML();
+    msg.setKeyboard(&menu);
+    bot.sendMessage(msg);
+  }
+  hwMarkReportSent();
+  LOG_W("Отчёт об авариях отправлен в чат");
+}
+
 void loadUsers() {
   loadUsersData();  // 📥 данные грузим из EEPROM (модуль users)
   LOG_D("Рассылка стартового меню: %d польз.", userCount);
+
+  // 🆘 Железо не в порядке — вместо обычного приветствия шлём отчёт об авариях
+  //    с единственной кнопкой перезагрузки.
+  if (hwHasFault()) {
+    hwReportToChat();
+    return;
+  }
 
   // 🎹 Каждому загруженному пользователю — приветствие с версией прошивки и меню.
   //    Версия в старте позволяет убедиться, что OTA действительно применилась.
@@ -1123,6 +1159,16 @@ void newMsg(fb::Update& u) {
     // 📋 ОБРАБОТКА КОМАНД (начинающихся с /)
     // ============================================================
     if (command[0] == '/') {
+      // 🆘 Аварийный режим: пока плата не отвечает, обычный интерфейс скрыт.
+      //    Управлять поливом и менять настройки с неисправным железом нельзя,
+      //    поэтому на любую команду показываем отчёт и одну кнопку «Перезагрузка».
+      //    Пропускаем сам /Restart (иначе перезагрузиться было бы нечем) и OTA —
+      //    неисправность может лечиться новой прошивкой.
+      if (hwHasFault() && command != "/Restart") {
+        showFaultMenu(u, userID);
+        return;
+      }
+
       // 👑 Команды только для владельца (role == 0)
       if (check_user->role == 0) {
         // (в данной версии нет специфичных команд только для владельца)
