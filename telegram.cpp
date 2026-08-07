@@ -1774,9 +1774,27 @@ void newMsg(fb::Update& u) {
         String flowMsg = String("💧 <b>Расход воды</b>\n\n");
         flowMsg = flowMsg + String("📟 За текущую сессию полива: ") + String(flowGetSessionLiters(), 3) + String(" л\n");
         flowMsg = flowMsg + String("📊 Общий расход за все время: ") + String(flowGetTotalLiters(), 3) + String(" л\n");
-        flowMsg = flowMsg + String("🔄 Импульсов датчика: ") + String(flowPulseCount) + String(" шт.");
-        
-       
+        flowMsg = flowMsg + String("🔄 Импульсов датчика: ") + String(flowPulseCount) + String(" шт.\n");
+
+        // 🩺 Диагностика датчика: при капельном поливе расход может быть ниже порога
+        // страгивания крыльчатки — тогда импульсов нет вовсе и это надо видеть явно,
+        // а не гадать по нулевым литрам (нулевые литры бывают и при закрытых клапанах).
+        flowMsg = flowMsg + String("\n🩺 <b>Диагностика датчика</b>\n");
+        unsigned long silence = flowMsSinceLastPulse();
+        if (silence == 0xFFFFFFFFUL) {
+          flowMsg = flowMsg + String("⚠️ Импульсов не было ни разу с момента включения\n");
+        } else {
+          flowMsg = flowMsg + String("⏱️ Последний импульс: ") + String(silence / 1000.0, 1) + String(" с назад\n");
+        }
+        float inst = flowInstantRate();
+        flowMsg = flowMsg + String("📟 Мгновенный поток: ") + String(inst, 3) + String(" л/мин");
+        if (inst > 0.0) {
+          flowMsg = flowMsg + String(" (") + String(inst * 1000.0 / 60.0, 0) + String(" мл/с)");
+        }
+        flowMsg = flowMsg + String("\n📉 Порог датчика: ") + String(FLOW_PULSES_PER_LITER, 0) + String(" имп./л");
+        flowMsg = flowMsg + String("\n🚰 Открытых клапанов: ") + String(countValveOpen());
+
+
         fb::InlineKeyboard menu;
         menu.addButton("🗑️ Стереть данные пролива", "/WaterSpillage", fb::KeyStyle::Danger);
         

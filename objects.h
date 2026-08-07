@@ -122,6 +122,12 @@ extern unsigned long pumpStart;  // ⏱️ millis() запуска насоса 
 extern byte oldMode[NUM_CHANNELS]; // 🚰 Предыдущие состояния клапанов (для отслеживания изменений)
 extern bool fillActive;       // 🚰 идёт неблокирующий импульс заливки бака (определён в .ino)
 
+// 🔧 Калибровочный коэффициент: импульсов на 1 литр
+// Для YF-S201 ≈ 450 имп/л (рабочий диапазон 1–30 л/мин), для YF-S402 ≈ 980 имп/л
+// (от 0.3 л/мин). При капельном поливе (<0.1 л/мин на канал) YF-S201 может вообще
+// не страгиваться — проверять по «🩺 Диагностика датчика» в /WaterFlow.
+#define FLOW_PULSES_PER_LITER 450.0
+
 // 💧 Переменные для замера расхода воды через датчик потока
 extern volatile unsigned long flowPulseCount;   // 🔄 Счётчик импульсов датчика потока (volatile — обновляется в ISR)
 extern unsigned long flowLastSessionPulses;     // 📝 Импульсы за предыдущую сессию
@@ -134,6 +140,8 @@ float flowGetTotalLiters();   // 📊 Получить общий расход
 void flowAddToTotal();        // ➕ Перенести расход сессии в общий счётчик
 void flowGetSessionLitersTick();     // ⏱️ обработка литров по таймеру
 void clearDataFlow();
+float flowInstantRate();          // 🩺 мгновенная скорость по интервалу между импульсами (л/мин)
+unsigned long flowMsSinceLastPulse();  // 🩺 мс с последнего импульса (0xFFFFFFFF = импульсов не было)
 
 // 🧽 Контроль засора фильтра по скорости потока
 void  flowMonitorTick();          // ⏱️ вызывать в каждом loop()
