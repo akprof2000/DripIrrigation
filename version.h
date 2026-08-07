@@ -3,4 +3,4 @@
 // Значение уходит в чат при старте системы — так видно, применилась ли OTA.
 #pragma once
 
-#define FW_VERSION "1.9.2"
+#define FW_VERSION "1.9.3"
