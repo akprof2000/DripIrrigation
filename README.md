@@ -1,9 +1,9 @@
 # 🌱 Капельный полив на ESP32
 
 [![CI](https://github.com/akprof2000/DripIrrigation/actions/workflows/build.yml/badge.svg)](https://github.com/akprof2000/DripIrrigation/actions/workflows/build.yml)
-[![Релиз](https://img.shields.io/github/v/release/akprof2000/DripIrrigation?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=success)](https://github.com/akprof2000/DripIrrigation/releases/latest)
-[![Загрузки](https://img.shields.io/github/downloads/akprof2000/DripIrrigation/total?label=%D0%B7%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B8&color=blueviolet)](https://github.com/akprof2000/DripIrrigation/releases)
-[![Лицензия](https://img.shields.io/github/license/akprof2000/DripIrrigation?label=%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F&color=green)](LICENSE)
+[![Релиз](https://img.shields.io/github/v/release/akprof2000/DripIrrigation?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=success&cacheSeconds=3600)](https://github.com/akprof2000/DripIrrigation/releases/latest)
+[![Загрузки](https://img.shields.io/github/downloads/akprof2000/DripIrrigation/total?label=%D0%B7%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B8&color=blueviolet&cacheSeconds=3600)](https://github.com/akprof2000/DripIrrigation/releases)
+[![Лицензия](https://img.shields.io/github/license/akprof2000/DripIrrigation?label=%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F&color=green&cacheSeconds=3600)](LICENSE)
 
 ![Platform](https://img.shields.io/badge/platform-ESP32-blue)
 ![Framework](https://img.shields.io/badge/framework-Arduino-00979D)
