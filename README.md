@@ -435,4 +435,9 @@
 
 ## Лицензия
 
-[GPL-3.0](LICENSE)
+[WTFPL 2.0](LICENSE) — делайте с этим кодом что хотите, без каких-либо условий.
+
+Исключение: файлы `uzlib.h`, `tinflate.c`, `tinfgzip.c`, `crc32.c`, `adler32.c`,
+`defl_static.h`, `tinf.h`, `tinf_compat.h`, `uzlib_conf.h` — это стороннее
+заимствование ([uzlib](https://github.com/pfalcon/uzlib)) и они остаются под
+своей zlib-лицензией; уведомления об авторстве в них сохранены.
