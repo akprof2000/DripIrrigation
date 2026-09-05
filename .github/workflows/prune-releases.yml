@@ -1,0 +1,41 @@
+name: Prune releases
+
+# Хранить только KEEP последних релизов: после каждого релизного workflow,
+# раз в неделю и по кнопке удаляются более старые релизы. Черновики не
+# трогаются. Теги остаются (DELETE_TAGS: "true" — удалять и их).
+on:
+  workflow_run:
+    workflows: ["build"]
+    types: [completed]
+  schedule:
+    - cron: "37 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep only the newest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP: 3
+          DELETE_TAGS: "false"
+        run: |
+          set -e
+          gh api "repos/$REPO/releases?per_page=100" --paginate \
+            --jq '.[] | select(.draft | not) | "\(.published_at // .created_at)\t\(.id)\t\(.tag_name)"' \
+          | sort -r | tail -n +$((KEEP + 1)) \
+          | while IFS=$'\t' read -r date id tag; do
+              gh api -X DELETE "repos/$REPO/releases/$id"
+              echo "deleted release $tag ($date)"
+              if [ "$DELETE_TAGS" = "true" ]; then
+                gh api -X DELETE "repos/$REPO/git/refs/tags/$tag"
+                echo "deleted tag $tag"
+              fi
+            done
+          echo "kept:"
+          gh api "repos/$REPO/releases?per_page=$KEEP" --jq '.[] | "  \(.tag_name)  \(.published_at)"'
