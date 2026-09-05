@@ -75,6 +75,7 @@ jobs:
             build/DripIrrigation.ino.bin
             build/DripIrrigation.ino.bin.gz
           if-no-files-found: error
+          retention-days: 1
 
       - name: Attach binaries to release
         if: startsWith(github.ref, 'refs/tags/v')
