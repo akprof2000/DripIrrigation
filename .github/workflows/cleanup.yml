@@ -1,0 +1,36 @@
+name: Cleanup
+
+# Ничего не хранить в Actions: раз в сутки удаляются артефакты, кэши и
+# журналы всех запусков старше 1 дня (сами релизы с бинарниками остаются).
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts, caches and old workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          echo "artifacts:"
+          for id in $(gh api "repos/$REPO/actions/artifacts?per_page=100" --paginate --jq '.artifacts[].id'); do
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && echo "  deleted $id"
+          done
+          echo "caches:"
+          for id in $(gh api "repos/$REPO/actions/caches?per_page=100" --paginate --jq '.actions_caches[].id'); do
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" && echo "  deleted $id"
+          done
+          echo "workflow runs older than 1 day:"
+          cutoff=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
+          for id in $(gh api "repos/$REPO/actions/runs?per_page=100&created=<$cutoff" --paginate --jq '.workflow_runs[] | select(.status != "in_progress" and .status != "queued") | .id'); do
+            gh api -X DELETE "repos/$REPO/actions/runs/$id" && echo "  deleted run $id"
+          done
