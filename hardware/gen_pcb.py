@@ -415,8 +415,17 @@ def flush(run, w, nid):
             pts[-1] = c
         else:
             pts.append(c)
-    for a_, b_ in zip(pts, pts[1:]):
+    def snap(c):
+        # конец дорожки на площадке своей цепи ведём в её точный центр, а не в узел сетки
+        x, y = pos(c)
+        for (hx, hy, _, hr, hn) in _near_holes(c, 1):
+            if hn == nid and (hx - x) ** 2 + (hy - y) ** 2 <= (hr * 0.7) ** 2:
+                return hx, hy
+        return x, y
+    for i_, (a_, b_) in enumerate(zip(pts, pts[1:])):
         (x1, y1), (x2, y2) = pos(a_), pos(b_)
+        if i_ == 0: x1, y1 = snap(a_)
+        if i_ == len(pts) - 2: x2, y2 = snap(b_)
         segments.append((x1, y1, x2, y2, w, L, nid))
 
 def netlen(net):
@@ -514,6 +523,12 @@ for i, t in enumerate(['DRILL: TERM 1.3  FUSE/D2 1.5', 'HDR/DCDC/BTN 1.0  C1 1.1
     out.append(gr_text(t, 40, 88.5 + i * 1.6, 1.0))
 out.append(gr_text('3V3', 11.4, 82.0, 1.2))
 out.append(gr_text('5V', 24.2, 82.0, 1.2))
+# полярность клемм: квадратная площадка = вывод 1
+for ref, plus, minus in [('J1', '+12', 'GND'), ('J3', '+12', 'GND'), ('J4', '+12', 'GND'), ('J6', '+5', 'GND'), ('J7', '+5', 'GND'), ('J5', '+5', 'GND')]:
+    p1 = next(p_ for p_ in pads if p_['ref'] == ref and p_['pin'] == '1')
+    p2 = next(p_ for p_ in pads if p_['ref'] == ref and p_['pin'] == '2')
+    out.append(gr_text(plus, p1['x'], p1['y'] + 5.4, 0.9))
+    out.append(gr_text(minus, p2['x'], p2['y'] + 5.4, 0.9))
 # полярность: плюс электролитов, катод диода, выводы DC-DC
 for t, x, y in [('+', 54.5, 14.2), ('+', 78.75, 16.8), ('+', 98.75, 16.8), ('G', 38.92, 17.6), ('S', 49.08, 17.6), ('TVS', 143.0, 39.0),
                 ('IN', 67.46, 17.6), ('OUT', 72.54, 17.6), ('IN', 87.46, 17.6), ('OUT', 92.54, 17.6)]:
@@ -576,7 +591,10 @@ def render(side, path):
     comp_x = {c_['ref']: c_['x'] for c_ in COMPONENTS}
     for p in pads:
         r = p['size'] / 2 * S
-        o.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#D4AF37" stroke="#5D4037" stroke-width="0.6"/>' % (X(p['x']), Y(p['y']), r))
+        if p['shape'] == 'rect':   # квадратная площадка = вывод 1 (плюс, VCC, DO и т.п.)
+            o.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#D4AF37" stroke="#5D4037" stroke-width="0.6"/>' % (X(p['x']) - r, Y(p['y']) - r, 2 * r, 2 * r))
+        else:
+            o.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#D4AF37" stroke="#5D4037" stroke-width="0.6"/>' % (X(p['x']), Y(p['y']), r))
         o.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#1B5E20"/>' % (X(p['x']), Y(p['y']), p['drill'] / 2 * S))
         if p['ref'] == 'U1' and side == 'top':
             left = p['x'] < comp_x[p['ref']]
