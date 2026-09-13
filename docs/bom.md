@@ -47,7 +47,7 @@
 | 24 | J7, J10, S1–S8 | клеммник 3P | 10 | шаг 5,08 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+3P) |
 | 25 | J5 | клеммник 4P | 1 | шаг 5,08 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+4P) |
 | 26 | J6 | клеммник 10P | 1 | шаг 5,08 мм; можно 5 шт. 2P | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+10P) |
-| 27 | F1, F2 | держатель предохранителя на плату | 2 | 5×20 мм, расстояние между выводами 22 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=5x20+PCB+fuse+holder) |
+| 27 | F1, F2 | держатель предохранителя на плату | 2 | вариант «5x20mm», 2PCS; выводы через 22 мм | [товар](https://aliexpress.ru/item/1005003003740005.html?sku_id=12000023167893560) |
 | 28 | F1, F2 | предохранители 5×20 | по 1 | 5 А и 3 А (лучше набор) | [поиск](https://aliexpress.ru/wholesale?SearchText=fuse+5x20+kit) |
 | 29 | Q1 | P-MOSFET IRF4905 | 1 | корпус TO-220, 55 В, Rds ≤ 0,02 Ом | [поиск](https://aliexpress.ru/wholesale?SearchText=IRF4905+TO-220) |
 | 29а | D2 | TVS-диод P6KE18CA | 1 | двунаправленный (буквы CA), 18 В, корпус DO-15 | [поиск](https://aliexpress.ru/wholesale?SearchText=P6KE18CA) |
