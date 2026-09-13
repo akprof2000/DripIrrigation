@@ -21,18 +21,18 @@
 <rect x="935" y="162" width="164" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
 <text x="1017" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">SD шилд D1 mini</text>
 <text x="1017" y="210" font-size="11" fill="#455A64" text-anchor="middle">гнездо 2×(1×8)</text>
-<rect x="340" y="242" width="170" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
-<text x="425" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 12→5 В</text>
-<text x="425" y="290" font-size="11" fill="#455A64" text-anchor="middle">корпус TO-220, 3 pin</text>
-<rect x="522" y="242" width="170" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
-<text x="607" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 5→3,3 В</text>
-<text x="607" y="290" font-size="11" fill="#455A64" text-anchor="middle">корпус TO-220, 3 pin</text>
-<rect x="704" y="242" width="146" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
-<text x="778" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Кнопка сброса</text>
-<text x="778" y="290" font-size="11" fill="#455A64" text-anchor="middle">тактовая 6×6</text>
-<rect x="863" y="242" width="279" height="58" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
-<text x="1003" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Защита входа</text>
-<text x="1003" y="290" font-size="11" fill="#455A64" text-anchor="middle">F1 5 А · F2 3 А · MOSFET Q1 · TVS D2</text>
+<rect x="340" y="242" width="138" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="409" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 12→5 В</text>
+<text x="409" y="290" font-size="11" fill="#455A64" text-anchor="middle">TO-220, 3 pin</text>
+<rect x="490" y="242" width="146" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="563" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 5→3,3 В</text>
+<text x="563" y="290" font-size="11" fill="#455A64" text-anchor="middle">TO-220, 3 pin</text>
+<rect x="649" y="242" width="146" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="722" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Кнопка сброса</text>
+<text x="722" y="290" font-size="11" fill="#455A64" text-anchor="middle">тактовая 6×6</text>
+<rect x="807" y="242" width="211" height="58" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="913" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Защита входа</text>
+<text x="913" y="290" font-size="11" fill="#455A64" text-anchor="middle">F1 5 А · F2 3 А · Q1 · TVS</text>
 <rect x="340" y="322" width="720" height="57" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
 <text x="700" y="347" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Паяется на плату</text>
 <text x="700" y="369" font-size="11" fill="#455A64" text-anchor="middle">держатели предохранителей, MOSFET, TVS, 6 конденсаторов, 11 резисторов, кнопка, штыри, гнёзда, панельки, клеммники</text>

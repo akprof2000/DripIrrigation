@@ -79,9 +79,10 @@ for key, t, ln, col in [('esp', 'ESP32 DevKitC 38', ['гнездо 2×(1×19)'],
     b = c.box(key, x, y, t, ln, *col, tsize=14, lsize=11); x += b[2] + 12
 # ряд 2
 x = PX + 20; y += 80
-for key, t, ln, col in [('dc5', 'DC-DC 12→5 В', ['корпус TO-220, 3 pin'], PINK), ('dc3', 'DC-DC 5→3,3 В', ['корпус TO-220, 3 pin'], PINK),
-                        ('btn', 'Кнопка сброса', ['тактовая 6×6'], BLUE), ('fuse', 'Защита входа', ['F1 5 А · F2 3 А · MOSFET Q1 · TVS D2'], GREY)]:
+for key, t, ln, col in [('dc5', 'DC-DC 12→5 В', ['TO-220, 3 pin'], PINK), ('dc3', 'DC-DC 5→3,3 В', ['TO-220, 3 pin'], PINK),
+                        ('btn', 'Кнопка сброса', ['тактовая 6×6'], BLUE), ('fuse', 'Защита входа', ['F1 5 А · F2 3 А · Q1 · TVS'], GREY)]:
     b = c.box(key, x, y, t, ln, *col, tsize=14, lsize=11); x += b[2] + 12
+assert x - 12 <= PX + PW - 20, 'ряд 2 шире платы: %d' % x
 # ряд 3: паяемое
 y += 80
 c.box('solder', PX + 20, y, 'Паяется на плату', ['держатели предохранителей, MOSFET, TVS, 6 конденсаторов, 11 резисторов, кнопка, штыри, гнёзда, панельки, клеммники'],
