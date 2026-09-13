@@ -52,7 +52,7 @@
 | 29 | Q1 | P-MOSFET IRF4905 | 1 | вариант **IRF4905** (выбран в ссылке), лот 10 шт.; корпус TO-220 | [товар](https://aliexpress.ru/item/1005009078862102.html?sku_id=12000047836545481) |
 | 29а | D2 | TVS-диод P6KE18CA | 1 | вариант **P6KE18CA** (выбран в ссылке), лот 50 шт.; двунаправленный, буквы CA | [товар](https://aliexpress.ru/item/1005009012488338.html?sku_id=12000047575516033) |
 | 30 | C1 | конденсатор 1000 мкФ 16 В | 1 | лот 10 шт., корпус ≈10×15 мм, шаг выводов 5 мм | [товар](https://aliexpress.ru/item/1005002697208131.html?sku_id=12000037070541348) |
-| 31 | C2, C3 | конденсатор 100 мкФ 16 В | 2 | шаг выводов 2,5 мм, диаметр до 6,3 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=100uF+16V+6.3x11) |
+| 31 | C2, C3 | конденсатор 100 мкФ 16 В | 2 | вариант **16V100UF 20PCS** (выбран в ссылке); шаг выводов 2,5 мм | [товар](https://aliexpress.ru/item/1005002075527957.html?sku_id=12000018654903094) |
 | 32 | R1–R5, R7, R9 | резистор 10 кОм 0,25 Вт | 7 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+10k+1%2F4W) |
 | 33 | R6 | резистор 33 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+33k+1%2F4W) |
 | 33в | R10, R11 | резистор 4,7 кОм 0,25 Вт | 2 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+4.7k+1%2F4W) |
