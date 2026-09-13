@@ -53,10 +53,10 @@
 | 29а | D2 | TVS-диод P6KE18CA | 1 | вариант **P6KE18CA** (выбран в ссылке), лот 50 шт.; двунаправленный, буквы CA | [товар](https://aliexpress.ru/item/1005009012488338.html?sku_id=12000047575516033) |
 | 30 | C1 | конденсатор 1000 мкФ 16 В | 1 | лот 10 шт., корпус ≈10×15 мм, шаг выводов 5 мм | [товар](https://aliexpress.ru/item/1005002697208131.html?sku_id=12000037070541348) |
 | 31 | C2, C3 | конденсатор 100 мкФ 16 В | 2 | вариант **16V100UF 20PCS** (выбран в ссылке); шаг выводов 2,5 мм | [товар](https://aliexpress.ru/item/1005002075527957.html?sku_id=12000018654903094) |
-| 32 | R1–R5, R7, R9 | резистор 10 кОм 0,25 Вт | 7 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+10k+1%2F4W) |
-| 33 | R6 | резистор 33 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+33k+1%2F4W) |
-| 33в | R10, R11 | резистор 4,7 кОм 0,25 Вт | 2 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+4.7k+1%2F4W) |
-| 33а | R8 | резистор 1 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+1k+1%2F4W) |
+| 32 | R1–R5, R7, R9 | резистор 10 кОм 0,25 Вт | 7 | вариант **10K** (лот 150 шт.) | [товар](https://aliexpress.ru/item/1005011888190705.html?sku_id=12000056892789364) |
+| 33 | R6 | резистор 33 кОм 0,25 Вт | 1 | вариант **33K**, тот же лот | [товар](https://aliexpress.ru/item/1005011888190705.html?sku_id=12000056892789364) |
+| 33в | R10, R11 | резистор 4,7 кОм 0,25 Вт | 2 | вариант **4.7K**, тот же лот | [товар](https://aliexpress.ru/item/1005011888190705.html?sku_id=12000056892789364) |
+| 33а | R8 | резистор 1 кОм 0,25 Вт | 1 | вариант **1K**, тот же лот | [товар](https://aliexpress.ru/item/1005011888190705.html?sku_id=12000056892789364) |
 | 33б | C4, C5, C6 | конденсатор 100 нФ керамический | 3 | шаг выводов 5 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=ceramic+capacitor+104+100nF+5mm) |
 | 34 | SW1 | кнопка тактовая 6×6 | 1 | 4 вывода | [поиск](https://aliexpress.ru/wholesale?SearchText=tactile+switch+6x6+4pin) |
 | 35 | JP1 | штыри 1×3 + джампер | 1 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=jumper+cap+2.54+pin+header) |
