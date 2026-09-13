@@ -1,0 +1,74 @@
+<svg viewBox="0 0 1200 860" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#607D8B"/></marker></defs>
+<rect width="1200" height="860" fill="#FFFFFF"/>
+<text x="40" y="44" font-size="24" font-weight="bold" fill="#263238">Компоновка в корпусе</text>
+<text x="40" y="68" font-size="13" fill="#78909C">Плата-носитель, три релейных модуля и ввод питания 12 В на одной монтажной пластине (вид сверху, крышка снята).</text>
+<rect x="40" y="100" width="1120" height="560" rx="16" fill="#FAFAFA" stroke="#455A64" stroke-width="4"/>
+<text x="600" y="126" font-size="14" fill="#455A64" text-anchor="middle" font-weight="bold">Корпус ABS IP65 250×200×80 мм</text>
+<rect x="70" y="140" width="560" height="380" rx="6" fill="#C8E6C9" stroke="#2E7D32" stroke-width="3"/>
+<text x="350" y="162" font-size="15" fill="#1B5E20" text-anchor="middle" font-weight="bold">ПЛАТА-НОСИТЕЛЬ 150×110 мм</text>
+<circle cx="84" cy="154" r="7" fill="#FFFFFF" stroke="#455A64" stroke-width="2"/>
+<circle cx="616" cy="154" r="7" fill="#FFFFFF" stroke="#455A64" stroke-width="2"/>
+<circle cx="84" cy="506" r="7" fill="#FFFFFF" stroke="#455A64" stroke-width="2"/>
+<circle cx="616" cy="506" r="7" fill="#FFFFFF" stroke="#455A64" stroke-width="2"/>
+<rect x="100" y="174" width="500" height="36" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="350" y="198" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">12 В · предохранители · DC-DC · клеммы реле</text>
+<rect x="100" y="240" width="52" height="36" rx="8" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"/>
+<text x="126" y="264" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">PCF</text>
+<rect x="162" y="240" width="83" height="57" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="203" y="265" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">ESP32</text>
+<text x="203" y="287" font-size="11" fill="#455A64" text-anchor="middle">антенна ↑</text>
+<rect x="255" y="240" width="52" height="36" rx="8" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"/>
+<text x="281" y="264" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">4051</text>
+<rect x="317" y="240" width="52" height="36" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="343" y="264" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">SD</text>
+<rect x="379" y="240" width="52" height="36" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="405" y="264" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">RTC</text>
+<rect x="441" y="240" width="62" height="35" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="472" y="263" font-size="11" font-weight="bold" fill="#263238" text-anchor="middle">кнопка</text>
+<rect x="100" y="470" width="500" height="36" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
+<text x="350" y="494" font-size="12" font-weight="bold" fill="#263238" text-anchor="middle">клеммники датчиков ×8 · дождь · фоторезистор · расходомер</text>
+<rect x="680" y="140" width="430" height="106" rx="8" fill="#FFF3E0" stroke="#FB8C00" stroke-width="2"/>
+<text x="895" y="166" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">РЕЛЕ 8 кан. 5 В на стойках М3</text>
+<text x="895" y="188" font-size="11" fill="#455A64" text-anchor="middle"></text>
+<text x="895" y="204" font-size="11" fill="#455A64" text-anchor="middle"></text>
+<text x="895" y="220" font-size="11" fill="#455A64" text-anchor="middle">клеммы контактов → клапаны V1…V8</text>
+<text x="895" y="236" font-size="11" fill="#455A64" text-anchor="middle">вход: DC+ · DC− · IN1…IN8, перемычки L</text>
+<rect x="704" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="752" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="800" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="848" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="896" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="944" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="992" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="1040" y="172" width="40" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="680" y="330" width="430" height="90" rx="8" fill="#FFF3E0" stroke="#FB8C00" stroke-width="2"/>
+<text x="895" y="356" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">РЕЛЕ 1 кан. + 2 кан. на стойках М3</text>
+<text x="895" y="378" font-size="11" fill="#455A64" text-anchor="middle"></text>
+<text x="895" y="394" font-size="11" fill="#455A64" text-anchor="middle"></text>
+<text x="895" y="410" font-size="11" fill="#455A64" text-anchor="middle">насос · налив · дренаж</text>
+<rect x="760" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="860" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<rect x="960" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
+<path d="M570 200 L650 200 L650 193 L680 193" fill="none" stroke="#E65100" stroke-width="4"/>
+<path d="M600 200 L662 200 L662 375 L680 375" fill="none" stroke="#E65100" stroke-width="4"/>
+<text x="670" y="435" font-size="11" fill="#E65100" text-anchor="start">провода к клеммам реле, концы в наконечниках</text>
+<rect x="680" y="500" width="430" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="895" y="525" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Источник питания 12 В 5 А</text>
+<text x="895" y="547" font-size="11" fill="#455A64" text-anchor="middle">провод на клеммник J1 платы</text>
+<circle cx="160" cy="660" r="16" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+<text x="160" y="696" font-size="11" fill="#37474F" text-anchor="middle">PG9 · питание 12 В</text>
+<circle cx="380" cy="660" r="16" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+<text x="380" y="696" font-size="11" fill="#37474F" text-anchor="middle">PG9 · датчики</text>
+<circle cx="600" cy="660" r="16" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+<text x="600" y="696" font-size="11" fill="#37474F" text-anchor="middle">PG9 · датчики</text>
+<circle cx="820" cy="660" r="16" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+<text x="820" y="696" font-size="11" fill="#37474F" text-anchor="middle">PG9 · клапаны</text>
+<circle cx="1040" cy="660" r="16" fill="#CFD8DC" stroke="#455A64" stroke-width="2"/>
+<text x="1040" y="696" font-size="11" fill="#37474F" text-anchor="middle">PG9 · насос</text>
+<rect x="40" y="720" width="1120" height="98" rx="8" fill="#FFFDE7" stroke="#F9A825" stroke-width="2"/>
+<text x="56" y="744" font-size="13" fill="#5D4037" text-anchor="start" font-weight="bold">Как ничего не отваливается</text>
+<text x="56" y="766" font-size="12" fill="#5D4037" text-anchor="start">• модули — в гнёздах, релейные модули и плата — на стойках М3, сверху прижаты крышкой;</text>
+<text x="56" y="786" font-size="12" fill="#5D4037" text-anchor="start">• внешние провода — через гермовводы (фиксируют кабель), концы обжаты наконечниками НШВИ и зажаты винтом клеммника;</text>
+<text x="56" y="806" font-size="12" fill="#5D4037" text-anchor="start">• между платой и реле — провода в винтовых клеммах с обеих сторон, никаких Dupont.</text>
+</svg>

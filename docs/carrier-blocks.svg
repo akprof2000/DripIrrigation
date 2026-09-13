@@ -1,0 +1,93 @@
+<svg viewBox="0 0 1400 760" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#607D8B"/></marker></defs>
+<rect width="1400" height="760" fill="#FFFFFF"/>
+<text x="40" y="44" font-size="24" font-weight="bold" fill="#263238">Из чего собирается контроллер</text>
+<text x="40" y="68" font-size="13" fill="#78909C">Плата-носитель связывает покупные модули дорожками. Оранжевое — реле, бирюзовое — датчики, розовое — питание.</text>
+<rect x="320" y="100" width="760" height="590" rx="14" fill="#F1F8E9" stroke="#2E7D32" stroke-width="3"/>
+<text x="700" y="126" font-size="15" fill="#1B5E20" text-anchor="middle" font-weight="bold">ПЛАТА-НОСИТЕЛЬ 150×110 мм</text>
+<text x="700" y="146" font-size="12" fill="#33691E" text-anchor="middle">модули вставляются в гнёзда; паяются только гнёзда, клеммники и мелочь</text>
+<rect x="340" y="162" width="172" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="426" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">ESP32 DevKitC 38</text>
+<text x="426" y="210" font-size="11" fill="#455A64" text-anchor="middle">гнездо 2×(1×19)</text>
+<rect x="524" y="162" width="136" height="58" rx="8" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"/>
+<text x="593" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">PCF8574P</text>
+<text x="593" y="210" font-size="11" fill="#455A64" text-anchor="middle">панелька DIP-16</text>
+<rect x="673" y="162" width="136" height="58" rx="8" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"/>
+<text x="741" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">74HC4051</text>
+<text x="741" y="210" font-size="11" fill="#455A64" text-anchor="middle">панелька DIP-16</text>
+<rect x="821" y="162" width="102" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="872" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DS3231</text>
+<text x="872" y="210" font-size="11" fill="#455A64" text-anchor="middle">гнездо 1×6</text>
+<rect x="935" y="162" width="164" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="1017" y="188" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">SD шилд D1 mini</text>
+<text x="1017" y="210" font-size="11" fill="#455A64" text-anchor="middle">гнездо 2×(1×8)</text>
+<rect x="340" y="242" width="170" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="425" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 12→5 В</text>
+<text x="425" y="290" font-size="11" fill="#455A64" text-anchor="middle">корпус TO-220, 3 pin</text>
+<rect x="522" y="242" width="170" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="607" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 5→3,3 В</text>
+<text x="607" y="290" font-size="11" fill="#455A64" text-anchor="middle">корпус TO-220, 3 pin</text>
+<rect x="704" y="242" width="146" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+<text x="778" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Кнопка сброса</text>
+<text x="778" y="290" font-size="11" fill="#455A64" text-anchor="middle">тактовая 6×6</text>
+<rect x="863" y="242" width="231" height="58" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="979" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Защита входа</text>
+<text x="979" y="290" font-size="11" fill="#455A64" text-anchor="middle">F1 5 А · F2 3 А · диод Шоттки</text>
+<rect x="340" y="322" width="720" height="57" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="700" y="347" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Паяется на плату</text>
+<text x="700" y="369" font-size="11" fill="#455A64" text-anchor="middle">держатели предохранителей, диод, 3 конденсатора, 6 резисторов, гнёзда, панельки, клеммники</text>
+<rect x="340" y="398" width="340" height="73" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+<text x="510" y="423" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммники 5,08 мм 2P ×5</text>
+<text x="510" y="445" font-size="11" fill="#455A64" text-anchor="middle">12 В вход · 12 В на COM клапанов · 12 В насос</text>
+<text x="510" y="461" font-size="11" fill="#455A64" text-anchor="middle">выносной фоторезистор · контакт датчика дождя</text>
+<rect x="696" y="398" width="272" height="89" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+<text x="833" y="423" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммы к реле: своя на модуль</text>
+<text x="833" y="445" font-size="11" fill="#455A64" text-anchor="middle">8 кан.: +5 В · GND · IN1…IN8</text>
+<text x="833" y="461" font-size="11" fill="#455A64" text-anchor="middle">1 кан.: +5 В · GND · насос</text>
+<text x="833" y="477" font-size="11" fill="#455A64" text-anchor="middle">2 кан.: +5 В · GND · налив · дренаж</text>
+<rect x="340" y="503" width="720" height="73" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+<text x="700" y="528" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммники 5,08 мм 3P ×9</text>
+<text x="700" y="550" font-size="11" fill="#455A64" text-anchor="middle">8 × датчик влажности (3V3 · GND · AOUT)</text>
+<text x="700" y="566" font-size="11" fill="#455A64" text-anchor="middle">расходомер</text>
+<text x="700" y="674" font-size="13" fill="#1B5E20" text-anchor="middle" font-weight="bold">Ни одного провода «навесом»: все связи между модулями — дорожки платы</text>
+<rect x="40" y="120" width="181" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="130" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Источник 12 В 5 А</text>
+<text x="130" y="168" font-size="11" fill="#455A64" text-anchor="middle">на клеммник J1</text>
+<path d="M221 149 L320 149" fill="none" stroke="#D81B60" stroke-width="4" marker-end="url(#arr)"/>
+<rect x="40" y="330" width="207" height="74" rx="8" fill="#FFF3E0" stroke="#FB8C00" stroke-width="2"/>
+<text x="143" y="356" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Реле 8 кан. 5 В, H/L</text>
+<text x="143" y="378" font-size="11" fill="#455A64" text-anchor="middle">клапаны V1…V8</text>
+<text x="143" y="394" font-size="11" fill="#455A64" text-anchor="middle">перемычки в положении L</text>
+<rect x="40" y="440" width="242" height="74" rx="8" fill="#FFF3E0" stroke="#FB8C00" stroke-width="2"/>
+<text x="161" y="466" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Реле 1 + 2 кан. 5 В, H/L</text>
+<text x="161" y="488" font-size="11" fill="#455A64" text-anchor="middle">насос · налив · дренаж</text>
+<text x="161" y="504" font-size="11" fill="#455A64" text-anchor="middle">перемычки в положении H</text>
+<path d="M833 487 L833 495" fill="none" stroke="#FB8C00" stroke-width="3"/>
+<path d="M833 495 L290 495 L290 367 L247 367" fill="none" stroke="#FB8C00" stroke-width="3"/>
+<path d="M290 495 L290 477 L282 477" fill="none" stroke="#FB8C00" stroke-width="3"/>
+<text x="161" y="532" font-size="11" fill="#E65100" text-anchor="middle">провода к клеммам реле</text>
+<rect x="1140" y="120" width="207" height="58" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
+<text x="1243" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Датчики влажности ×8</text>
+<text x="1243" y="168" font-size="11" fill="#455A64" text-anchor="middle">ёмкостные v1.2, 3 провода</text>
+<rect x="1140" y="210" width="259" height="74" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
+<text x="1269" y="236" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Дождь · Свет</text>
+<text x="1269" y="258" font-size="11" fill="#455A64" text-anchor="middle">дождь — сухой контакт, как кнопка</text>
+<text x="1269" y="274" font-size="11" fill="#455A64" text-anchor="middle">свет — выносной фоторезистор</text>
+<rect x="1140" y="300" width="190" height="58" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
+<text x="1235" y="326" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Расходомер YF-S201</text>
+<text x="1235" y="348" font-size="11" fill="#455A64" text-anchor="middle">5 В; делитель на плате</text>
+<rect x="1140" y="420" width="177" height="74" rx="8" fill="#F3E5F5" stroke="#8E24AA" stroke-width="2"/>
+<text x="1228" y="446" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Клапаны 12 В ×8</text>
+<text x="1228" y="468" font-size="11" fill="#455A64" text-anchor="middle">на контакты релейного</text>
+<text x="1228" y="484" font-size="11" fill="#455A64" text-anchor="middle">модуля, не на плату</text>
+<rect x="1140" y="530" width="184" height="58" rx="8" fill="#F3E5F5" stroke="#8E24AA" stroke-width="2"/>
+<text x="1232" y="556" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Насос 12 В</text>
+<text x="1232" y="578" font-size="11" fill="#455A64" text-anchor="middle">через 1-канальное реле</text>
+<path d="M1140 149 L1116 149" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 247 L1116 247" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 329 L1116 329" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1116 149 L1116 539 L1060 539" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 457 L1128 457 L1128 720 L20 720 L20 514 L161 514" fill="none" stroke="#8E24AA" stroke-width="3" stroke-dasharray="6 4"/>
+<path d="M1140 559 L1128 559" fill="none" stroke="#8E24AA" stroke-width="3" stroke-dasharray="6 4"/>
+<text x="700" y="712" font-size="11" fill="#6A1B9A" text-anchor="middle">силовые провода 12 В идут к контактам релейных модулей, минуя плату</text>
+</svg>
