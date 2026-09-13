@@ -1,0 +1,350 @@
+<title>DripCarrier в 3D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Единый облик: тёмный антистатический коврик монтажного стола, медь площадок как акцент. */
+  :root {
+    color-scheme: dark;
+    --mat: #142120;
+    --mat-2: #1a2a28;
+    --panel: #1d2e2c;
+    --line: #2d403d;
+    --ink: #e4ebe8;
+    --muted: #8ea39d;
+    --copper: #d38b4f;
+    --copper-soft: rgba(211, 139, 79, 0.16);
+    --focus: #f0b37c;
+    --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+    --body: "Onest", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--mat); color: var(--ink);
+    font: 15px/1.5 var(--body);
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: 100vh;
+  }
+  .stage { position: relative; min-width: 0; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  .plate {
+    position: absolute; top: 20px; left: 24px; pointer-events: none;
+    display: grid; gap: 4px;
+  }
+  .plate h1 {
+    margin: 0; font: 700 22px/1.15 var(--display); letter-spacing: 0.01em; text-wrap: balance;
+  }
+  .plate .spec { font: 500 12px/1.4 var(--mono); color: var(--muted); letter-spacing: 0.02em; }
+  .plate .spec b { color: var(--copper); font-weight: 500; }
+
+  .toolbar {
+    position: absolute; left: 24px; right: 24px; bottom: 20px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
+  button {
+    font: 500 13px/1 var(--body); color: var(--ink); background: transparent; border: 0;
+    padding: 8px 12px; border-radius: 6px; cursor: pointer;
+  }
+  button:hover { background: var(--mat-2); }
+  button[aria-pressed="true"] { background: var(--copper-soft); color: var(--focus); }
+  button:focus-visible, .part:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .hint { margin-left: auto; font: 500 12px/1.3 var(--mono); color: var(--muted); }
+
+  .tip {
+    position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 9px; font-size: 13px; white-space: nowrap; transform: translate(12px, 12px);
+  }
+  .tip code { font: 500 12px var(--mono); color: var(--copper); margin-right: 6px; }
+  .loading {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font: 500 13px var(--mono); color: var(--muted);
+  }
+
+  aside {
+    background: var(--mat-2); border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .detail { padding: 20px 20px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+  .detail .eyebrow { font: 500 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .detail h2 { margin: 0; font: 600 18px/1.3 var(--body); text-wrap: balance; }
+  .detail p { margin: 0; color: var(--muted); font-size: 14px; max-width: 34ch; }
+  .detail .ref { font: 500 13px var(--mono); color: var(--copper); }
+
+  .list { overflow-y: auto; padding: 8px 12px 24px; display: grid; gap: 18px; align-content: start; }
+  .group h3 {
+    margin: 10px 8px 6px; font: 500 11px var(--mono); color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .part {
+    display: grid; grid-template-columns: 54px 1fr; gap: 10px; align-items: baseline;
+    width: 100%; text-align: left; padding: 7px 8px; border-radius: 6px;
+  }
+  .part code { font: 500 12px var(--mono); color: var(--copper); }
+  .part span { font-size: 14px; }
+  .part small { display: block; color: var(--muted); font-size: 12px; }
+  .part[aria-pressed="true"] { background: var(--copper-soft); }
+
+  @media (max-width: 860px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 70vh auto; }
+    aside { border-left: 0; border-top: 1px solid var(--line); }
+    .hint { display: none; }
+  }
+</style>
+
+<main class="stage" id="stage">
+  <canvas id="c" aria-label="3D-модель собранной платы-носителя"></canvas>
+  <div class="plate">
+    <h1>DripCarrier в сборе</h1>
+    <div class="spec"><b>150 × 110 мм</b> · 2 слоя · 1,6 мм · сетка на столе 10 мм</div>
+  </div>
+  <div class="loading" id="loading">Загрузка модели…</div>
+  <div class="tip" id="tip" hidden></div>
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Ракурс">
+      <button data-view="iso" aria-pressed="true">Изометрия</button>
+      <button data-view="top" aria-pressed="false">Сверху</button>
+      <button data-view="front" aria-pressed="false">Спереди</button>
+      <button data-view="bottom" aria-pressed="false">Снизу</button>
+    </div>
+    <div class="seg" role="group" aria-label="Модули">
+      <button id="lift" aria-pressed="false">Приподнять модули</button>
+      <button id="hide" aria-pressed="false">Убрать модули</button>
+    </div>
+    <div class="hint">вращение — левая кнопка · сдвиг — правая · масштаб — колесо</div>
+  </div>
+</main>
+
+<aside>
+  <div class="detail" id="detail">
+    <div class="eyebrow">Выбранная деталь</div>
+    <h2>Нажмите на деталь</h2>
+    <p>На модели или в списке ниже. Камера наведётся на неё, деталь подсветится.</p>
+  </div>
+  <div class="list" id="list"></div>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const PARTS = __PARTS__;
+const GLB_B64 = "__GLB__";
+const MODULE_NAMES = ['esp32_devkitc_38', 'd1mini_sd', 'ds3231', 'lm393_light'];
+
+const canvas = document.getElementById('c');
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.setClearColor(0x142120, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x142120, 0.4, 1.6);
+const camera = new THREE.PerspectiveCamera(35, 1, 0.001, 20);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+scene.add(new THREE.HemisphereLight(0xe8f1ee, 0x1b2624, 0.85));
+const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(0.25, 0.5, 0.3); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffe2c8, 0.45); fill.position.set(-0.4, 0.25, -0.3); scene.add(fill);
+
+const partByRef = Object.fromEntries(PARTS.map(p => [p.ref, p]));
+const partObjects = {};
+const moduleObjects = [];
+let board = null, unit = 0.001, liftAmount = 0;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+function b64ToBuffer(b64) {
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
+new THREE.GLTFLoader().parse(b64ToBuffer(GLB_B64), '', gltf => {
+  board = gltf.scene;
+  board.traverse(o => {
+    if (o.isMesh) {
+      o.material = o.material.clone();
+      if (o.material.emissive) o.userData.baseEmissive = o.material.emissive.clone();
+    }
+    if (partByRef[o.name] && !partObjects[o.name]) partObjects[o.name] = o;
+    if (MODULE_NAMES.some(n => o.name.startsWith(n))) { o.userData.baseY = o.position.y; moduleObjects.push(o); }
+  });
+
+  // Плата лежит в плоскости с наименьшей толщиной: кладём её на стол.
+  let box = new THREE.Box3().setFromObject(board);
+  let size = box.getSize(new THREE.Vector3());
+  if (size.y > size.z * 3) board.rotation.x = -Math.PI / 2;
+  box = new THREE.Box3().setFromObject(board);
+  size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  board.position.sub(new THREE.Vector3(center.x, box.min.y, center.z));
+  scene.add(board);
+  unit = Math.max(size.x, size.z) / 150;          // метров на миллиметр в модели
+
+  const grid = new THREE.GridHelper(unit * 400, 40, 0x2f4643, 0x22322f);
+  grid.position.y = -unit * 0.05;
+  scene.add(grid);
+
+  const r = Math.max(size.x, size.z);
+  scene.fog.near = r * 2.2; scene.fog.far = r * 6;
+  controls.maxDistance = r * 4; controls.minDistance = r * 0.12;
+  board.userData.span = r;
+  setView('iso', true);
+  document.getElementById('loading').hidden = true;
+}, err => {
+  document.getElementById('loading').textContent = 'Модель не загрузилась: ' + err.message;
+});
+
+// ── ракурсы ──
+const VIEWS = {
+  iso:    [0.85, 0.95, 1.05],
+  top:    [0.0001, 1.9, 0.0001],
+  front:  [0, 0.55, 1.75],
+  bottom: [0.0001, -1.9, 0.0001],
+};
+let tween = null;
+function flyTo(pos, target, instant) {
+  if (instant || reduceMotion) { camera.position.copy(pos); controls.target.copy(target); controls.update(); return; }
+  tween = { from: camera.position.clone(), to: pos, tFrom: controls.target.clone(), tTo: target, t: 0 };
+}
+function setView(name, instant) {
+  if (!board) return;
+  const r = board.userData.span;
+  const v = VIEWS[name];
+  flyTo(new THREE.Vector3(v[0] * r, v[1] * r, v[2] * r), new THREE.Vector3(0, 0, 0), instant);
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+// ── модули: приподнять / убрать ──
+const liftBtn = document.getElementById('lift');
+const hideBtn = document.getElementById('hide');
+liftBtn.addEventListener('click', () => {
+  const on = liftBtn.getAttribute('aria-pressed') !== 'true';
+  liftBtn.setAttribute('aria-pressed', String(on));
+  liftAmount = on ? 14 : 0;
+});
+hideBtn.addEventListener('click', () => {
+  const on = hideBtn.getAttribute('aria-pressed') !== 'true';
+  hideBtn.setAttribute('aria-pressed', String(on));
+  moduleObjects.forEach(o => { o.visible = !on; });
+});
+
+// ── выбор детали ──
+let selected = null, hovered = null;
+function paint(ref, color) {
+  const obj = partObjects[ref]; if (!obj) return;
+  obj.traverse(o => {
+    if (o.isMesh && o.material.emissive) {
+      if (color === null) o.material.emissive.copy(o.userData.baseEmissive);
+      else o.material.emissive.setHex(color);
+    }
+  });
+}
+function refresh() {
+  Object.keys(partObjects).forEach(ref => paint(ref, null));
+  if (hovered && hovered !== selected) paint(hovered, 0x2a2016);
+  if (selected) paint(selected, 0x5a3212);
+}
+function select(ref, focus) {
+  selected = ref;
+  const p = partByRef[ref];
+  const d = document.getElementById('detail');
+  d.innerHTML = '<div class="eyebrow">' + p.group + '</div><h2>' + p.name + '</h2>' +
+    '<div class="ref">' + p.ref + ' · ' + p.value + '</div><p>' + p.role + '</p>';
+  document.querySelectorAll('.part').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ref === ref)));
+  refresh();
+  const obj = partObjects[ref];
+  if (focus && obj) {
+    const box = new THREE.Box3().setFromObject(obj);
+    const c = box.getCenter(new THREE.Vector3());
+    const dist = Math.max(box.getSize(new THREE.Vector3()).length() * 2.4, board.userData.span * 0.35);
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    flyTo(c.clone().add(dir.multiplyScalar(dist)), c, false);
+  }
+}
+
+const list = document.getElementById('list');
+const groups = [...new Set(PARTS.map(p => p.group))];
+groups.forEach(g => {
+  const sec = document.createElement('section'); sec.className = 'group';
+  sec.innerHTML = '<h3>' + g + '</h3>';
+  PARTS.filter(p => p.group === g).forEach(p => {
+    const b = document.createElement('button'); b.className = 'part'; b.dataset.ref = p.ref;
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<code>' + p.ref + '</code><span>' + p.name + '<small>' + p.value + '</small></span>';
+    b.addEventListener('click', () => select(p.ref, true));
+    b.addEventListener('mouseenter', () => { hovered = p.ref; refresh(); });
+    b.addEventListener('mouseleave', () => { hovered = null; refresh(); });
+    sec.appendChild(b);
+  });
+  list.appendChild(sec);
+});
+
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+function refAt(ev) {
+  const rect = canvas.getBoundingClientRect();
+  mouse.set(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = board && ray.intersectObject(board, true).find(h => h.object.visible);
+  if (!hit) return null;
+  for (let o = hit.object; o; o = o.parent) if (partByRef[o.name]) return o.name;
+  return null;
+}
+let downAt = null;
+canvas.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
+canvas.addEventListener('pointerup', ev => {
+  if (!downAt || Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 4) return;
+  const ref = refAt(ev); if (ref) select(ref, false);
+});
+canvas.addEventListener('pointermove', ev => {
+  const ref = refAt(ev);
+  if (ref !== hovered) { hovered = ref; refresh(); }
+  if (ref) {
+    const rect = stage.getBoundingClientRect();
+    tip.hidden = false;
+    tip.style.left = (ev.clientX - rect.left) + 'px';
+    tip.style.top = (ev.clientY - rect.top) + 'px';
+    tip.innerHTML = '<code>' + ref + '</code>' + partByRef[ref].name;
+  } else tip.hidden = true;
+});
+canvas.addEventListener('pointerleave', () => { tip.hidden = true; hovered = null; refresh(); });
+
+// ── цикл отрисовки ──
+function frame() {
+  if (tween) {
+    tween.t = Math.min(1, tween.t + 0.045);
+    const k = 1 - Math.pow(1 - tween.t, 3);
+    camera.position.lerpVectors(tween.from, tween.to, k);
+    controls.target.lerpVectors(tween.tFrom, tween.tTo, k);
+    if (tween.t >= 1) tween = null;
+  }
+  moduleObjects.forEach(o => {
+    const target = o.userData.baseY + liftAmount * unit;
+    o.position.y += reduceMotion ? (target - o.position.y) : (target - o.position.y) * 0.12;
+  });
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+frame();
+</script>

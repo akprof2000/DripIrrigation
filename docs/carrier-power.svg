@@ -1,0 +1,62 @@
+<svg viewBox="0 0 1400 720" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#607D8B"/></marker></defs>
+<rect width="1400" height="720" fill="#FFFFFF"/>
+<text x="40" y="44" font-size="24" font-weight="bold" fill="#263238">Питание: три шины 12 / 5 / 3,3 В</text>
+<text x="40" y="68" font-size="13" fill="#78909C">Всё питание проходит через плату-носитель; общая земля — GND.</text>
+<rect x="40" y="120" width="181" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="130" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Источник 12 В 5 А</text>
+<text x="130" y="168" font-size="11" fill="#455A64" text-anchor="middle">клеммник J1</text>
+<rect x="250" y="128" width="98" height="37" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="299" y="153" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">F1 5 А</text>
+<rect x="360" y="128" width="106" height="37" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="413" y="153" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">D1 Шоттки</text>
+<path d="M221 149 L250 146" fill="none" stroke="#D81B60" stroke-width="4"/>
+<path d="M348 146 L360 146" fill="none" stroke="#D81B60" stroke-width="4"/>
+<text x="299" y="181" font-size="11" fill="#78909C" text-anchor="middle">предохранитель</text>
+<text x="413" y="181" font-size="11" fill="#78909C" text-anchor="middle">переполюсовка</text>
+<path d="M466 146 L560 146" fill="none" stroke="#D81B60" stroke-width="4"/>
+<path d="M560 146 L1360 146" fill="none" stroke="#D81B60" stroke-width="6"/>
+<text x="548" y="151" font-size="15" fill="#D81B60" text-anchor="end" font-weight="bold">+12 В</text>
+<path d="M560 330 L1360 330" fill="none" stroke="#FB8C00" stroke-width="6"/>
+<text x="548" y="335" font-size="15" fill="#FB8C00" text-anchor="end" font-weight="bold">+5 В</text>
+<path d="M560 510 L1360 510" fill="none" stroke="#43A047" stroke-width="6"/>
+<text x="548" y="515" font-size="15" fill="#43A047" text-anchor="end" font-weight="bold">+3,3 В</text>
+<path d="M600 146 L600 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<text x="600" y="212" font-size="12" fill="#37474F" text-anchor="middle">COM реле ×8 → клапаны</text>
+<path d="M850 146 L850 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<text x="850" y="212" font-size="12" fill="#37474F" text-anchor="middle">F2 3 А → реле → насос</text>
+<path d="M1100 146 L1100 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<text x="1100" y="212" font-size="12" fill="#37474F" text-anchor="middle">C1 1000 мкФ</text>
+<path d="M600 330 L600 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="600" y="396" font-size="12" fill="#37474F" text-anchor="middle">ESP32 5V</text>
+<path d="M725 330 L725 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="725" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 8 кан.</text>
+<path d="M850 330 L850 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="850" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 1 кан.</text>
+<path d="M975 330 L975 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="975" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 2 кан.</text>
+<path d="M1100 330 L1100 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="1100" y="396" font-size="12" fill="#37474F" text-anchor="middle">YF-S201</text>
+<path d="M600 510 L600 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="600" y="576" font-size="12" fill="#37474F" text-anchor="middle">PCF8574 · 4051</text>
+<path d="M766 510 L766 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="766" y="576" font-size="12" fill="#37474F" text-anchor="middle">DS3231 · SD</text>
+<path d="M933 510 L933 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="933" y="576" font-size="12" fill="#37474F" text-anchor="middle">датчики ×10</text>
+<path d="M1100 510 L1100 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="1100" y="576" font-size="12" fill="#37474F" text-anchor="middle">подтяжки</text>
+<rect x="1210" y="206" width="122" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="1271" y="231" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 12→5</text>
+<text x="1271" y="253" font-size="11" fill="#455A64" text-anchor="middle">TO-220, 3 pin</text>
+<rect x="1210" y="390" width="122" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
+<text x="1271" y="415" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 5→3,3</text>
+<text x="1271" y="437" font-size="11" fill="#455A64" text-anchor="middle">TO-220, 3 pin</text>
+<path d="M1271 146 L1271 206" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M1271 263 L1271 330" fill="none" stroke="#FB8C00" stroke-width="3"/>
+<path d="M1271 330 L1271 390" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M1271 447 L1271 510" fill="none" stroke="#43A047" stroke-width="3"/>
+<rect x="40" y="600" width="1320" height="76" rx="8" fill="#FFFDE7" stroke="#F9A825" stroke-width="2"/>
+<text x="56" y="624" font-size="12" fill="#5D4037" text-anchor="start">Каждый из трёх релейных модулей получает +5 В и GND со своей клеммы. 11 катушек по 70 мА и ESP32 — до 1,2 А, поэтому DC-DC 12→5 не слабее 2 А.</text>
+<text x="56" y="644" font-size="12" fill="#5D4037" text-anchor="start">Восемь клапанов по 0,3–0,6 А ≈ 4 А, отсюда блок 5 А. Насос 12 В до 3 А через F2 и реле; мощнее — отдельный источник 12 В.</text>
+<text x="56" y="664" font-size="12" fill="#5D4037" text-anchor="start">Клапаны включает PCF8574 низким уровнем — перемычки L. Насос, налив и дренаж ESP32 включает высоким — перемычки H.</text>
+</svg>
