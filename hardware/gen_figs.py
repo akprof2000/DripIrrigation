@@ -75,8 +75,9 @@ c.text(PX + PW / 2, PY + 46, 'модули вставляются в гнёзд�
 # ряд 1: гнёзда
 x = PX + 20; y = PY + 62
 for key, t, ln, col in [('esp', 'ESP32 DevKitC 38', ['гнездо 2×(1×19)'], BLUE), ('pcf', 'PCF8574P', ['панелька DIP-16'], AMBER),
-                        ('mux', '74HC4051', ['панелька DIP-16'], AMBER), ('rtc', 'DS3231', ['гнездо 1×6'], BLUE), ('sd', 'SD шилд D1 mini', ['гнездо 2×(1×8)'], BLUE)]:
-    b = c.box(key, x, y, t, ln, *col, tsize=14, lsize=11); x += b[2] + 12
+                        ('mux', '74HC4051', ['панелька DIP-16'], AMBER), ('rtc', 'DS3231', ['гнездо 1×6'], BLUE), ('sd', 'SD шилд', ['гнездо 2×(1×8)'], BLUE)]:
+    b = c.box(key, x, y, t, ln, *col, tsize=14, lsize=11, pad=10); x += b[2] + 10
+assert x - 10 <= PX + PW - 20, 'ряд 1 шире платы: %d' % x
 # ряд 2
 x = PX + 20; y += 80
 for key, t, ln, col in [('dc5', 'DC-DC 12→5 В', ['TO-220, 3 pin'], PINK), ('dc3', 'DC-DC 5→3,3 В', ['TO-220, 3 pin'], PINK),
