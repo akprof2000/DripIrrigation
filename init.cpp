@@ -6,6 +6,7 @@
 #include "SimplePortal.h"
 #include "objects.h"
 #include "telegram.h"
+#include "valves.h"
 #include "log.h"
 #include "faults.h"
 #include <SD.h>
@@ -16,9 +17,47 @@
 #define SD_INIT_ATTEMPTS  3
 #define SD_INIT_RETRY_MS  300
 
-// 📡 WiFi настройки
-char SSID[32] = "";
-char pass[32] = "";
+// 📡 WiFi настройки (размеры — из SimplePortal.h: SSID ≤32, пароль WPA2 ≤63)
+char SSID[SP_SSID_LEN] = "";
+char pass[SP_PASS_LEN] = "";
+
+// 💾 Раскладка EEPROM для WiFi.
+//    Старая: SSID[32]@1, pass[32]@34, tstr[32]@67, mode@100 — пароль упирался в tstr,
+//    поэтому расширить его на месте нельзя. Новые SSID/пароль живут в отдельной
+//    области после списка пользователей (250..~383); tstr и mode остаются на
+//    прежних адресах, токен (110), offset апдейтов (180), версия (240) не тронуты.
+//    При первом старте после обновления старые значения переносятся в новую область.
+#define EEPROM_TSTR_ADDR  (1 + 33 + 33)
+#define EEPROM_MODE_ADDR  (1 + 33 + 33 + 33)
+#define EEPROM_OLD_SSID_ADDR 1
+#define EEPROM_OLD_PASS_ADDR (1 + 33)
+#define EEPROM_WIFI_ADDR  512                             // 📍 начало новой области
+#define EEPROM_SSID_ADDR  EEPROM_WIFI_ADDR                // SSID[33]  512..544
+#define EEPROM_PASS_ADDR  (EEPROM_WIFI_ADDR + SP_SSID_LEN) // pass[65]  545..609
+
+// 🔁 Перенос WiFi-настроек из старой раскладки, если новая область ещё пуста
+static void migrateWifiEeprom() {
+  char probe[SP_SSID_LEN];
+  EEPROM.get(EEPROM_SSID_ADDR, probe);
+  bool newEmpty = (probe[0] == '\0' || (uint8_t)probe[0] == 0xFF);
+  if (!newEmpty) return;
+
+  char oldSsid[32], oldPass[32];
+  EEPROM.get(EEPROM_OLD_SSID_ADDR, oldSsid);
+  EEPROM.get(EEPROM_OLD_PASS_ADDR, oldPass);
+  oldSsid[sizeof(oldSsid) - 1] = '\0';
+  oldPass[sizeof(oldPass) - 1] = '\0';
+  if (oldSsid[0] == '\0' || (uint8_t)oldSsid[0] == 0xFF) return;  // нечего переносить
+
+  char nSsid[SP_SSID_LEN] = "";
+  char nPass[SP_PASS_LEN] = "";
+  strncpy(nSsid, oldSsid, SP_SSID_LEN - 1);
+  strncpy(nPass, oldPass, SP_PASS_LEN - 1);
+  EEPROM.put(EEPROM_SSID_ADDR, nSsid);
+  EEPROM.put(EEPROM_PASS_ADDR, nPass);
+  EEPROM.commit();
+  LOG_I("WiFi-настройки перенесены в новую область EEPROM (SSID=%s)", nSsid);
+}
 
 wifi_mode_t mode = WIFI_AP;  // 📡 1=WIFI_STA, 2=WIFI_AP
 
@@ -53,6 +92,7 @@ void ReCheck() {
     if (res) {
       telegramSaveUpdateOffset();  // 📮 позиция очереди переживёт перезагрузку
       bot.tickManual();            // 📤 отметить сообщение прочитанным на сервере
+      loadsOff();   // 🛑 клапаны и насос — выключить до перезагрузки
       ESP.restart();
     }
 
@@ -116,7 +156,7 @@ void systemInit() {
   // 🔌 Настройка пинов
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(DRAIN, OUTPUT);
-  pinMode(BUTTON, INPUT);
+  pinMode(BUTTON, INPUT_PULLDOWN);   // нажата = HIGH; без подтяжки вход плавал и мог стереть настройки
   digitalWrite(DRAIN, LOW);
   pinMode(PUMP, OUTPUT);
   digitalWrite(PUMP, LOW);
@@ -204,6 +244,9 @@ void systemInit() {
   }
   portalTokenKnown = botTokenValid(botToken);  // 💬 подсказки в форме портала
 
+  // 💾 Перенос WiFi-настроек из старой раскладки EEPROM (однократно)
+  migrateWifiEeprom();
+
   // 🆕 Первичная настройка через WiFi портал
   if (init_config == 0) {
     digitalWrite(LED_BUILTIN, HIGH);
@@ -213,16 +256,19 @@ void systemInit() {
     // 📡 статус: 0 error, 1 connect, 2 ap, 3 local, 4 exit, 5 timeout
 
     if (portalStatus() == SP_SUBMIT) {
-      strcpy(SSID, portalCfg.SSID);
-      strcpy(pass, portalCfg.pass);
-      strcpy(tstr, portalCfg.tstr);
+      strncpy(SSID, portalCfg.SSID, sizeof(SSID) - 1);
+      SSID[sizeof(SSID) - 1] = '\0';
+      strncpy(pass, portalCfg.pass, sizeof(pass) - 1);
+      pass[sizeof(pass) - 1] = '\0';
+      strncpy(tstr, portalCfg.tstr, sizeof(tstr) - 1);
+      tstr[sizeof(tstr) - 1] = '\0';
       mode = portalCfg.mode;
 
       LOG_D("Портал: SSID=%s сохранён", SSID);
-      EEPROM.put(1, SSID);
-      EEPROM.put(1 + 33, pass);
-      EEPROM.put(1 + 33 + 33, tstr);
-      EEPROM.put(1 + 33 + 33 + 33, mode);
+      EEPROM.put(EEPROM_SSID_ADDR, SSID);
+      EEPROM.put(EEPROM_PASS_ADDR, pass);
+      EEPROM.put(EEPROM_TSTR_ADDR, tstr);
+      EEPROM.put(EEPROM_MODE_ADDR, mode);
       EEPROM.put(250, 0);
       // 🤖 Токен: пустое поле означает «оставить прежний»
       if (botTokenValid(portalCfg.token)) {
@@ -239,10 +285,13 @@ void systemInit() {
   }
 
   // 📖 Читаем сохранённые настройки WiFi из EEPROM
-  EEPROM.get(1, SSID);
-  EEPROM.get(1 + 33, pass);
-  EEPROM.get(1 + 33 + 33, tstr);
-  EEPROM.get(1 + 33 + 33 + 33, mode);
+  EEPROM.get(EEPROM_SSID_ADDR, SSID);
+  EEPROM.get(EEPROM_PASS_ADDR, pass);
+  EEPROM.get(EEPROM_TSTR_ADDR, tstr);
+  EEPROM.get(EEPROM_MODE_ADDR, mode);
+  SSID[sizeof(SSID) - 1] = '\0';  // 🛡️ гарантия терминатора при мусоре в EEPROM
+  pass[sizeof(pass) - 1] = '\0';
+  tstr[sizeof(tstr) - 1] = '\0';
 
   // 🤖 Токена нет ни в EEPROM, ни в secrets.h (типичный случай — прошивка,
   //    собранная в CI без секретов). Поднимаем портал ТОЛЬКО чтобы принять токен:
@@ -262,18 +311,21 @@ void systemInit() {
       }
       // 📡 Сеть меняем, только если её реально ввели — иначе работаем на прежней
       if (strlen(portalCfg.SSID)) {
-        strcpy(SSID, portalCfg.SSID);
-        strcpy(pass, portalCfg.pass);
+        strncpy(SSID, portalCfg.SSID, sizeof(SSID) - 1);
+        SSID[sizeof(SSID) - 1] = '\0';
+        strncpy(pass, portalCfg.pass, sizeof(pass) - 1);
+        pass[sizeof(pass) - 1] = '\0';
         mode = portalCfg.mode;
-        EEPROM.put(1, SSID);
-        EEPROM.put(1 + 33, pass);
-        EEPROM.put(1 + 33 + 33 + 33, mode);
+        EEPROM.put(EEPROM_SSID_ADDR, SSID);
+        EEPROM.put(EEPROM_PASS_ADDR, pass);
+        EEPROM.put(EEPROM_MODE_ADDR, mode);
         LOG_I("Заодно обновлены настройки WiFi: %s", SSID);
       }
       // 🔐 Кодовое слово обновляем (оно показано на странице). Список
       //    пользователей НЕ трогаем — уже зарегистрированные останутся.
-      strcpy(tstr, portalCfg.tstr);
-      EEPROM.put(1 + 33 + 33, tstr);
+      strncpy(tstr, portalCfg.tstr, sizeof(tstr) - 1);
+      tstr[sizeof(tstr) - 1] = '\0';
+      EEPROM.put(EEPROM_TSTR_ADDR, tstr);
       EEPROM.commit();
     } else {
       LOG_W("Токен так и не введён — бот не запустится, полив продолжит работать");

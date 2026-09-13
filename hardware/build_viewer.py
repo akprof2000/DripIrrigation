@@ -71,6 +71,8 @@ parts.sort(key=lambda p: (ORDER.index(p['group']), re.sub(r'\d+', lambda m: m.gr
 
 glb = open(os.path.join(HW, 'renders', 'DripCarrier.glb'), 'rb').read()
 tpl = open(os.path.join(HW, 'viewer_template.html'), encoding='utf-8').read()
+vendor = lambda n: open(os.path.join(HW, 'vendor', n), encoding='utf-8').read().replace('</script>', '<' + chr(92) + '/script>')
+tpl = tpl.replace('__THREE__', vendor('three.min.js')).replace('__GLTF__', vendor('GLTFLoader.js')).replace('__ORBIT__', vendor('OrbitControls.js'))
 html = tpl.replace('__PARTS__', json.dumps(parts, ensure_ascii=False)).replace('__GLB__', base64.b64encode(glb).decode('ascii'))
 out = os.path.join(HW, 'renders', 'DripCarrier-3d.html')
 open(out, 'w', encoding='utf-8').write(html)

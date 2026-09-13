@@ -17,10 +17,14 @@
 #define SP_EXIT 4
 #define SP_TIMEOUT 5
 
+// 📏 Размеры буферов WiFi (с нулём): SSID ≤ 32 байт, WPA2-пароль ≤ 63 символа
+#define SP_SSID_LEN 33
+#define SP_PASS_LEN 65
+
 // ⚙️ Структура конфигурации, получаемая из портала
 struct PortalCfg {
-  char SSID[32] = "";           // 📡 Имя WiFi сети
-  char pass[32] = "";           // 🔐 Пароль WiFi
+  char SSID[SP_SSID_LEN] = "";  // 📡 Имя WiFi сети
+  char pass[SP_PASS_LEN] = "";  // 🔐 Пароль WiFi
   char tstr[32] = "";           // 🔐 Кодовое слово Telegram
   char token[64] = "";          // 🤖 Токен бота (пусто = оставить прежний)
   wifi_mode_t mode = WIFI_AP;   // 📡 Режим: 1=WIFI_STA, 2=WIFI_AP

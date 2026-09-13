@@ -6,9 +6,18 @@
 #include "log.h"
 #include <WiFi.h>
 
-// 📨 Отправка сообщения с повторными попытками при ошибке WiFi (3 попытки)
+// ⏱️ Максимальное ожидание восстановления WiFi внутри одной отправки (мс).
+//    Ограничено, потому что вызывается из loop(): полив не должен «замирать».
+#define TX_WIFI_WAIT_MS 3000UL
+
+// 📨 Отправка сообщения. Различаем два вида неудачи:
+//   • ответ Telegram с ok=false (result.isError()) — ошибка API (400/403/429…):
+//     сеть в порядке, повторять и трогать WiFi бессмысленно — логируем и выходим;
+//   • пустой результат (FastBot2 возвращает Result() при обрыве/таймауте HTTP) —
+//     транспорт. Тогда, и ТОЛЬКО если WiFi реально отвалился, делаем одну
+//     короткую попытку переподключения и одну повторную отправку.
 void sendReconnectMessage(String text, String id, bool kbRem) {
-  for (int i = 0; i < 3; i++) {
+  for (int attempt = 0; attempt < 2; attempt++) {
     fb::Message msg;
     msg.setModeHTML();
     msg.text = text;        // 💬 Текст сообщения
@@ -22,21 +31,33 @@ void sendReconnectMessage(String text, String id, bool kbRem) {
     fb::Result result = bot.sendMessage(msg, true);
 
     if (result.isError()) {
-      WiFi.disconnect();
-      delay(10);
-      LOG_W("Ошибка отправки в Telegram — переподключение WiFi");
-      WiFi.reconnect();
-      int ind = 0;
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(300);
-        ind++;
-        if (ind > 60) {
-          break;
-        }
-      }
-      dropped = true;  // 📡 Флаг потери соединения
-    } else {
-      break;  // ✅ успешно отправлено
+      // ❌ Ошибка уровня Telegram API — не сетевая, WiFi не трогаем
+      LOG_W("Telegram API отказал (chat %s): %s %s", id.c_str(),
+            result.getErrorCode().toString().c_str(), result.getError().toString().c_str());
+      return;
+    }
+    if (!result.isEmpty()) {
+      return;  // ✅ успешно отправлено
+    }
+
+    // 📡 Транспортная ошибка. Переподключаемся только при реальной потере WiFi
+    if (WiFi.status() == WL_CONNECTED) {
+      LOG_W("Telegram: нет ответа сервера (WiFi на месте) — chat %s", id.c_str());
+      return;  // сервер/DNS/TLS — переподключение WiFi не поможет, повтор не делаем
+    }
+    if (attempt > 0) break;  // повторяем не более одного раза за вызов
+
+    LOG_W("Ошибка отправки в Telegram — WiFi потерян, переподключение");
+    dropped = true;  // 📡 Флаг потери соединения (снимет ReCheck при восстановлении)
+    WiFi.reconnect();
+    unsigned long t0 = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - t0 < TX_WIFI_WAIT_MS) {
+      delay(100);
+      yield();
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+      LOG_W("WiFi не восстановлен за %lu мс — отправка отложена", TX_WIFI_WAIT_MS);
+      return;  // дальше сеть поднимет ReCheck() в фоне
     }
   }
 }

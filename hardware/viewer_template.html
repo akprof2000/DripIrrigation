@@ -60,6 +60,7 @@
     border-radius: 6px; padding: 6px 9px; font-size: 13px; white-space: nowrap; transform: translate(12px, 12px);
   }
   .tip code { font: 500 12px var(--mono); color: var(--copper); margin-right: 6px; }
+  .loading[hidden], .tip[hidden] { display: none; }
   .loading {
     position: absolute; inset: 0; display: grid; place-items: center;
     font: 500 13px var(--mono); color: var(--muted);
@@ -128,9 +129,9 @@
   <div class="list" id="list"></div>
 </aside>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>__THREE__</script>
+<script>__GLTF__</script>
+<script>__ORBIT__</script>
 <script>
 const PARTS = __PARTS__;
 const GLB_B64 = "__GLB__";

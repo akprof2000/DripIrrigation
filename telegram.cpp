@@ -101,6 +101,36 @@ static bool validChannelIndex(int ind, const String& userID) {
   return true;
 }
 
+// 🔢 Разбор индекса из суффикса команды ("/BordersSet_3" → 3). String::toInt()
+// для "abc" молча возвращает 0 — команда с мусором вместо номера попадала бы
+// на канал 0. Принимаем только непустую строку из одних цифр (без знака,
+// пробелов и т. п.), не длиннее 3 символов — этого хватает для любого индекса.
+static bool parseIndex(const String& s, int& out) {
+  if (s.length() == 0 || s.length() > 3) return false;
+  for (unsigned int i = 0; i < s.length(); i++) {
+    if (!isDigit(s[i])) return false;
+  }
+  out = s.toInt();
+  return true;
+}
+
+// ✂️ Копирование строки в буфер фиксированного размера без разрыва UTF-8.
+// strncpy может обрезать многобайтовый символ (кириллица, эмодзи) посередине —
+// такой title Telegram отвергает как невалидный UTF-8, и это навсегда, пока
+// пользователь не переименует канал. Копируем не более maxBytes байт и, если
+// срез попал внутрь последовательности, отступаем назад до её начала
+// (продолжающие байты имеют вид 10xxxxxx). Всегда завершаем NUL.
+static void utf8Truncate(char* dst, const char* src, size_t maxBytes) {
+  size_t len = strnlen(src, maxBytes);
+  if (len == maxBytes) {
+    // 🔍 Срез: если следующий байт исходной строки — продолжение, то мы
+    //    режем внутри символа; отступаем до его лидирующего байта
+    while (len > 0 && ((uint8_t)src[len] & 0xC0) == 0x80) len--;
+  }
+  memcpy(dst, src, len);
+  dst[len] = '\0';
+}
+
 // 🔘 Проверка нажатия reply-кнопки по её ТЕКСТОВОЙ части (без ведущего эмодзи).
 // Метка reply-кнопки возвращается Telegram как текст сообщения, но эмодзи с
 // вариационным селектором (например ➡️ = U+27A1 + U+FE0F) в round-trip может
@@ -332,6 +362,7 @@ void telegramGzOtaTick() {
     telegramSaveUpdateOffset();
     bot.tickManual();
     delay(500);
+    loadsOff();  // 🔌 обесточить клапаны/насос/дренаж/налив перед рестартом
     ESP.restart();
   } else {
     // 🔍 Диагностика в чат: логи в рабочей прошивке отключены, иначе причину не узнать
@@ -525,7 +556,21 @@ void newMsg(fb::Update& u) {
   // 🆕 ПЕРВИЧНАЯ РЕГИСТРАЦИЯ: если нет пользователей — первый вводит кодовое слово
   // ============================================================
   if (userCount == 0) {
-    if (text == String(tstr)) {
+    // 🛡️ tstr приходит из EEPROM и может быть пустым или без NUL (0xFF после
+    //    стирания). Кодовое слово считаем годным только при длине ≥ 4 и наличии
+    //    терминатора внутри буфера; text обязан быть непустым — иначе пустое
+    //    сообщение (фото, стикер) совпадало бы с пустым tstr и давало владельца.
+    size_t codeLen = strnlen(tstr, sizeof(tstr));
+    bool codeOk = (codeLen >= 4 && codeLen < sizeof(tstr));
+    bool match = false;
+    if (!codeOk) {
+      LOG_W("Кодовое слово регистрации не задано или повреждено — регистрация невозможна");
+    } else if (text.length() == 0) {
+      LOG_W("Пустое сообщение от %s при первичной регистрации — игнорируем", userID.c_str());
+    } else {
+      match = (text.length() == codeLen && memcmp(text.c_str(), tstr, codeLen) == 0);
+    }
+    if (match) {
       // ✅ Кодовое слово совпало — регистрируем как владельца (роль 0)
       fb::Message reply;
       reply.text = "👑 Привет, владелец системы!";
@@ -753,6 +798,12 @@ void newMsg(fb::Update& u) {
             sendReconnectMessage(F("❌ Ожидалось значение (от 0 до 100) % !"), userID);
             return;
           }
+        } else {
+          // 🛡️ Нечисловой ввод: раньше проваливался в общий ответ «только команды»,
+          //    а диалог оставался взведённым — отвечаем в рамках диалога и ждём число
+          LOG_D("Некорректный ввод пользователя");
+          sendReconnectMessage(F("❌ Введите число от 0 до 100"), userID);
+          return;
         }
       }
       // 📝 Переименование датчика (1200–1207)
@@ -771,8 +822,8 @@ void newMsg(fb::Update& u) {
         safe.replace("<", "‹");
         safe.replace(">", "›");
         safe.replace("&", "и");
-        strncpy(myConfig.chanel[ind].title, safe.c_str(), sizeof(myConfig.chanel[ind].title) - 1);
-        myConfig.chanel[ind].title[sizeof(myConfig.chanel[ind].title) - 1] = '\0';
+        // ✂️ Обрезаем по границе UTF-8-символа, а не по байту (см. utf8Truncate)
+        utf8Truncate(myConfig.chanel[ind].title, safe.c_str(), sizeof(myConfig.chanel[ind].title) - 1);
         command = F("/Namings");
         act->action = Dlg::None;
         needUpdate = true;
@@ -795,6 +846,12 @@ void newMsg(fb::Update& u) {
         } else if (btnIs(text, "А.П.")) {
           sendReconnectMessage(F("🏠 Клапан в автоматическом режиме для парника!"), userID, true);
           myConfig.chanel[ind].mode = Mode::Greenhouse;
+        } else {
+          // 🛡️ Нераспознанный ответ: раньше молча выходили из диалога и ставили
+          //    needUpdate — теперь подсказываем и ждём выбор из меню
+          LOG_D("Некорректный ввод пользователя");
+          sendReconnectMessage(F("❓ Не понял, выберите вариант из меню"), userID);
+          return;
         }
         needUpdate = true;
         act->action = Dlg::None;
@@ -1239,7 +1296,8 @@ void newMsg(fb::Update& u) {
         // 🔧 Ручная калибровка конкретного датчика
         else if (command.startsWith("/HumidityMCalibrate")) {
           String prob = getValue(command, '_', 1);
-          int ind = prob.toInt();
+          int ind;
+          if (!parseIndex(prob, ind)) { LOG_W("Некорректный индекс в команде: %s", command.c_str()); return; }
           if (!validChannelIndex(ind, userID)) return;
           sendReconnectMessage("🔧 Введите минимальное и максимальное значение датчика № " + chanLabel(ind) + " в формате: целое,целое.\nТекущее: [" + String(hs.getLow(ind)) + "; " + String(hs.getHigh(ind)) + "]", userID);
           actionSet(userID, Dlg::CalibManual + ind);
@@ -1247,7 +1305,8 @@ void newMsg(fb::Update& u) {
         // 🔧 Автоматическая калибровка конкретного датчика
         else if (command.startsWith("/HumidityCalibrate")) {
           String prob = getValue(command, '_', 1);
-          int ind = prob.toInt();
+          int ind;
+          if (!parseIndex(prob, ind)) { LOG_W("Некорректный индекс в команде: %s", command.c_str()); return; }
           if (!validChannelIndex(ind, userID)) return;
           sendReconnectMessage("💧 Подготовьте ёмкость с водой и впитывающую салфетку в зоне доступа датчика.\n🚀 Запустить калибровку датчика № " + chanLabel(ind) + "?", userID);
 
@@ -1591,7 +1650,8 @@ void newMsg(fb::Update& u) {
       // 🎯 Установка порога влажности для клапана
       else if (command.startsWith("/BordersSet")) {
         String prob = getValue(command, '_', 1);
-        int ind = prob.toInt();
+        int ind;
+        if (!parseIndex(prob, ind)) { LOG_W("Некорректный индекс в команде: %s", command.c_str()); return; }
         if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(("🎯 Введите % порога срабатывания клапана № " + String((ind + 1)) + ":"), userID);
         actionSet(userID, Dlg::Border + ind);
@@ -1599,7 +1659,8 @@ void newMsg(fb::Update& u) {
       // 📝 Переименование датчика
       else if (command.startsWith("/NamingsSet")) {
         String prob = getValue(command, '_', 1);
-        int ind = prob.toInt();
+        int ind;
+        if (!parseIndex(prob, ind)) { LOG_W("Некорректный индекс в команде: %s", command.c_str()); return; }
         if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(("📝 Введите название датчика № " + String((ind + 1)) + ":"), userID);
         actionSet(userID, Dlg::Rename + ind);
@@ -1607,7 +1668,8 @@ void newMsg(fb::Update& u) {
       // 🚰 Установка режима работы клапана
       else if (command.startsWith("/OperationModeSet")) {
         String prob = getValue(command, '_', 1);
-        int ind = prob.toInt();
+        int ind;
+        if (!parseIndex(prob, ind)) { LOG_W("Некорректный индекс в команде: %s", command.c_str()); return; }
         if (!validChannelIndex(ind, userID)) return;
         sendReconnectMessage(F("🚰 Выберите режим работы!"), userID);
 
@@ -1694,46 +1756,48 @@ void newMsg(fb::Update& u) {
       // 📊 Вывод текущего статуса системы
       else if (command == "/status") {
         hs.setAll();
-        String status = String("ℹ️ <b>Общий статус</b>  <i>v" FW_VERSION "</i>\n\n");
-        status = status + String("📅 <b>Текущая дата и время:</b> ") + getDateTime().toString(' ');
-        status = status + String("\n\n") + String(nightNow ? "🌙 Сейчас ночь" : "☀️ Сейчас день");
-        status = status + String(rainNow ? ", 🌧️ идёт дождь" : ", ☀️ дождя нет");
-        status = status + String("\n");
-        status = status + String("\n📊 <b>Информация по датчикам</b>");
+        String status;
+        status.reserve(3000);  // 🧠 одна аллокация вместо череды реаллокаций при сборке
+        status += String("ℹ️ <b>Общий статус</b>  <i>v" FW_VERSION "</i>\n\n");
+        status += String("📅 <b>Текущая дата и время:</b> ") + getDateTime().toString(' ');
+        status += String("\n\n") + String(nightNow ? "🌙 Сейчас ночь" : "☀️ Сейчас день");
+        status += String(rainNow ? ", 🌧️ идёт дождь" : ", ☀️ дождя нет");
+        status += String("\n");
+        status += String("\n📊 <b>Информация по датчикам</b>");
         for (int i = 0; i < NUM_CHANNELS; i++) {
-          status = status + String("\n");
-          status = status + String("\n🌱 Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
+          status += String("\n");
+          status += String("\n🌱 Канал № ") + String((i + 1)) + String(" (") + String(myConfig.chanel[i].title) + String(")");
           if (check_user->role == 0) {
-            status = status + String("\n📟 Текущее значение АЦП: ") + String(hs.getCurrent(i));
+            status += String("\n📟 Текущее значение АЦП: ") + String(hs.getCurrent(i));
           }
-          status = status + String("\n💧 Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
-          status = status + String("\n🎯 Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
-          status = status + String("\n🚰 Клапан: ") + String((oldMode[i] == VState::ForcedClose || oldMode[i] == VState::CloseByHum) ? "⛔ закрыт" : oldMode[i] == VState::Hysteresis ? "➖ без контроля" : "✅ открыт");
-          status = status + String("\n⚙️ Режим: ") + String(myConfig.chanel[i].mode == Mode::Auto ? "🤖 автоматический" : myConfig.chanel[i].mode == Mode::AlwaysOn ? "✅ постоянно открыт"
+          status += String("\n💧 Текущая влажность: ") + String(hs.Percent(i)) + String(" %");
+          status += String("\n🎯 Граничное значение: ") + String(myConfig.chanel[i].border) + String(" %");
+          status += String("\n🚰 Клапан: ") + String((oldMode[i] == VState::ForcedClose || oldMode[i] == VState::CloseByHum) ? "⛔ закрыт" : oldMode[i] == VState::Hysteresis ? "➖ без контроля" : "✅ открыт");
+          status += String("\n⚙️ Режим: ") + String(myConfig.chanel[i].mode == Mode::Auto ? "🤖 автоматический" : myConfig.chanel[i].mode == Mode::AlwaysOn ? "✅ постоянно открыт"
                                                                                       : myConfig.chanel[i].mode == Mode::AlwaysOff ? "⛔ постоянно закрыт"
                                                                                                                      : "🏠 автоматический (парник)");
         }
         // 💧 Добавляем информацию о расходе воды
-        status = status + String("\n");
-        status = status + String("\n💧 <b>Расход воды</b>");
-        status = status + String("\n📟 За текущую сессию: ") + String(flowGetSessionLiters(), 3) + String(" л");
-        status = status + String("\n📊 Общий расход: ") + String(flowGetTotalLiters(), 3) + String(" л");
+        status += String("\n");
+        status += String("\n💧 <b>Расход воды</b>");
+        status += String("\n📟 За текущую сессию: ") + String(flowGetSessionLiters(), 3) + String(" л");
+        status += String("\n📊 Общий расход: ") + String(flowGetTotalLiters(), 3) + String(" л");
 
         // 🧽 Контроль засора фильтра
-        status = status + String("\n");
-        status = status + String("\n🧽 <b>Фильтр</b>");
+        status += String("\n");
+        status += String("\n🧽 <b>Фильтр</b>");
         uint8_t openNow = countValveOpen();
-        status = status + String("\n📟 Скорость потока: ") + String(fmLastRate(), 2) + String(" л/мин");
+        status += String("\n📟 Скорость потока: ") + String(fmLastRate(), 2) + String(" л/мин");
         float fmBase = fmBaselineFor(openNow);
         if (openNow >= 1 && fmBase > 0.0) {
-          status = status + String("\n📊 Эталон (") + String(openNow) + String(" кл.): ") + String(fmBase, 2) + String(" л/мин");
+          status += String("\n📊 Эталон (") + String(openNow) + String(" кл.): ") + String(fmBase, 2) + String(" л/мин");
         }
-        status = status + String("\n🎯 Тревога при потоке ниже ") + String(myConfig.clogThresholdPercent) + String(" % от нормы");
-        status = status + String("\n") + String(fmIsClogged() ? "⚠️ Похоже, фильтр засорён — прочистите!" : "✅ Фильтр в норме");
+        status += String("\n🎯 Тревога при потоке ниже ") + String(myConfig.clogThresholdPercent) + String(" % от нормы");
+        status += String("\n") + String(fmIsClogged() ? "⚠️ Похоже, фильтр засорён — прочистите!" : "✅ Фильтр в норме");
 
         // 💪 Насос повышения давления: фактическое состояние + причина + настройка
-        status = status + String("\n");
-        status = status + String("\n💪 <b>Насос давления</b>");
+        status += String("\n");
+        status += String("\n💪 <b>Насос давления</b>");
         String pumpNow;
         if (!pumpIsOn()) {
           pumpNow = F("⛔ выключен");
@@ -1744,15 +1808,15 @@ void newMsg(fb::Update& u) {
         } else {
           pumpNow = F("⚡ работает — по порогу открытых клапанов");
         }
-        status = status + String("\n📟 Сейчас: ") + pumpNow;
-        status = status + String("\n🎯 Настройка: ") + (myConfig.boostPumpValves >= 9
+        status += String("\n📟 Сейчас: ") + pumpNow;
+        status += String("\n🎯 Настройка: ") + (myConfig.boostPumpValves >= 9
                               ? String("только пусковые 30 с")
                               : String("держать при ≥ ") + String(myConfig.boostPumpValves) + " откр. кл.");
 
         LOG_D("Свободная память: %u байт", ESP.getFreeHeap());
         int mem = ESP.getFreeHeap() / 1024;
-        status = status + String("\n");
-        status = status + String("\n💾 <b>Оставшаяся память:</b> ") + String(mem) + " Kb";
+        status += String("\n");
+        status += String("\n💾 <b>Оставшаяся память:</b> ") + String(mem) + " Kb";
         sendReconnectMessage(status, userID);
       }
       // 🔍 Поиск датчика
@@ -1771,28 +1835,30 @@ void newMsg(fb::Update& u) {
       }
       // 💧 Команда отображения расхода воды
       else if (command == "/WaterFlow") {
-        String flowMsg = String("💧 <b>Расход воды</b>\n\n");
-        flowMsg = flowMsg + String("📟 За текущую сессию полива: ") + String(flowGetSessionLiters(), 3) + String(" л\n");
-        flowMsg = flowMsg + String("📊 Общий расход за все время: ") + String(flowGetTotalLiters(), 3) + String(" л\n");
-        flowMsg = flowMsg + String("🔄 Импульсов датчика: ") + String(flowPulseCount) + String(" шт.\n");
+        String flowMsg;
+        flowMsg.reserve(600);  // 🧠 одна аллокация вместо череды реаллокаций при сборке
+        flowMsg += String("💧 <b>Расход воды</b>\n\n");
+        flowMsg += String("📟 За текущую сессию полива: ") + String(flowGetSessionLiters(), 3) + String(" л\n");
+        flowMsg += String("📊 Общий расход за все время: ") + String(flowGetTotalLiters(), 3) + String(" л\n");
+        flowMsg += String("🔄 Импульсов датчика: ") + String(flowPulseCount) + String(" шт.\n");
 
         // 🩺 Диагностика датчика: при капельном поливе расход может быть ниже порога
         // страгивания крыльчатки — тогда импульсов нет вовсе и это надо видеть явно,
         // а не гадать по нулевым литрам (нулевые литры бывают и при закрытых клапанах).
-        flowMsg = flowMsg + String("\n🩺 <b>Диагностика датчика</b>\n");
+        flowMsg += String("\n🩺 <b>Диагностика датчика</b>\n");
         unsigned long silence = flowMsSinceLastPulse();
         if (silence == 0xFFFFFFFFUL) {
-          flowMsg = flowMsg + String("⚠️ Импульсов не было ни разу с момента включения\n");
+          flowMsg += String("⚠️ Импульсов не было ни разу с момента включения\n");
         } else {
-          flowMsg = flowMsg + String("⏱️ Последний импульс: ") + String(silence / 1000.0, 1) + String(" с назад\n");
+          flowMsg += String("⏱️ Последний импульс: ") + String(silence / 1000.0, 1) + String(" с назад\n");
         }
         float inst = flowInstantRate();
-        flowMsg = flowMsg + String("📟 Мгновенный поток: ") + String(inst, 3) + String(" л/мин");
+        flowMsg += String("📟 Мгновенный поток: ") + String(inst, 3) + String(" л/мин");
         if (inst > 0.0) {
-          flowMsg = flowMsg + String(" (") + String(inst * 1000.0 / 60.0, 0) + String(" мл/с)");
+          flowMsg += String(" (") + String(inst * 1000.0 / 60.0, 0) + String(" мл/с)");
         }
-        flowMsg = flowMsg + String("\n📉 Порог датчика: ") + String(FLOW_PULSES_PER_LITER, 0) + String(" имп./л");
-        flowMsg = flowMsg + String("\n🚰 Открытых клапанов: ") + String(countValveOpen());
+        flowMsg += String("\n📉 Порог датчика: ") + String(FLOW_PULSES_PER_LITER, 0) + String(" имп./л");
+        flowMsg += String("\n🚰 Открытых клапанов: ") + String(countValveOpen());
 
 
         fb::InlineKeyboard menu;

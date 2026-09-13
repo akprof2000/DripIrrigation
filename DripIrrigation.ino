@@ -28,6 +28,12 @@ unsigned long intervalCheck = CHECK_INTERVAL;
 // 🚀 SETUP — Инициализация системы при включении питания
 // ============================================================
 void setup() {
+  // 🛑 Первым делом — выходы реле в «выключено». До этого (портал до 3 мин, WiFi,
+  //    SD) входы релейных модулей висели бы в воздухе и могли дребезжать.
+  pinMode(PUMP, OUTPUT);  digitalWrite(PUMP, LOW);
+  pinMode(DRAIN, OUTPUT); digitalWrite(DRAIN, LOW);
+  pinMode(FILL, OUTPUT);  digitalWrite(FILL, LOW);
+
 #if LOG_LEVEL > LOG_LEVEL_NONE
   Serial.begin(115200);  // 🖥️ UART нужен только при включённом логировании
 #endif
@@ -70,11 +76,10 @@ void setup() {
 
 
   // 🔌 Настройка пинов датчиков и выходов
-  pinMode(LIGHT, INPUT);
-  pinMode(RAIN, INPUT);
-  pinMode(FILL, OUTPUT);
-
-  digitalWrite(FILL, LOW);
+  //    Подтяжки задают состояние при оборванном кабеле: без света — «день»,
+  //    без датчика дождя — «сухо», вместо случайных переключений раз в минуту.
+  pinMode(LIGHT, INPUT_PULLDOWN);
+  pinMode(RAIN, INPUT_PULLUP);
 
   // 🐕 Настройка Watchdog Timer
   LOG_I("Настройка watchdog (%d с)", WDT_TIMEOUT);
@@ -197,8 +202,12 @@ static void rotateLogFileIfNewDay(Datime t) {
     if (!SD.exists(fn)) {
       LOG_I("Создаю файл данных: %s", fn.c_str());
       dataFile = SD.open(fn, FILE_WRITE);
-      dataFile.println("UnixTime,DateTime,Index,Title,Humidity,Valve,Border,Night,Rain");
-      dataFile.close();
+      if (dataFile) {
+        dataFile.println("UnixTime,DateTime,Index,Title,Humidity,Valve,Border,Night,Rain");
+        dataFile.close();
+      } else {
+        LOG_E("Не создать файл %s", fn.c_str());
+      }
     }
     oldY = t.year;
     oldM = t.month;
@@ -326,6 +335,8 @@ static void controlValves(const Weather& w) {
 // ============================================================
 // 💾 Запись текущего состояния всех каналов в CSV
 // ============================================================
+static bool sdLost = false;   // 💾 карта недоступна — уведомление уже отправлено
+
 static void logToCsv(Datime t, uint32_t curr) {
   LOG_D("Запись данных в CSV");
   dataFile = SD.open(fn, FILE_APPEND);
@@ -344,11 +355,18 @@ static void logToCsv(Datime t, uint32_t curr) {
       LOG_D("%s", row.c_str());
       dataFile.println(row);
     }
+    dataFile.close();
+    if (sdLost) {           // 💾 карта снова пишется — одно уведомление о восстановлении
+      sdLost = false;
+      connectCDCard();
+    }
   } else {
-    sendTelegramStatus("❌ Ошибка записи в файл: " + fn);
     LOG_E("Не открыть файл для записи: %s", fn.c_str());
+    if (!sdLost) {          // 💾 одно уведомление, а не 1440 в сутки
+      sdLost = true;
+      dropCDCard();
+    }
   }
-  dataFile.close();
 }
 
 // ============================================================
@@ -425,16 +443,10 @@ static void faultSafeShutdown() {
   faultShutdownDone = true;
 
   LOG_W("Аварийный режим: гашу нагрузки, полив остановлен");
-
-  digitalWrite(PUMP, LOW);
-  digitalWrite(DRAIN, LOW);
-  digitalWrite(FILL, LOW);
-
-  // 🚰 Клапаны закрываем, только если плата расширителя жива, — иначе вызовы
-  //    уйдут в никуда и лишь потратят время на таймауты I2C.
-  if (!hwFaulty(HW_VALVES)) {
-    for (int i = 0; i < NUM_CHANNELS; i++) valveClose(i);
-  }
+  // 🛑 loadsOff() сначала сбрасывает pumpStart и пишет в PCF8574 (даже если он
+  //    помечен неисправным — попытка стоит миллисекунд), и только потом гасит пины:
+  //    иначе закрытие клапана через stopPumpIfNeed() снова включало бы насос.
+  loadsOff();
 }
 
 // ============================================================
@@ -470,7 +482,9 @@ void loop() {
   uint32_t curr = t.getUnix();
 
   // 📅 Основная логика полива и логирование — раз в минуту
-  if (oldTime < int64_t(curr / 60)) {
+  // ⏰ «!=», а не «<»: при откате часов назад (первая синхронизация NTP после
+  //    неверного RTC) полив и журнал иначе замирали бы, пока время не догонит.
+  if (oldTime != int64_t(curr / 60)) {
     flowGetSessionLitersTick();
     rotateLogFileIfNewDay(t);
     oldTime = int64_t(curr / 60);

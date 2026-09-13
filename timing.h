@@ -4,8 +4,6 @@
 #define CHECK_WIFI_INTERVAL_SMALL 300  // ⏱️ мс — малый интервал проверки
 #define CHECK_WIFI_INTERVAL 30000      // ⏱️ мс — основной интервал проверки WiFi
 #define CHECK_INTERVAL 10000           // ⏱️ мс — интервал цикла полива
-#define CHECK_LIGHT true
-#define CHECK_RAIN true
 #define FILLING_WAIT 3000              // ⏱️ мс — время наполнения бака
 #define TIMEOUT_WAIT 18000             // ⏱️ с — таймаут ожидания закрытия клапанов
 #define DRAIN_TIMEOUT 12000            // ⏱️ мс — время пролива дренажа

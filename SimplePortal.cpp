@@ -5,8 +5,11 @@
 static DNSServer _SP_dnsServer;
 static WebServer _SP_server(80);
 
-// 🌐 HTML страница конфигурации WiFi (адаптивная тёмная карточка)
-String SP_connect_page = R"rawliteral(
+// 🌐 HTML-шаблон страницы конфигурации WiFi (адаптивная тёмная карточка).
+//    Шаблон неизменяемый: плейсхолдеры {…} подставляются в отдельную строку
+//    при каждом portalRun(), иначе второй запуск портала в той же загрузке
+//    показал бы старое кодовое слово и старый список сетей.
+static const char SP_connect_page_tpl[] PROGMEM = R"rawliteral(
 <!DOCTYPE html><html lang="ru"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,14 +45,14 @@ select:focus,input:focus{border-color:var(--blue)}
 <label>📡 Выберите сеть</label>
 <select name="ssid" id="ssid">{BoxItems}</select>
 <label>✏️ Или имя сети вручную (для скрытых)</label>
-<input type="text" name="ssid_manual" placeholder="Необязательно" autocomplete="off">
+<input type="text" name="ssid_manual" maxlength="32" placeholder="Необязательно" autocomplete="off">
 <label>🔑 Пароль</label>
 <div class="pwd">
-<input type="password" name="pass" id="pass" placeholder="Пароль сети" autocomplete="off">
+<input type="password" name="pass" id="pass" maxlength="64" placeholder="Пароль сети" autocomplete="off">
 <button type="button" class="eye" onclick="tog()">👁</button>
 </div>
 <label>🤖 Токен Telegram-бота</label>
-<input type="text" name="token" placeholder="{tokenPlaceholder}" autocomplete="off">
+<input type="text" name="token" maxlength="63" placeholder="{tokenPlaceholder}" autocomplete="off">
 <div class="hint">Получите у @BotFather. {tokenHint}</div>
 <button class="btn btn-primary" type="submit">🔗 Подключить</button>
 </form>
@@ -66,6 +69,7 @@ function cp(b){var t=document.getElementById('uid').innerText;if(navigator.clipb
 </script>
 </body></html>)rawliteral";
 
+static String _SP_page;  // 📄 Отрендеренная страница текущего запуска портала
 static bool _SP_started = false;
 static byte _SP_status = 0;
 PortalCfg portalCfg;
@@ -154,7 +158,7 @@ void portalStart() {
   _SP_dnsServer.start(53, "*", apIP);
 
   _SP_server.onNotFound([]() {
-    _SP_server.send(200, "text/html", SP_connect_page);
+    _SP_server.send(200, "text/html", _SP_page);
   });
   _SP_server.on("/connect", HTTP_POST, spHandleConnect);
   _SP_server.on("/exit", HTTP_POST, spHandleExit);
@@ -169,6 +173,7 @@ void portalStop() {
   _SP_server.stop();
   _SP_dnsServer.stop();
   _SP_started = false;
+  _SP_page = String();  // 🧹 освобождаем ~4 КБ кучи до следующего запуска
 }
 
 // 🔄 Неблокирующий тикер портала
@@ -215,16 +220,17 @@ void portalRun(uint32_t prd) {
   }
   WiFi.scanDelete();
 
-  // 🔐 Генерируем кодовое слово и обновляем HTML
+  // 🔐 Генерируем кодовое слово и рендерим страницу из нетронутого шаблона
   t_str = generateUID();
-  SP_connect_page.replace("{BoxItems}", data);
-  SP_connect_page.replace("{textTelegramConnect}", t_str);
+  _SP_page = FPSTR(SP_connect_page_tpl);  // 📄 свежая копия шаблона на каждый запуск
+  _SP_page.replace("{BoxItems}", data);
+  _SP_page.replace("{textTelegramConnect}", t_str);
   // 🤖 Подсказки по токену: если он уже сохранён, поле можно не заполнять
-  SP_connect_page.replace("{tokenPlaceholder}",
-                          portalTokenKnown ? "оставьте пустым — не менять" : "123456789:AAE...");
-  SP_connect_page.replace("{tokenHint}",
-                          portalTokenKnown ? "Токен уже сохранён — заполните, только если хотите его сменить."
-                                           : "Без токена бот не заработает.");
+  _SP_page.replace("{tokenPlaceholder}",
+                   portalTokenKnown ? "оставьте пустым — не менять" : "123456789:AAE...");
+  _SP_page.replace("{tokenHint}",
+                   portalTokenKnown ? "Токен уже сохранён — заполните, только если хотите его сменить."
+                                    : "Без токена бот не заработает.");
 
   portalStart();
   while (!portalTick()) {

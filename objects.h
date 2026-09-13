@@ -130,7 +130,6 @@ extern bool fillActive;       // 🚰 идёт неблокирующий имп
 
 // 💧 Переменные для замера расхода воды через датчик потока
 extern volatile unsigned long flowPulseCount;   // 🔄 Счётчик импульсов датчика потока (volatile — обновляется в ISR)
-extern unsigned long flowLastSessionPulses;     // 📝 Импульсы за предыдущую сессию
 
 // 💧 Функции для работы с датчиком потока воды
 void flowInit();                // 🔌 Инициализация датчика потока (пин + прерывание)

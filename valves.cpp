@@ -126,7 +126,9 @@ void valveOpen(int index) {
   // 🗑️ Если все клапаны были закрыты долго — делаем пролив
   if (myConfig.utimeAllClosed != 0) {
     unsigned long ut = getDateTime().getUnix();
-    if (ut - myConfig.utimeAllClosed > TIMEOUT_WAIT) {
+    // ⏰ ut > utimeAllClosed: при откате часов (первая NTP-синхронизация) беззнаковая
+    //    разность иначе переполнится и запустит ложный пролив
+    if (ut > myConfig.utimeAllClosed && ut - myConfig.utimeAllClosed > TIMEOUT_WAIT) {
       spillage();
     }
     myConfig.utimeAllClosed = 0;
@@ -217,4 +219,19 @@ bool valveNeedUpdate() {
   bool nu = needValveUpdate;
   needValveUpdate = false;
   return nu;
+}
+// 🛑 Погасить все нагрузки перед перезагрузкой или в аварии.
+//    PCF8574 — отдельная защёлка, программный сброс ESP32 её не трогает: открытые
+//    клапаны остались бы открытыми до valvesInit() после портала/WiFi/SD. Пишем в
+//    него всегда, даже если он помечен неисправным — попытка стоит миллисекунд.
+void loadsOff() {
+  pumpStart = 0;          // иначе stopPumpIfNeed() внутри valveClose() снова включит насос
+  drainActive = false;
+  for (int i = 0; i < NUM_CHANNELS; i++) {
+    pcf8574.digitalWrite(i, HIGH);   // реле клапанов активны низким уровнем
+    isClose[i] = true;
+  }
+  digitalWrite(PUMP, LOW);
+  digitalWrite(DRAIN, LOW);
+  digitalWrite(FILL, LOW);
 }
