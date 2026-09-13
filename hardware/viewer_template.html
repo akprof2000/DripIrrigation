@@ -184,7 +184,7 @@ new THREE.GLTFLoader().parse(b64ToBuffer(GLB_B64), '', gltf => {
       o.material = o.material.clone();
       if (o.material.emissive) o.userData.baseEmissive = o.material.emissive.clone();
     }
-    if (partByRef[o.name] && !partObjects[o.name]) partObjects[o.name] = o;
+    if (partByRef[o.name]) (partObjects[o.name] = partObjects[o.name] || []).push(o);
     if (MODULE_NAMES.some(n => o.name.startsWith(n))) { o.userData.baseY = o.position.y; moduleObjects.push(o); }
   });
 
@@ -251,13 +251,12 @@ hideBtn.addEventListener('click', () => {
 // ── выбор детали ──
 let selected = null, hovered = null;
 function paint(ref, color) {
-  const obj = partObjects[ref]; if (!obj) return;
-  obj.traverse(o => {
+  (partObjects[ref] || []).forEach(obj => obj.traverse(o => {
     if (o.isMesh && o.material.emissive) {
       if (color === null) o.material.emissive.copy(o.userData.baseEmissive);
       else o.material.emissive.setHex(color);
     }
-  });
+  }));
 }
 function refresh() {
   Object.keys(partObjects).forEach(ref => paint(ref, null));
@@ -272,9 +271,10 @@ function select(ref, focus) {
     '<div class="ref">' + p.ref + ' · ' + p.value + '</div><p>' + p.role + '</p>';
   document.querySelectorAll('.part').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ref === ref)));
   refresh();
-  const obj = partObjects[ref];
-  if (focus && obj) {
-    const box = new THREE.Box3().setFromObject(obj);
+  const objs = partObjects[ref] || [];
+  if (focus && objs.length) {
+    const box = new THREE.Box3();
+    objs.forEach(o => box.union(new THREE.Box3().setFromObject(o)));
     const c = box.getCenter(new THREE.Vector3());
     const dist = Math.max(box.getSize(new THREE.Vector3()).length() * 2.4, board.userData.span * 0.35);
     const dir = camera.position.clone().sub(controls.target).normalize();
@@ -305,7 +305,8 @@ function refAt(ev) {
   const rect = canvas.getBoundingClientRect();
   mouse.set(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(mouse, camera);
-  const hit = board && ray.intersectObject(board, true).find(h => h.object.visible);
+  const shown = h => { for (let o = h.object; o; o = o.parent) if (!o.visible) return false; return true; };
+  const hit = board && ray.intersectObject(board, true).find(shown);
   if (!hit) return null;
   for (let o = hit.object; o; o = o.parent) if (partByRef[o.name]) return o.name;
   return null;

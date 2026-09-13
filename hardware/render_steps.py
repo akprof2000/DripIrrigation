@@ -14,11 +14,11 @@ IMG = 'kicad/kicad:10.0.5-full'
 # Шаги: какие позиции появляются. Для гнёзд модулей и панелек отдельно указано,
 # ставится ли только гнездо ('socket') или модуль/микросхема ('module').
 STEPS = [
-    ('01', ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'D1']),
-    ('02', ['C4', 'SW1', 'JP1:socket', 'JL1']),
+    ('01', ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'D2']),
+    ('02', ['C4', 'C5', 'C6', 'SW1', 'JP1:socket', 'JL1']),
     ('03', ['U4:socket', 'U5:socket']),
     ('04', ['U1:socket', 'J8:socket', 'J9:socket', 'U6:socket']),
-    ('05', ['C1', 'C2', 'C3', 'U2', 'U3']),
+    ('05', ['C1', 'C2', 'C3', 'U2', 'U3', 'Q1']),
     ('06', ['F1', 'F2']),
     ('07', ['J1', 'J3', 'J4', 'J5', 'J6', 'J7', 'J10', 'J11', 'J12'] + ['S%d' % i for i in range(1, 9)]),
     ('08', ['U4:module', 'U5:module', 'JP1:module']),
@@ -105,10 +105,7 @@ def main():
         shutil.copy(os.path.join(HW, 'DripCarrier.kicad_pro'), os.path.join(work, name + '.kicad_pro'))
         cmds.append("kicad-cli pcb render --quality high --floor --perspective --rotate '-50,0,20' --zoom 1.15 "
                     "--width 1600 --height 1100 -o /out/%s.png _steps/%s.kicad_pcb >/dev/null" % (name, name))
-    for d in ('3d',):
-        pass
-    hw_win = subprocess.run(['cygpath', '-w', HW], capture_output=True, text=True).stdout.strip() or HW
-    out_win = subprocess.run(['cygpath', '-w', OUT], capture_output=True, text=True).stdout.strip() or OUT
+    hw_win, out_win = os.path.abspath(HW), os.path.abspath(OUT)   # Windows-пути понимает и Docker Desktop, и Git Bash
     env = dict(os.environ, MSYS_NO_PATHCONV='1')
     r = subprocess.run(['docker', 'run', '--rm', '-u', '0', '-v', hw_win + ':/hw', '-v', out_win + ':/out', '-w', '/hw',
                         IMG, 'sh', '-c', ' && '.join(cmds)], env=env)

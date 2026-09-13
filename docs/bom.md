@@ -49,13 +49,15 @@
 | 26 | J6 | клеммник 10P | 1 | шаг 5,08 мм; можно 5 шт. 2P | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+10P) |
 | 27 | F1, F2 | держатель предохранителя на плату | 2 | 5×20 мм, расстояние между выводами 22 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=5x20+PCB+fuse+holder) |
 | 28 | F1, F2 | предохранители 5×20 | по 1 | 5 А и 3 А (лучше набор) | [поиск](https://aliexpress.ru/wholesale?SearchText=fuse+5x20+kit) |
-| 29 | D1 | диод Шоттки 1N5822 | 1 | 3 А, корпус DO-201 | [поиск](https://aliexpress.ru/wholesale?SearchText=1N5822) |
+| 29 | Q1 | P-MOSFET IRF4905 | 1 | корпус TO-220, 55 В, Rds ≤ 0,02 Ом | [поиск](https://aliexpress.ru/wholesale?SearchText=IRF4905+TO-220) |
+| 29а | D2 | TVS-диод P6KE18CA | 1 | двунаправленный (буквы CA), 18 В, корпус DO-15 | [поиск](https://aliexpress.ru/wholesale?SearchText=P6KE18CA) |
 | 30 | C1 | конденсатор 1000 мкФ 16 В | 1 | шаг выводов 5 мм, диаметр до 10 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=1000uF+16V+10x16) |
-| 31 | C2, C3 | конденсатор 100 мкФ 10–16 В | 2 | шаг выводов 2,5 мм, диаметр до 6,3 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=100uF+16V+6.3x11) |
-| 32 | R1–R5, R7 | резистор 10 кОм 0,25 Вт | 6 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+10k+1%2F4W) |
-| 33 | R6 | резистор 20 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+20k+1%2F4W) |
+| 31 | C2, C3 | конденсатор 100 мкФ 16 В | 2 | шаг выводов 2,5 мм, диаметр до 6,3 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=100uF+16V+6.3x11) |
+| 32 | R1–R5, R7, R9 | резистор 10 кОм 0,25 Вт | 7 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+10k+1%2F4W) |
+| 33 | R6 | резистор 33 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+33k+1%2F4W) |
+| 33в | R10, R11 | резистор 4,7 кОм 0,25 Вт | 2 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+4.7k+1%2F4W) |
 | 33а | R8 | резистор 1 кОм 0,25 Вт | 1 | выводной | [поиск](https://aliexpress.ru/wholesale?SearchText=resistor+1k+1%2F4W) |
-| 33б | C4 | конденсатор 100 нФ керамический | 1 | шаг выводов 5 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=ceramic+capacitor+104+100nF+5mm) |
+| 33б | C4, C5, C6 | конденсатор 100 нФ керамический | 3 | шаг выводов 5 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=ceramic+capacitor+104+100nF+5mm) |
 | 34 | SW1 | кнопка тактовая 6×6 | 1 | 4 вывода | [поиск](https://aliexpress.ru/wholesale?SearchText=tactile+switch+6x6+4pin) |
 | 35 | JP1 | штыри 1×3 + джампер | 1 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=jumper+cap+2.54+pin+header) |
 
@@ -72,4 +74,4 @@
 
 | # | Что | Кол-во | Параметры | Где |
 |---|---|---|---|---|
-| 40 | Печатная плата 150×110 мм | 5 (минимальный заказ) | 2 слоя, 1,6 мм, файл `hardware/DripCarrier-gerbers.zip` | [JLCPCB](https://jlcpcb.com) или [PCBWay](https://www.pcbway.com) |
+| 40 | Печатная плата 150×110 мм | 5 (минимальный заказ) | 2 слоя, 1,6 мм, архив `hardware/DripCarrier-gerbers.zip` (собирается командой `bash hardware/kicad-docker.sh`, в git не хранится) | [JLCPCB](https://jlcpcb.com) или [PCBWay](https://www.pcbway.com) |

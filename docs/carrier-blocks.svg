@@ -30,12 +30,12 @@
 <rect x="704" y="242" width="146" height="58" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
 <text x="778" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Кнопка сброса</text>
 <text x="778" y="290" font-size="11" fill="#455A64" text-anchor="middle">тактовая 6×6</text>
-<rect x="863" y="242" width="231" height="58" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
-<text x="979" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Защита входа</text>
-<text x="979" y="290" font-size="11" fill="#455A64" text-anchor="middle">F1 5 А · F2 3 А · диод Шоттки</text>
+<rect x="863" y="242" width="279" height="58" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
+<text x="1003" y="268" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Защита входа</text>
+<text x="1003" y="290" font-size="11" fill="#455A64" text-anchor="middle">F1 5 А · F2 3 А · MOSFET Q1 · TVS D2</text>
 <rect x="340" y="322" width="720" height="57" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
 <text x="700" y="347" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Паяется на плату</text>
-<text x="700" y="369" font-size="11" fill="#455A64" text-anchor="middle">держатели предохранителей, диод, 3 конденсатора, 6 резисторов, гнёзда, панельки, клеммники</text>
+<text x="700" y="369" font-size="11" fill="#455A64" text-anchor="middle">держатели предохранителей, MOSFET, TVS, 6 конденсаторов, 11 резисторов, кнопка, штыри, гнёзда, панельки, клеммники</text>
 <rect x="340" y="398" width="340" height="73" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
 <text x="510" y="423" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммники 5,08 мм 2P ×5</text>
 <text x="510" y="445" font-size="11" fill="#455A64" text-anchor="middle">12 В вход · 12 В на COM клапанов · 12 В насос</text>
@@ -46,9 +46,9 @@
 <text x="833" y="461" font-size="11" fill="#455A64" text-anchor="middle">1 кан.: +5 В · GND · насос</text>
 <text x="833" y="477" font-size="11" fill="#455A64" text-anchor="middle">2 кан.: +5 В · GND · налив · дренаж</text>
 <rect x="340" y="503" width="720" height="73" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
-<text x="700" y="528" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммники 5,08 мм 3P ×9</text>
-<text x="700" y="550" font-size="11" fill="#455A64" text-anchor="middle">8 × датчик влажности (3V3 · GND · AOUT)</text>
-<text x="700" y="566" font-size="11" fill="#455A64" text-anchor="middle">расходомер</text>
+<text x="700" y="528" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Клеммники 5,08 мм 3P ×10</text>
+<text x="700" y="550" font-size="11" fill="#455A64" text-anchor="middle">8 × датчик влажности (3V3 или 5V по JP1 · GND · AOUT)</text>
+<text x="700" y="566" font-size="11" fill="#455A64" text-anchor="middle">расходомер · реле насоса</text>
 <text x="700" y="674" font-size="13" fill="#1B5E20" text-anchor="middle" font-weight="bold">Ни одного провода «навесом»: все связи между модулями — дорожки платы</text>
 <rect x="40" y="120" width="181" height="58" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
 <text x="130" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Источник 12 В 5 А</text>
@@ -68,7 +68,7 @@
 <text x="161" y="532" font-size="11" fill="#E65100" text-anchor="middle">провода к клеммам реле</text>
 <rect x="1140" y="120" width="207" height="58" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
 <text x="1243" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Датчики влажности ×8</text>
-<text x="1243" y="168" font-size="11" fill="#455A64" text-anchor="middle">ёмкостные v1.2, 3 провода</text>
+<text x="1243" y="168" font-size="11" fill="#455A64" text-anchor="middle">ёмкостные v2.0, 3 провода</text>
 <rect x="1140" y="210" width="259" height="74" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
 <text x="1269" y="236" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Дождь · Свет</text>
 <text x="1269" y="258" font-size="11" fill="#455A64" text-anchor="middle">дождь — сухой контакт, как кнопка</text>

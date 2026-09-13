@@ -42,6 +42,7 @@ def build(slug, title):
     src = open(os.path.join(DOCS, slug + '.md'), encoding='utf-8').read()
     body = markdown.markdown(src, extensions=['tables', 'fenced_code', 'sane_lists', 'toc'])
     body = re.sub(r'href="([\w\-]+)\.md(#[^"]*)?"', lambda m: 'href="%s.html%s"' % (m.group(1), m.group(2) or ''), body)
+    body = re.sub(r'href="#(\d+)-[^"]*"', lambda m: 'href="#%s"' % m.group(1), body)   # python-markdown: id="5" для «## 5. …»
     body = body.replace('<table>', '<div class="tbl"><table>').replace('</table>', '</table></div>')
     nav = ''.join('<a href="%s.html"%s>%s</a>' % (s, ' class="on"' if s == slug else '', t) for s, t in PAGES)
     html = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'

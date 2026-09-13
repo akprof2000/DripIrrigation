@@ -5,7 +5,7 @@
 
 Расставляет посадочные места, задаёт цепи, трассирует плату (двухслойный
 сеточный трассировщик A*) и пишет:
-  hardware/DripCarrier.kicad_pcb  — открывается в KiCad 8 (File → Open),
+  hardware/DripCarrier.kicad_pcb  — открывается в KiCad 10 (File → Open),
                                     оттуда экспорт Gerber для JLCPCB;
   docs/pcb-top.svg, docs/pcb-bottom.svg — рендер платы для документации;
   hardware/netlist.md             — таблица соединений для ручной проверки.
@@ -72,14 +72,6 @@ def terminal(n):
         out.append((str(i + 1), (i - (n - 1) / 2) * 5.08, 0, 2.6, 1.3, 'rect' if i == 0 else 'circle'))
     return out
 
-def idc2x5():
-    out = []
-    for i in range(5):
-        x = (i - 2) * 2.54
-        out.append((str(2 * i + 1), x, -1.27, 1.7, 1.0, 'rect' if i == 0 else 'circle'))
-        out.append((str(2 * i + 2), x, 1.27, 1.7, 1.0, 'circle'))
-    return out
-
 def two_pin(pitch, size=1.8, drill=1.0):
     return [('1', -pitch / 2, 0, size, drill, 'rect'), ('2', pitch / 2, 0, size, drill, 'circle')]
 
@@ -94,7 +86,6 @@ FP = {
     'TERM3':     dict(pads=terminal(3), body=(15.3, 8.0), desc='Клеммник KF301/KF2EDG 5.08 3P'),
     'TERM4':     dict(pads=terminal(4), body=(20.4, 8.0), desc='Клеммник KF2EDG 5.08 4P'),
     'TERM10':    dict(pads=terminal(10), body=(50.9, 8.0), desc='Клеммник KF2EDG 5.08 10P'),
-    'IDC2x5':    dict(pads=idc2x5(), body=(20.3, 9.0), desc='IDC box header 2×5 с защёлкой'),
     'FUSE5x20':  dict(pads=two_pin(22.0, 2.8, 1.5), body=(30.0, 7.0), desc='Держатель предохранителя 5×20'),
     'DO201':     dict(pads=two_pin(12.7, 2.8, 1.5), body=(9.5, 5.5), desc='Диод DO-201 (1N5822)'),
     'CAP_P5':    dict(pads=two_pin(5.0, 2.0, 1.1), body=(10.5, 10.5), desc='Электролит 1000 мкФ, шаг 5'),
@@ -107,7 +98,9 @@ FP = {
     'CAP_C5':    dict(pads=two_pin(5.08, 1.6, 0.8), body=(7.5, 3.0), desc='Керамический конденсатор, шаг 5.08'),
     'HDR1x2':    dict(pads=pin_row(2, vertical=False), body=(5.5, 2.6), desc='Штыри 1×2 к площадкам фоторезистора модуля'),
     'DS3231MOD': dict(pads=pin_row(6), body=(38.0, 22.0), off=(-17.7, 0.0), desc='Гнездо модуля DS3231 1×6, модуль 38×22 мм уходит влево'),
-    'HOLE':      dict(pads=[('1', 0, 0, 6.0, 3.2, 'circle')], body=(6.0, 6.0), desc='Отверстие М3'),
+    'HOLE':      dict(pads=[('1', 0, 0, 6.5, 3.2, 'circle')], body=(6.0, 6.0), desc='Отверстие М3, зона под головку винта'),
+    'TO220_2':   dict(pads=[('1', -5.08, 0, 2.0, 1.1, 'rect'), ('2', 0, 0, 2.0, 1.1, 'circle'), ('3', 5.08, 0, 2.0, 1.1, 'circle')],
+                      body=(13.6, 5.0), desc='TO-220 стоя, крайние выводы разведены на 5.08: P-MOSFET защиты от переполюсовки (G D S)'),
 }
 
 # ────────────────────────── 3D-модели ──────────────────────────
@@ -130,6 +123,7 @@ MODELS = {
     'HDR1x2':    [(HDR % 2, (-1.27, 0, 0), (0, 0, 270))],
     'JMP1x3':    [(HDR % 3, (-2.54, 0, 0), (0, 0, 270)), (PRJ3D + 'jumper.wrl', (0, 0, 0), (0, 0, 0))],
     'TO220':     [(PRJ3D + 'dcdc_to220.wrl', (0, 0, 0), (0, 0, 0))],
+    'TO220_2':   [(S3D + 'Package_TO_SOT_THT.3dshapes/TO-220-3_Vertical.step', (-5.08, 0, 0), (0, 0, 0))],
     'TERM2':     [(TB % (2, 2), (-2.54, 0, 0), (0, 0, 0))],
     'TERM3':     [(TB % (3, 3), (-5.08, 0, 0), (0, 0, 0))],
     'TERM4':     [(TB % (4, 4), (-7.62, 0, 0), (0, 0, 0))],
@@ -150,9 +144,9 @@ def add(ref, fp, x, y, rot, value, nets):
     COMPONENTS.append(dict(ref=ref, fp=fp, x=x, y=y, rot=rot, value=value, nets=nets))
 
 # — верхний край: клеммы питания и управления реле (провод заводится снаружи платы)
-add('J1',  'TERM2',   12.3,  8.0, 180, '12V IN',        {'1': '12V_RAW', '2': 'GND'})
-add('J3',  'TERM2',   24.0,  8.0, 180, '12V VALVES',    {'1': '+12V', '2': 'GND'})
-add('J4',  'TERM2',   35.7,  8.0, 180, '12V PUMP',      {'1': '12V_PUMP', '2': 'GND'})
+add('J1',  'TERM2',   13.5,  8.0, 180, '12V IN',        {'1': '12V_RAW', '2': 'GND'})
+add('J3',  'TERM2',   25.2,  8.0, 180, '12V VALVES',    {'1': '+12V', '2': 'GND'})
+add('J4',  'TERM2',   36.9,  8.0, 180, '12V PUMP',      {'1': '12V_PUMP', '2': 'GND'})
 add('J6',  'TERM10',  67.8,  8.0, 180, 'RELAY 8: +5 GND IN1..IN8',
     {'1': '+5V', '2': 'GND', '3': 'P0', '4': 'P1', '5': 'P2', '6': 'P3', '7': 'P4', '8': 'P5', '9': 'P6', '10': 'P7'})
 add('J7',  'TERM3',   102.4, 8.0, 180, 'RELAY 1: +5 GND PUMP', {'1': '+5V', '2': 'GND', '3': 'PUMP'})
@@ -160,7 +154,9 @@ add('J5',  'TERM4',   125.7, 8.0, 180, 'RELAY 2: +5 GND FILL DRAIN', {'1': '+5V'
 
 # — второй ряд: высокие детали питания, подальше от клемм
 add('F1',  'FUSE5x20', 22.0, 21.0,  0, 'F1 5A',         {'1': '12V_RAW', '2': '12V_F'})
-add('D1',  'DO201',   44.0, 21.0,   0, '1N5822',        {'1': '12V_F', '2': '+12V'})
+add('Q1',  'TO220_2', 44.0, 21.0,   0, 'IRF4905',       {'1': 'QG', '2': '12V_F', '3': '+12V'})  # P-MOSFET: G D S, вход в сток
+add('R9',  'R_AX',    12.0, 30.0,   0, '10k',           {'1': 'QG', '2': 'GND'})       # затвор к земле: канал открыт
+add('D2',  'DO201',   143.0, 30.0,  90, 'P6KE18CA',      {'1': '+12V', '2': 'GND'})     # TVS от выбросов клапанов
 add('C1',  'CAP_P5',  57.0, 21.0,   0, '1000u/16V',     {'1': '+12V', '2': 'GND'})
 add('U2',  'TO220',   70.0, 21.0,   0, 'DC-DC 12-5V 2A', {'1': '+12V', '2': 'GND', '3': '+5V'})
 add('C2',  'CAP_P25', 80.0, 21.0,   0, '100u',          {'1': '+5V', '2': 'GND'})
@@ -170,7 +166,7 @@ add('F2',  'FUSE5x20', 125.0, 21.0, 0, 'F2 3A',         {'1': '+12V', '2': '12V_
 
 # — логика
 add('U1',  'ESP32_38', 42.0, 54.0,  0, 'ESP32 DevKitC 38',
-    {'5V': '+5V', 'GND': 'GND', 'GND2': 'GND', 'GND3': 'GND', '3V3': '+3V3',
+    {'5V': '+5V', 'GND': 'GND', 'GND2': 'GND', 'GND3': 'GND',   # 3V3 модуля не подключаем: свой AMS1117 питает только ESP32
      'D21': 'SDA', 'D22': 'SCL',
      'D12': 'S0', 'D13': 'S1', 'D14': 'S2', 'D33': 'ADC',
      'D5': 'SD_CS', 'D18': 'SD_SCK', 'D19': 'SD_MISO', 'D23': 'SD_MOSI',
@@ -178,20 +174,24 @@ add('U1',  'ESP32_38', 42.0, 54.0,  0, 'ESP32 DevKitC 38',
 add('U4',  'DIP16',   12.0, 54.0,   0, 'PCF8574P',
     {'1': 'GND', '2': 'GND', '3': 'GND', '4': 'P0', '5': 'P1', '6': 'P2', '7': 'P3', '8': 'GND',
      '9': 'P4', '10': 'P5', '11': 'P6', '12': 'P7', '14': 'SCL', '15': 'SDA', '16': '+3V3'})
-add('U5',  'DIP16',   67.0, 50.0,   0, '74HC4051',
+add('U5',  'DIP16',   66.0, 82.0,   0, '74HC4051',
     {'1': 'Y4', '2': 'Y6', '3': 'ADC', '4': 'Y7', '5': 'Y5', '6': 'GND', '7': 'GND', '8': 'GND',
      '9': 'S2', '10': 'S1', '11': 'S0', '12': 'Y3', '13': 'Y0', '14': 'Y1', '15': 'Y2', '16': '+3V3'})
 add('J8',  'D1MINI',  87.0, 50.0,   0, 'SD D1 mini',
     {'G': 'GND', '3V3': '+3V3', 'D6': 'SD_MISO', 'D7': 'SD_MOSI', 'D5': 'SD_SCK', 'D8': 'SD_CS'})
 add('J9',  'DS3231MOD', 137.0, 40.0, 0, 'DS3231',
     {'3': 'SCL', '4': 'SDA', '5': '+3V3', '6': 'GND'})
-add('SW1', 'BTN6x6',  100.0, 80.0,  0, 'RESET CFG',     {'1': 'BTN', '2': 'BTN', '3': 'GND', '4': 'GND'})
-add('R4',  'R_AX',    100.0, 88.0,  0, '10k',           {'1': 'BTN', '2': '+3V3'})
-add('R1',  'R_AX',    68.0, 72.0,   0, '10k',           {'1': 'S0', '2': 'GND'})
-add('R2',  'R_AX',    68.0, 77.0,   0, '10k',           {'1': 'S1', '2': 'GND'})
-add('R3',  'R_AX',    68.0, 82.0,   0, '10k',           {'1': 'S2', '2': 'GND'})
+add('SW1', 'BTN6x6',  100.0, 80.0,  0, 'RESET CFG',     {'1': 'BTN', '2': 'BTN', '3': '+3V3', '4': '+3V3'})  # прошивка: нажата = HIGH
+add('R4',  'R_AX',    100.0, 88.0,  0, '10k',           {'1': 'BTN', '2': 'GND'})  # подтяжка кнопки к земле
+add('R1',  'R_AX',    80.0, 74.0,   0, '10k',           {'1': 'S0', '2': 'GND'})
+add('R2',  'R_AX',    80.0, 79.0,   0, '10k',           {'1': 'S1', '2': 'GND'})
+add('R3',  'R_AX',    80.0, 84.0,   0, '10k',           {'1': 'S2', '2': 'GND'})
 add('R5',  'R_AX',    120.0, 77.0,  0, '10k',           {'1': 'FLOW_IN', '2': 'FLOW'})
-add('R6',  'R_AX',    120.0, 84.0,  0, '20k',           {'1': 'FLOW', '2': 'GND'})
+add('R6',  'R_AX',    120.0, 84.0,  0, '33k',           {'1': 'FLOW', '2': 'GND'})     # с внутренней подтяжкой 10k YF-S201 даёт ~3.1 В
+add('C5',  'CAP_C5',  12.0, 38.0,   0, '100n',          {'1': '+3V3', '2': 'GND'})     # развязка PCF8574
+add('C6',  'CAP_C5',  66.0, 68.0,   0, '100n',          {'1': '+3V3', '2': 'GND'})     # развязка 74HC4051
+add('R10', 'R_AX',    8.0, 88.0,   0, '4.7k',          {'1': 'SDA', '2': '+3V3'})     # подтяжки I2C на плате
+add('R11', 'R_AX',    8.0, 93.0,   0, '4.7k',          {'1': 'SCL', '2': '+3V3'})
 add('JP1', 'JMP1x3',  18.0, 82.0,   0, '3V3 SENS 5V',   {'1': '+3V3', '2': 'SENS_V', '3': '+5V'})
 
 # — правый край: расходомер, свет, дождь
@@ -230,8 +230,11 @@ for i, a in enumerate(COMPONENTS):
 if _bad:
     sys.exit(2)
 
-FAT_NETS = {'GND', '12V_RAW', '12V_F', '+12V', '12V_PUMP', '+5V', '+3V3'}
-FAT_W, THIN_W = 1.0, 0.35
+NET_W = {'12V_RAW': 2.0, '12V_F': 2.0, '+12V': 2.0, '12V_PUMP': 2.0,   # до 5 А: 2.0 мм ≈ +15 °C на 1 oz
+         'GND': 1.0, '+5V': 1.2,                                        # 1.2 мм ≈ 2.5 А при +10 °C, земля ещё и зоной
+         '+3V3': 1.0, 'SENS_V': 0.8}
+FAT_NETS = set(NET_W)
+THIN_W = 0.35
 
 # ────────────────────────── вычисление пинов ──────────────────────────
 def rot(dx, dy, deg):
@@ -259,7 +262,7 @@ def cell(x, y): return (int(round(x / GRID)), int(round(y / GRID)))
 def pos(c): return (c[0] * GRID, c[1] * GRID)
 
 obst = [collections.defaultdict(list), collections.defaultdict(list)]
-MAXR = 1.9                   # полудиагональ квадратной площадки 2.6 мм
+MAXR = 1.9                   # пересчитывается ниже по реальным радиусам препятствий
 def add_obst(L, x, y, r, nid):
     obst[L][cell(x, y)].append((x, y, r, nid))
 
@@ -269,6 +272,8 @@ for p in pads:
     for L in (0, 1):
         add_obst(L, p['x'], p['y'], r, netid.get(p['net'], -1))
     holes[cell(p['x'], p['y'])].append((p['x'], p['y'], p['drill'] / 2, p['size'] / 2, netid.get(p['net'], -1)))
+
+MAXR = max(o[2] for L in (0, 1) for lst in obst[L].values() for o in lst)
 
 def _near_holes(c, reach=4):
     for dx in range(-reach, reach + 1):
@@ -280,6 +285,7 @@ def own_pad(c, nid):
     return any(hn == nid and (hx - x) ** 2 + (hy - y) ** 2 <= (hr * 0.7) ** 2 for (hx, hy, _, hr, hn) in _near_holes(c, 2))
 
 def via_hole_ok(c):
+    """Переходное отверстие не ближе 0.55 мм к другим отверстиям (правило KiCad 0.25 + запас)."""
     x, y = pos(c)
     for (hx, hy, dr, _, _) in _near_holes(c):
         if (hx - x) ** 2 + (hy - y) ** 2 < (dr + 0.2 + 0.35) ** 2:
@@ -314,7 +320,7 @@ vias = []       # (x,y,net)
 
 def route_net(net):
     nid = netid[net]
-    half = (FAT_W if net in FAT_NETS else THIN_W) / 2
+    half = NET_W.get(net, THIN_W) / 2
     pins = [cell(p['x'], p['y']) for p in pads if p['net'] == net]
     if len(pins) < 2:
         return True
@@ -369,6 +375,8 @@ def astar(start, targets, nid, half):
         NL = 1 - L
         if own_pad(c, nid):
             sw = 1                      # сквозная площадка сама соединяет слои
+        elif d is None:
+            sw = None                   # два перехода подряд дали бы отверстия ближе 0.65 мм
         elif free(NL, c, VIA_R, nid) and free(L, c, VIA_R, nid) and via_hole_ok(c):
             sw = 12
         else:
@@ -426,10 +434,14 @@ for n in order:
 print('Готово. Сегментов: %d, переходов: %d. Не проведено: %s' % (len(segments), len(vias), failed or 'нет'))
 
 # ────────────────────────── запись KiCad ──────────────────────────
-def uid(): return str(uuid.uuid4())
+_uid_n = [0]
+def uid():
+    """Детерминированный UUID: повторный запуск даёт тот же файл, diff в git показывает только реальные изменения."""
+    _uid_n[0] += 1
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, 'dripcarrier/%d' % _uid_n[0]))
 
 out = []
-out.append('(kicad_pcb (version 20240108) (generator "gen_pcb.py") (generator_version "8.0")')
+out.append('(kicad_pcb (version 20240108) (generator "gen_pcb.py") (generator_version "10.0")')
 out.append('  (general (thickness 1.6) (legacy_teardrops no))')
 out.append('  (paper "A4")')
 out.append('  (layers (0 "F.Cu" signal) (31 "B.Cu" signal) (32 "B.Adhes" user "B.Adhesive") (33 "F.Adhes" user "F.Adhesive")'
@@ -498,16 +510,14 @@ def gr_text(t, x, y, size=1.2, layer='F.SilkS'):
 out.append(gr_text('DripIrrigation carrier v1', 82, 28.5, 1.5))
 out.append(gr_text('ANT ->', 42, 27.0, 1.0))
 out.append(gr_text('USB', 42, 82.5, 1.0))
-for i, t in enumerate(['DRILL: TERM 1.3  FUSE/D1 1.5', 'HDR/DCDC/BTN 1.0  C1 1.1', 'DIP/C2/C3 0.9  R/C4 0.8']):
+for i, t in enumerate(['DRILL: TERM 1.3  FUSE/D2 1.5', 'HDR/DCDC/BTN 1.0  C1 1.1', 'DIP/C2/C3 0.9  R/C4 0.8']):
     out.append(gr_text(t, 40, 88.5 + i * 1.6, 1.0))
 out.append(gr_text('3V3', 11.4, 82.0, 1.2))
 out.append(gr_text('5V', 24.2, 82.0, 1.2))
 # полярность: плюс электролитов, катод диода, выводы DC-DC
-for t, x, y in [('+', 54.5, 15.0), ('+', 78.75, 16.8), ('+', 98.75, 16.8), ('K', 50.35, 17.4),
+for t, x, y in [('+', 54.5, 14.2), ('+', 78.75, 16.8), ('+', 98.75, 16.8), ('G', 38.92, 17.6), ('S', 49.08, 17.6), ('TVS', 143.0, 39.0),
                 ('IN', 67.46, 17.6), ('OUT', 72.54, 17.6), ('IN', 87.46, 17.6), ('OUT', 92.54, 17.6)]:
     out.append(gr_text(t, x, y, 0.9 if len(t) > 1 else 1.4))
-for name, x, y in [('GND', 8.2, 68.5), ('3V3', 5.7, 68.5)]:
-    pass
 
 for (x1, y1, x2, y2, w, L, nid) in segments:
     out.append('  (segment (start %.3f %.3f) (end %.3f %.3f) (width %.2f) (layer "%s") (net %d) (uuid "%s"))'
@@ -563,13 +573,15 @@ def render(side, path):
             if inside and bh >= 8 and c['fp'] not in ('ESP32_38', 'D1MINI'):
                 o.append('<text x="%.1f" y="%.1f" font-size="6.5" fill="#CFD8DC" text-anchor="middle">%s</text>'
                          % (X(c['x']), Y(c['y'] + bh / 2) - 3, c['value']))
+    comp_x = {c_['ref']: c_['x'] for c_ in COMPONENTS}
     for p in pads:
         r = p['size'] / 2 * S
         o.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#D4AF37" stroke="#5D4037" stroke-width="0.6"/>' % (X(p['x']), Y(p['y']), r))
         o.append('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#1B5E20"/>' % (X(p['x']), Y(p['y']), p['drill'] / 2 * S))
         if p['ref'] == 'U1' and side == 'top':
+            left = p['x'] < comp_x[p['ref']]
             o.append('<text x="%.1f" y="%.1f" font-size="6" fill="#FFFFFF" text-anchor="%s">%s</text>'
-                     % (X(p['x']) + (8 if p['x'] < c['x'] else -8), Y(p['y']) + 2, 'start' if p['x'] < 42 else 'end', p['pin']))
+                     % (X(p['x']) + (8 if left else -8), Y(p['y']) + 2, 'start' if left else 'end', p['pin']))
     o.append('<text x="20" y="%.0f" font-size="11" fill="#78909C">Жёлтые дорожки — этот слой, серые — обратная сторона; серые кружки — переходные отверстия. Сгенерировано hardware/gen_pcb.py.</text>' % (H * S + 55))
     o.append('</svg>')
     with open(path, 'w', encoding='utf-8') as f:

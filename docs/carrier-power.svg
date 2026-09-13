@@ -9,7 +9,7 @@
 <rect x="250" y="128" width="98" height="37" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
 <text x="299" y="153" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">F1 5 А</text>
 <rect x="360" y="128" width="106" height="37" rx="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="2"/>
-<text x="413" y="153" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">D1 Шоттки</text>
+<text x="413" y="153" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Q1 MOSFET</text>
 <path d="M221 149 L250 146" fill="none" stroke="#D81B60" stroke-width="4"/>
 <path d="M348 146 L360 146" fill="none" stroke="#D81B60" stroke-width="4"/>
 <text x="299" y="181" font-size="11" fill="#78909C" text-anchor="middle">предохранитель</text>
@@ -42,7 +42,7 @@
 <path d="M766 510 L766 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
 <text x="766" y="576" font-size="12" fill="#37474F" text-anchor="middle">DS3231 · SD</text>
 <path d="M933 510 L933 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
-<text x="933" y="576" font-size="12" fill="#37474F" text-anchor="middle">датчики ×10</text>
+<text x="933" y="576" font-size="12" fill="#37474F" text-anchor="middle">датчики (влажность по JP1)</text>
 <path d="M1100 510 L1100 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
 <text x="1100" y="576" font-size="12" fill="#37474F" text-anchor="middle">подтяжки</text>
 <rect x="1210" y="206" width="122" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
