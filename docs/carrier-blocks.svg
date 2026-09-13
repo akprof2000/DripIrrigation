@@ -64,8 +64,7 @@
 <text x="161" y="504" font-size="11" fill="#455A64" text-anchor="middle">перемычки в положении H</text>
 <path d="M696 442 L688 442 L688 495 L290 495 L290 367 L247 367" fill="none" stroke="#FB8C00" stroke-width="3"/>
 <path d="M290 495 L290 477 L282 477" fill="none" stroke="#FB8C00" stroke-width="3"/>
-<text x="284" y="407" font-size="11" fill="#E65100" text-anchor="end">провода к</text>
-<text x="284" y="421" font-size="11" fill="#E65100" text-anchor="end">клеммам реле</text>
+<text x="44" y="426" font-size="11" fill="#E65100" text-anchor="start">провода к клеммам реле</text>
 <rect x="1140" y="120" width="207" height="58" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
 <text x="1243" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Датчики влажности ×8</text>
 <text x="1243" y="168" font-size="11" fill="#455A64" text-anchor="middle">ёмкостные v2.0, 3 провода</text>
