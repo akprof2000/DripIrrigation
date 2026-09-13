@@ -62,10 +62,9 @@
 <text x="161" y="466" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Реле 1 + 2 кан. 5 В, H/L</text>
 <text x="161" y="488" font-size="11" fill="#455A64" text-anchor="middle">насос · налив · дренаж</text>
 <text x="161" y="504" font-size="11" fill="#455A64" text-anchor="middle">перемычки в положении H</text>
-<path d="M833 487 L833 495" fill="none" stroke="#FB8C00" stroke-width="3"/>
-<path d="M833 495 L290 495 L290 367 L247 367" fill="none" stroke="#FB8C00" stroke-width="3"/>
+<path d="M696 442 L688 442 L688 495 L290 495 L290 367 L247 367" fill="none" stroke="#FB8C00" stroke-width="3"/>
 <path d="M290 495 L290 477 L282 477" fill="none" stroke="#FB8C00" stroke-width="3"/>
-<text x="161" y="532" font-size="11" fill="#E65100" text-anchor="middle">провода к клеммам реле</text>
+<text x="161" y="530" font-size="11" fill="#E65100" text-anchor="middle">провода к клеммам реле</text>
 <rect x="1140" y="120" width="207" height="58" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
 <text x="1243" y="146" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Датчики влажности ×8</text>
 <text x="1243" y="168" font-size="11" fill="#455A64" text-anchor="middle">ёмкостные v2.0, 3 провода</text>
@@ -83,11 +82,11 @@
 <rect x="1140" y="530" width="184" height="58" rx="8" fill="#F3E5F5" stroke="#8E24AA" stroke-width="2"/>
 <text x="1232" y="556" font-size="14" font-weight="bold" fill="#263238" text-anchor="middle">Насос 12 В</text>
 <text x="1232" y="578" font-size="11" fill="#455A64" text-anchor="middle">через 1-канальное реле</text>
-<path d="M1140 149 L1116 149" fill="none" stroke="#00838F" stroke-width="3"/>
-<path d="M1140 247 L1116 247" fill="none" stroke="#00838F" stroke-width="3"/>
-<path d="M1140 329 L1116 329" fill="none" stroke="#00838F" stroke-width="3"/>
-<path d="M1116 149 L1116 539 L1060 539" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 149 L1112 149" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 247 L1112 247" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1140 329 L1112 329" fill="none" stroke="#00838F" stroke-width="3"/>
+<path d="M1112 149 L1112 539 L1060 539" fill="none" stroke="#00838F" stroke-width="3"/>
 <path d="M1140 457 L1128 457 L1128 720 L20 720 L20 514 L161 514" fill="none" stroke="#8E24AA" stroke-width="3" stroke-dasharray="6 4"/>
 <path d="M1140 559 L1128 559" fill="none" stroke="#8E24AA" stroke-width="3" stroke-dasharray="6 4"/>
-<text x="700" y="712" font-size="11" fill="#6A1B9A" text-anchor="middle">силовые провода 12 В идут к контактам релейных модулей, минуя плату</text>
+<text x="700" y="740" font-size="11" fill="#6A1B9A" text-anchor="middle">силовые провода 12 В идут к контактам релейных модулей, минуя плату</text>
 </svg>

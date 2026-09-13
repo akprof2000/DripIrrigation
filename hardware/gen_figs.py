@@ -101,11 +101,12 @@ c.line([right(psu), (PX, right(psu)[1])], '#D81B60', 4, arrow=True)
 r8 = c.box('r8', 40, 330, 'Реле 8 кан. 5 В, H/L', ['клапаны V1…V8', 'перемычки в положении L'], *ORANGE, tsize=14, lsize=11)
 r4 = c.box('r4', 40, 440, 'Реле 1 + 2 кан. 5 В, H/L', ['насос · налив · дренаж', 'перемычки в положении H'], *ORANGE, tsize=14, lsize=11)
 ib = c.boxes['idc']
-yb = ib[1] + ib[3] + 8
-c.line([bottom(ib), (bottom(ib)[0], yb)], '#FB8C00', 3)
-c.line([(bottom(ib)[0], yb), (PX - 30, yb), (PX - 30, right(r8)[1]), right(r8)], '#FB8C00', 3)
-c.line([(PX - 30, yb), (PX - 30, right(r4)[1]), right(r4)], '#FB8C00', 3)
-c.text(mid(r4)[0], r4[1] + r4[3] + 18, 'провода к клеммам реле', 11, '#E65100')
+# от левого края блока «Клеммы к реле» — вниз в зазор между рядами, влево за плату, к каждому реле
+xg = ib[0] - 8                       # вертикаль в зазоре между блоками клемм
+yg = ib[1] + ib[3] + 8               # горизонталь в зазоре между рядами 4 и 5
+c.line([left(ib), (xg, left(ib)[1]), (xg, yg), (PX - 30, yg), (PX - 30, right(r8)[1]), right(r8)], '#FB8C00', 3)
+c.line([(PX - 30, yg), (PX - 30, right(r4)[1]), right(r4)], '#FB8C00', 3)
+c.text(mid(r4)[0], r4[1] + r4[3] + 16, 'провода к клеммам реле', 11, '#E65100')
 
 # внешние блоки справа
 RX = PX + PW + 60
@@ -116,14 +117,16 @@ v = c.box('valves', RX, 420, 'Клапаны 12 В ×8', ['на контакты
 pm = c.box('pump', RX, 530, 'Насос 12 В', ['через 1-канальное реле'], *PURPLE, tsize=14, lsize=11)
 t3 = c.boxes['term3']
 xr = PX + PW
+xs = RX - 28
 for b in (s1, s2, s3):
-    c.line([left(b), (RX - 24, left(b)[1])], '#00838F', 3)
-c.line([(RX - 24, left(s1)[1]), (RX - 24, right(t3)[1]), right(t3)], '#00838F', 3)
+    c.line([left(b), (xs, left(b)[1])], '#00838F', 3)
+c.line([(xs, left(s1)[1]), (xs, right(t3)[1]), right(t3)], '#00838F', 3)
 # силовые провода к реле (пунктир), обходят плату снизу
 yd = PY + PH + 30
-c.line([left(v), (RX - 12, left(v)[1]), (RX - 12, yd), (20, yd), (20, bottom(r4)[1]), bottom(r4)], '#8E24AA', 3, dash='6 4')
-c.line([left(pm), (RX - 12, left(pm)[1])], '#8E24AA', 3, dash='6 4')
-c.text(PX + PW / 2, yd - 8, 'силовые провода 12 В идут к контактам релейных модулей, минуя плату', 11, '#6A1B9A')
+xv = RX - 12
+c.line([left(v), (xv, left(v)[1]), (xv, yd), (20, yd), (20, bottom(r4)[1]), bottom(r4)], '#8E24AA', 3, dash='6 4')
+c.line([left(pm), (xv, left(pm)[1])], '#8E24AA', 3, dash='6 4')
+c.text(PX + PW / 2, yd + 20, 'силовые провода 12 В идут к контактам релейных модулей, минуя плату', 11, '#6A1B9A')
 c.save('carrier-blocks.svg')
 
 # ───────────── 2. Питание ─────────────
@@ -133,25 +136,25 @@ f1 = c.box('f1', 250, 128, 'F1 5 А', [], *GREY, tsize=13, minw=70)
 d1 = c.box('d1', 360, 128, 'Q1 MOSFET', [], *GREY, tsize=13)
 c.line([right(psu), left(f1)], '#D81B60', 4); c.line([right(f1), left(d1)], '#D81B60', 4)
 c.text(mid(f1)[0], f1[1] + f1[3] + 16, 'предохранитель', 11, '#78909C'); c.text(mid(d1)[0], d1[1] + d1[3] + 16, 'переполюсовка', 11, '#78909C')
-X1, X2 = 560, 1360
+X1, X2 = 620, 1360
 def rail(y, color, name):
-    c.line([(X1, y), (X2, y)], color, 6); c.text(X1 - 12, y + 5, name, 15, color, 'end', True)
+    c.line([(X1, y), (X2, y)], color, 6); c.text(X1 - 14, y + 5, name, 15, color, 'end', True)
 def taps(y, color, items, yl=48):
     n = len(items); step = (X2 - X1 - 300) / max(n - 1, 1)
     for i, t in enumerate(items):
         x = X1 + 40 + i * step
-        c.line([(x, y), (x, y + yl)], color, 3, arrow=True)
+        c.line([(x, y + 3), (x, y + yl)], color, 3, arrow=True)
         c.text(x, y + yl + 18, t, 12)
 Y12, Y5, Y33 = right(d1)[1], 330, 510
-c.line([right(d1), (X1, Y12)], '#D81B60', 4)
+c.line([right(d1), (X1 - 70, Y12)], '#D81B60', 4)
 rail(Y12, '#D81B60', '+12 В'); rail(Y5, '#FB8C00', '+5 В'); rail(Y33, '#43A047', '+3,3 В')
 taps(Y12, '#D81B60', ['COM реле ×8 → клапаны', 'F2 3 А → реле → насос', 'C1 1000 мкФ'])
 taps(Y5, '#FB8C00', ['ESP32 5V', 'реле 8 кан.', 'реле 1 кан.', 'реле 2 кан.', 'YF-S201'])
 taps(Y33, '#43A047', ['PCF8574 · 4051', 'DS3231 · SD', 'датчики (влажность по JP1)', 'подтяжки'])
 dc5 = c.box('dc5', X2 - 150, Y12 + 60, 'DC-DC 12→5', ['TO-220, 3 pin'], *PINK, tsize=13, lsize=11)
 dc3 = c.box('dc3', X2 - 150, Y5 + 60, 'DC-DC 5→3,3', ['TO-220, 3 pin'], *PINK, tsize=13, lsize=11)
-c.line([(mid(dc5)[0], Y12), top(dc5)], '#D81B60', 3, arrow=True); c.line([bottom(dc5), (mid(dc5)[0], Y5)], '#FB8C00', 3)
-c.line([(mid(dc3)[0], Y5), top(dc3)], '#FB8C00', 3, arrow=True); c.line([bottom(dc3), (mid(dc3)[0], Y33)], '#43A047', 3)
+c.line([(mid(dc5)[0], Y12), (mid(dc5)[0], top(dc5)[1] - 4)], '#D81B60', 3, arrow=True); c.line([bottom(dc5), (mid(dc5)[0], Y5)], '#FB8C00', 3)
+c.line([(mid(dc3)[0], Y5), (mid(dc3)[0], top(dc3)[1] - 4)], '#FB8C00', 3, arrow=True); c.line([bottom(dc3), (mid(dc3)[0], Y33)], '#43A047', 3)
 c.note(40, 600, 1320, [
     'Каждый из трёх релейных модулей получает +5 В и GND со своей клеммы. 11 катушек по 70 мА и ESP32 — до 1,2 А, поэтому DC-DC 12→5 не слабее 2 А.',
     'Восемь клапанов по 0,3–0,6 А ≈ 4 А, отсюда блок 5 А. Насос 12 В до 3 А через F2 и реле; мощнее — отдельный источник 12 В.',
@@ -185,9 +188,10 @@ for i in range(8):
 r4 = c.box('r4', RX, 330, 'РЕЛЕ 1 кан. + 2 кан. на стойках М3', ['', '', 'насос · налив · дренаж'], *ORANGE, tsize=14, lsize=11, w=430)
 for i in range(3):
     c.o.append('<rect x="%d" y="%d" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>' % (RX + 80 + i * 100, 362))
-c.line([(PX + PW - 60, PY + 60), (PX + PW + 20, PY + 60), (PX + PW + 20, left(r8)[1]), left(r8)], '#E65100', 4)
-c.line([(PX + PW - 30, PY + 60), (PX + PW + 32, PY + 60), (PX + PW + 32, left(r4)[1]), left(r4)], '#E65100', 4)
-c.text(PX + PW + 40, left(r4)[1] + 60, 'провода к клеммам реле, концы в наконечниках', 11, '#E65100', 'start')
+pw = c.boxes['pwr']
+c.line([right(pw), (PX + PW + 18, right(pw)[1]), (PX + PW + 18, left(r8)[1]), left(r8)], '#E65100', 4)
+c.line([(PX + PW + 18, right(pw)[1]), (PX + PW + 18, left(r4)[1]), left(r4)], '#E65100', 4)
+c.text(RX, r4[1] + r4[3] + 18, 'провода к клеммам реле, концы в наконечниках', 11, '#E65100', 'start')
 c.box('psu', RX, 500, 'Источник питания 12 В 5 А', ['провод на клеммник J1 платы'], *PINK, tsize=13, lsize=11, w=430)
 # гермовводы
 for i, t in enumerate(['питание 12 В', 'датчики', 'датчики', 'клапаны', 'насос']):

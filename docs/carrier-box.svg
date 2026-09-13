@@ -50,9 +50,9 @@
 <rect x="760" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
 <rect x="860" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
 <rect x="960" y="362" width="60" height="28" fill="#FFFFFF" stroke="#FB8C00"/>
-<path d="M570 200 L650 200 L650 193 L680 193" fill="none" stroke="#E65100" stroke-width="4"/>
-<path d="M600 200 L662 200 L662 375 L680 375" fill="none" stroke="#E65100" stroke-width="4"/>
-<text x="670" y="435" font-size="11" fill="#E65100" text-anchor="start">провода к клеммам реле, концы в наконечниках</text>
+<path d="M600 192 L648 192 L648 193 L680 193" fill="none" stroke="#E65100" stroke-width="4"/>
+<path d="M648 192 L648 375 L680 375" fill="none" stroke="#E65100" stroke-width="4"/>
+<text x="680" y="438" font-size="11" fill="#E65100" text-anchor="start">провода к клеммам реле, концы в наконечниках</text>
 <rect x="680" y="500" width="430" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
 <text x="895" y="525" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">Источник питания 12 В 5 А</text>
 <text x="895" y="547" font-size="11" fill="#455A64" text-anchor="middle">провод на клеммник J1 платы</text>

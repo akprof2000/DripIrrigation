@@ -14,36 +14,36 @@
 <path d="M348 146 L360 146" fill="none" stroke="#D81B60" stroke-width="4"/>
 <text x="299" y="181" font-size="11" fill="#78909C" text-anchor="middle">предохранитель</text>
 <text x="413" y="181" font-size="11" fill="#78909C" text-anchor="middle">переполюсовка</text>
-<path d="M466 146 L560 146" fill="none" stroke="#D81B60" stroke-width="4"/>
-<path d="M560 146 L1360 146" fill="none" stroke="#D81B60" stroke-width="6"/>
-<text x="548" y="151" font-size="15" fill="#D81B60" text-anchor="end" font-weight="bold">+12 В</text>
-<path d="M560 330 L1360 330" fill="none" stroke="#FB8C00" stroke-width="6"/>
-<text x="548" y="335" font-size="15" fill="#FB8C00" text-anchor="end" font-weight="bold">+5 В</text>
-<path d="M560 510 L1360 510" fill="none" stroke="#43A047" stroke-width="6"/>
-<text x="548" y="515" font-size="15" fill="#43A047" text-anchor="end" font-weight="bold">+3,3 В</text>
-<path d="M600 146 L600 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
-<text x="600" y="212" font-size="12" fill="#37474F" text-anchor="middle">COM реле ×8 → клапаны</text>
-<path d="M850 146 L850 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
-<text x="850" y="212" font-size="12" fill="#37474F" text-anchor="middle">F2 3 А → реле → насос</text>
-<path d="M1100 146 L1100 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M466 146 L550 146" fill="none" stroke="#D81B60" stroke-width="4"/>
+<path d="M620 146 L1360 146" fill="none" stroke="#D81B60" stroke-width="6"/>
+<text x="606" y="151" font-size="15" fill="#D81B60" text-anchor="end" font-weight="bold">+12 В</text>
+<path d="M620 330 L1360 330" fill="none" stroke="#FB8C00" stroke-width="6"/>
+<text x="606" y="335" font-size="15" fill="#FB8C00" text-anchor="end" font-weight="bold">+5 В</text>
+<path d="M620 510 L1360 510" fill="none" stroke="#43A047" stroke-width="6"/>
+<text x="606" y="515" font-size="15" fill="#43A047" text-anchor="end" font-weight="bold">+3,3 В</text>
+<path d="M660 149 L660 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<text x="660" y="212" font-size="12" fill="#37474F" text-anchor="middle">COM реле ×8 → клапаны</text>
+<path d="M880 149 L880 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<text x="880" y="212" font-size="12" fill="#37474F" text-anchor="middle">F2 3 А → реле → насос</text>
+<path d="M1100 149 L1100 194" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
 <text x="1100" y="212" font-size="12" fill="#37474F" text-anchor="middle">C1 1000 мкФ</text>
-<path d="M600 330 L600 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
-<text x="600" y="396" font-size="12" fill="#37474F" text-anchor="middle">ESP32 5V</text>
-<path d="M725 330 L725 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
-<text x="725" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 8 кан.</text>
-<path d="M850 330 L850 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
-<text x="850" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 1 кан.</text>
-<path d="M975 330 L975 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
-<text x="975" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 2 кан.</text>
-<path d="M1100 330 L1100 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M660 333 L660 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="660" y="396" font-size="12" fill="#37474F" text-anchor="middle">ESP32 5V</text>
+<path d="M770 333 L770 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="770" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 8 кан.</text>
+<path d="M880 333 L880 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="880" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 1 кан.</text>
+<path d="M990 333 L990 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<text x="990" y="396" font-size="12" fill="#37474F" text-anchor="middle">реле 2 кан.</text>
+<path d="M1100 333 L1100 378" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
 <text x="1100" y="396" font-size="12" fill="#37474F" text-anchor="middle">YF-S201</text>
-<path d="M600 510 L600 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
-<text x="600" y="576" font-size="12" fill="#37474F" text-anchor="middle">PCF8574 · 4051</text>
-<path d="M766 510 L766 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
-<text x="766" y="576" font-size="12" fill="#37474F" text-anchor="middle">DS3231 · SD</text>
-<path d="M933 510 L933 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
-<text x="933" y="576" font-size="12" fill="#37474F" text-anchor="middle">датчики (влажность по JP1)</text>
-<path d="M1100 510 L1100 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M660 513 L660 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="660" y="576" font-size="12" fill="#37474F" text-anchor="middle">PCF8574 · 4051</text>
+<path d="M806 513 L806 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="806" y="576" font-size="12" fill="#37474F" text-anchor="middle">DS3231 · SD</text>
+<path d="M953 513 L953 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
+<text x="953" y="576" font-size="12" fill="#37474F" text-anchor="middle">датчики (влажность по JP1)</text>
+<path d="M1100 513 L1100 558" fill="none" stroke="#43A047" stroke-width="3" marker-end="url(#arr)"/>
 <text x="1100" y="576" font-size="12" fill="#37474F" text-anchor="middle">подтяжки</text>
 <rect x="1210" y="206" width="122" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
 <text x="1271" y="231" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 12→5</text>
@@ -51,9 +51,9 @@
 <rect x="1210" y="390" width="122" height="57" rx="8" fill="#FCE4EC" stroke="#D81B60" stroke-width="2"/>
 <text x="1271" y="415" font-size="13" font-weight="bold" fill="#263238" text-anchor="middle">DC-DC 5→3,3</text>
 <text x="1271" y="437" font-size="11" fill="#455A64" text-anchor="middle">TO-220, 3 pin</text>
-<path d="M1271 146 L1271 206" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M1271 146 L1271 202" fill="none" stroke="#D81B60" stroke-width="3" marker-end="url(#arr)"/>
 <path d="M1271 263 L1271 330" fill="none" stroke="#FB8C00" stroke-width="3"/>
-<path d="M1271 330 L1271 390" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
+<path d="M1271 330 L1271 386" fill="none" stroke="#FB8C00" stroke-width="3" marker-end="url(#arr)"/>
 <path d="M1271 447 L1271 510" fill="none" stroke="#43A047" stroke-width="3"/>
 <rect x="40" y="600" width="1320" height="76" rx="8" fill="#FFFDE7" stroke="#F9A825" stroke-width="2"/>
 <text x="56" y="624" font-size="12" fill="#5D4037" text-anchor="start">Каждый из трёх релейных модулей получает +5 В и GND со своей клеммы. 11 катушек по 70 мА и ESP32 — до 1,2 А, поэтому DC-DC 12→5 не слабее 2 А.</text>
