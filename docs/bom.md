@@ -18,35 +18,35 @@
 | 9 | Реле H/L, 1 канал, 5 В | 1 | вариант «1 Channel 5V» | [товар](https://aliexpress.ru/item/1005005512612348.html?sku_id=12000033367250061) |
 | 10 | Датчик освещённости LM393 | 1 | выход DO; ставится в гнездо на плате; угловые штыри заменить прямыми | [товар](https://aliexpress.ru/item/1005008442854218.html?sku_id=12000045155529451) |
 | 10а | Фоторезистор GL5528 | 1 | выносной, вместо выпаянного с модуля (или используйте родной) | [поиск](https://aliexpress.ru/wholesale?SearchText=GL5528+photoresistor) |
-| 10б | Кабель на 2 провода с колодками 2,54 мм | 1 | мама–мама, 10–15 см, провода в одной колодке | [поиск](https://aliexpress.ru/wholesale?SearchText=2pin+dupont+cable+female+female+2.54) |
+| 10б | Кабель Dupont 2P, колодки 2,54 мм | 1 | вариант **10CM**, лот 10 шт. | [товар](https://aliexpress.ru/item/1005004560106052.html?sku_id=12000048220702533) |
 | 11 | Ёмкостный датчик влажности v2.0 | 8 | лот 5 шт. → 2 лота; микросхема TLC555 | [товар](https://aliexpress.ru/item/1005009040921501.html?sku_id=12000047682480026) |
 | 12 | Датчик дождя Rain Seer, проводной | 1 | вариант «Wired Rain Sensor2»; сухой контакт, замыкается при дожде | [товар](https://aliexpress.ru/item/1005004442230539.html?sku_id=12000029194430427) |
 | 13 | Расходомер YF-S201 | 1 | резьба под вашу магистраль | [поиск](https://aliexpress.ru/wholesale?SearchText=YF-S201) |
-| 14 | Импульсный DC-DC 12→5 В K7805-2000R3 | 1 | **импульсный**, 2 А, 3 вывода IN GND OUT; не путать с линейным L7805 | [поиск](https://aliexpress.ru/wholesale?SearchText=K7805-2000R3) |
-| 15 | Импульсный DC-DC 5→3,3 В K7803-1000R3 | 1 | **импульсный**, 1 А, 3 вывода IN GND OUT | [поиск](https://aliexpress.ru/wholesale?SearchText=K7803-1000R3) |
+| 14 | Импульсный DC-DC 12→5 В K7805-2000R3 | 1 | вариант **K7805-2000R3** (выбран в ссылке); 2 А, IN GND OUT | [товар](https://aliexpress.ru/item/1005012171799231.html?sku_id=12000057678077288) |
+| 15 | Импульсный DC-DC 5→3,3 В K7803-1000R3 | 1 | вариант **K7803-1000R3** (выбран в ссылке); 1 А, IN GND OUT | [товар](https://aliexpress.ru/item/1005012171799231.html?sku_id=12000057678077290) |
 | 16 | Источник питания 12 В | 1 | не менее 5 А | [поиск](https://aliexpress.ru/wholesale?SearchText=12V+5A+power+supply) |
 
 ## Микросхемы
 
 | # | Что | Кол-во | Что проверить | Ссылка |
 |---|---|---|---|---|
-| 17 | PCF8574P | 1 | корпус DIP-16, **без буквы A** (PCF8574AP не подходит) | [поиск](https://aliexpress.ru/wholesale?SearchText=PCF8574P+DIP-16) |
-| 18 | 74HC4051 | 1 | корпус DIP-16: CD74HC4051E или SN74HC4051N | [поиск](https://aliexpress.ru/wholesale?SearchText=CD74HC4051E+DIP) |
+| 17 | PCF8574P | 1 | вариант **5pcs**, DIP-16, без буквы A | [товар](https://aliexpress.ru/item/1005009014808124.html?sku_id=12000047583092003) |
+| 18 | 74HC4051N | 1 | DIP-16, лот 10 шт. | [товар](https://aliexpress.ru/item/1_492703621.html?sku_id=5000002488096960) |
 
 ## Детали для пайки на плату
 
 | # | Поз. | Что | Кол-во | Что проверить | Ссылка |
 |---|---|---|---|---|---|
-| 19 | U1 | гребёнка-мама 1×20, круглые контакты | 2 | шаг 2,54, machined; отрезать до 1×19 | [поиск](https://aliexpress.ru/wholesale?SearchText=machined+female+header+2.54+1x20) |
-| 20 | J8 | гребёнка-мама 1×8 | 2 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=female+header+2.54+1x8) |
-| 21 | J9 | гребёнка-мама 1×6 | 1 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=female+header+2.54+1x6) |
-| 21а | U6 | гребёнка-мама 1×3 | 1 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=female+header+2.54+1x3) |
-| 21б | JL1 | штыри 1×2 (и 2 шт. на модуль) | 2 | шаг 2,54, режутся из гребёнки 1×40 | [поиск](https://aliexpress.ru/wholesale?SearchText=pin+header+2.54+1x40) |
-| 22 | U4, U5 | панелька DIP-16 | 2 | цанговая лучше | [поиск](https://aliexpress.ru/wholesale?SearchText=DIP-16+IC+socket) |
-| 23 | J1, J3, J4, J11, J12 | клеммник 2P | 5 | шаг **5,08 мм** | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+2P) |
-| 24 | J7, J10, S1–S8 | клеммник 3P | 10 | шаг 5,08 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+3P) |
-| 25 | J5 | клеммник 4P | 1 | шаг 5,08 мм | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+4P) |
-| 26 | J6 | клеммник 10P | 1 | шаг 5,08 мм; можно 5 шт. 2P | [поиск](https://aliexpress.ru/wholesale?SearchText=KF2EDG+5.08+10P) |
+| 19 | U1 | гребёнка-мама 1×20 | 2 | вариант **20P**, лот 10 шт.; отрезать до 1×19 | [товар](https://aliexpress.ru/item/1005006533889843.html?sku_id=12000037557939271) |
+| 20 | J8 | гребёнка-мама 1×8 | 2 | вариант **8P**, тот же лот | [товар](https://aliexpress.ru/item/1005006533889843.html?sku_id=12000037557939265) |
+| 21 | J9 | гребёнка-мама 1×6 | 1 | вариант **6P**, тот же лот | [товар](https://aliexpress.ru/item/1005006533889843.html?sku_id=12000037557939263) |
+| 21а | U6 | гребёнка-мама 1×3 | 1 | вариант **3P**, тот же лот | [товар](https://aliexpress.ru/item/1005006533889843.html?sku_id=12000037557939260) |
+| 21б | JL1, JP1 | штыри 1×20, режутся | 1 | лот 10 шт.: JL1 (1×2), два штыря на модуль света, JP1 (1×3) | [товар](https://aliexpress.ru/item/4000386932711.html?sku_id=10000001581997635) |
+| 22 | U4, U5 | панелька DIP-16 | 2 | лот 10 шт. | [товар](https://aliexpress.ru/item/4000004724401.html?sku_id=10000000013372779) |
+| 23 | J1, J3, J4, J11, J12 | клеммник KF2EDG 2P | 5 | **Прямоугольный**, 10 пар, вариант **2P** | [товар](https://aliexpress.ru/item/1_438686192.html?sku_id=5000002212067168) |
+| 24 | J7, J10, S1–S8 | клеммник KF2EDG 3P | 10 | Прямоугольный, 10 пар, вариант **3P** | [товар](https://aliexpress.ru/item/1_438686192.html?sku_id=5000002212067167) |
+| 25 | J5 | клеммник KF2EDG 4P | 1 | Прямоугольный, 5 пар, вариант **4P** | [товар](https://aliexpress.ru/item/1_438686192.html?sku_id=5000002212067158) |
+| 26 | J6 | клеммник KF2EDG 10P | 1 | Прямоугольный, 5 пар, вариант **10P** | [товар](https://aliexpress.ru/item/1_438686192.html?sku_id=5000002212067154) |
 | 27 | F1, F2 | держатель предохранителя на плату | 2 | вариант «5x20mm», 2PCS; выводы через 22 мм | [товар](https://aliexpress.ru/item/1005003003740005.html?sku_id=12000023167893560) |
 | 28 | F1, F2 | предохранители 5×20 | по 1 | модель **5X20MM**; два лота по 10 шт.: вариант **5A** для F1 и **3A** для F2 | [товар](https://aliexpress.ru/item/1005013054362366.html?sku_id=12000060114427576) |
 | 29 | Q1 | P-MOSFET IRF4905 | 1 | вариант **IRF4905** (выбран в ссылке), лот 10 шт.; корпус TO-220 | [товар](https://aliexpress.ru/item/1005009078862102.html?sku_id=12000047836545481) |
@@ -59,7 +59,7 @@
 | 33а | R8 | резистор 1 кОм 0,25 Вт | 1 | вариант **1K**, тот же лот | [товар](https://aliexpress.ru/item/1005011888190705.html?sku_id=12000056892789364) |
 | 33б | C4, C5, C6 | конденсатор 100 нФ керамический | 3 | вариант **100NF** (выбран в ссылке), лот 100 шт.; шаг выводов 5 мм, при 2,5 мм выводы разогнуть | [товар](https://aliexpress.ru/item/1005011778544822.html?sku_id=12000056520661652) |
 | 34 | SW1 | кнопка тактовая 6×6 | 1 | 6×6×6 мм, 4 вывода, лот 50 шт. | [товар](https://aliexpress.ru/item/32815841388.html?sku_id=64712982838) |
-| 35 | JP1 | штыри 1×3 + джампер | 1 | шаг 2,54 | [поиск](https://aliexpress.ru/wholesale?SearchText=jumper+cap+2.54+pin+header) |
+| 35 | JP1 | джампер 2,54 мм | 1 | штыри — из строки 21б | [товар](https://aliexpress.ru/item/1005008466863615.html?sku_id=12000045263870726) |
 
 ## Монтаж
 
@@ -74,4 +74,4 @@
 
 | # | Что | Кол-во | Параметры | Где |
 |---|---|---|---|---|
-| 40 | Печатная плата 150×110 мм | 5 (минимальный заказ) | 2 слоя, 1,6 мм, архив `hardware/DripCarrier-gerbers.zip` (собирается командой `bash hardware/kicad-docker.sh`, в git не хранится) | [JLCPCB](https://jlcpcb.com) или [PCBWay](https://www.pcbway.com) |
+| 40 | Печатная плата 150×110 мм | по минимальному заказу | 2 слоя, 1,6 мм, архив `hardware/DripCarrier-gerbers.zip` (собирается командой `bash hardware/kicad-docker.sh`, в git не хранится) | [Service Devices](https://service-devices.com/pechatnie-plati-zakaz/) |
