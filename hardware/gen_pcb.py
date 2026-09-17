@@ -529,6 +529,16 @@ for ref, plus, minus in [('J1', '+12', 'GND'), ('J3', '+12', 'GND'), ('J4', '+12
     p2 = next(p_ for p_ in pads if p_['ref'] == ref and p_['pin'] == '2')
     out.append(gr_text(plus, p1['x'], p1['y'] + 5.4, 0.9))
     out.append(gr_text(minus, p2['x'], p2['y'] + 5.4, 0.9))
+# подписи выводов гнёзд модулей: часы, датчик света, штыри фоторезистора
+for ref, names, dx in [('J9', ['32K', 'SQW', 'SCL', 'SDA', 'VCC', 'GND'], -3.6),
+                       ('U6', ['VCC', 'GND', 'DO'], -3.6)]:
+    for pin, nm in zip('123456', names):
+        pp = next(p_ for p_ in pads if p_['ref'] == ref and p_['pin'] == pin)
+        out.append(gr_text(nm, pp['x'] + dx, pp['y'] + 0.4, 0.8))
+for pin, nm, dy in [('1', 'LDR1', -3.6), ('2', 'LDR2', 2.8)]:
+    pp = next(p_ for p_ in pads if p_['ref'] == 'JL1' and p_['pin'] == pin)
+    out.append(gr_text(nm, pp['x'] + 1.27, pp['y'] + dy, 0.8))
+
 # полярность: плюс электролитов, катод диода, выводы DC-DC
 for t, x, y in [('+', 54.5, 14.2), ('+', 78.75, 16.8), ('+', 98.75, 16.8), ('G', 38.92, 17.6), ('S', 49.08, 17.6), ('TVS', 143.0, 39.0),
                 ('IN', 67.46, 17.6), ('OUT', 72.54, 17.6), ('IN', 87.46, 17.6), ('OUT', 92.54, 17.6)]:
